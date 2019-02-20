@@ -1,0 +1,20 @@
+subscription Tasks{
+  tasks {
+    value{
+      uuid
+      status
+      access {
+        access
+        userid
+      }
+      created
+      nameLabel
+      nameDescription
+      finished
+      progress
+      result
+      residentOn
+    }
+    changeType
+  }
+}

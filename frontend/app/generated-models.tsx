@@ -763,6 +763,56 @@ export namespace StorageList {
   export type Srs = StorageListFragment.Fragment;
 }
 
+export namespace Tasks {
+  export type Variables = {};
+
+  export type Subscription = {
+    __typename?: "Subscription";
+
+    tasks: Tasks;
+  };
+
+  export type Tasks = {
+    __typename?: "GTasksSubscription";
+
+    value: Value;
+
+    changeType: Change;
+  };
+
+  export type Value = {
+    __typename?: "GTask";
+
+    uuid: string;
+
+    status: Maybe<string>;
+
+    access: (Maybe<Access>)[];
+
+    created: DateTime;
+
+    nameLabel: string;
+
+    nameDescription: string;
+
+    finished: DateTime;
+
+    progress: number;
+
+    result: Maybe<string>;
+
+    residentOn: Maybe<string>;
+  };
+
+  export type Access = {
+    __typename?: "GAccessEntry";
+
+    access: (Maybe<string>)[];
+
+    userid: string;
+  };
+}
+
 export namespace TemplateList {
   export type Variables = {};
 
@@ -2842,6 +2892,63 @@ export namespace StorageList {
       Document,
       operationOptions
     );
+  }
+}
+export namespace Tasks {
+  export const Document = gql`
+    subscription Tasks {
+      tasks {
+        value {
+          uuid
+          status
+          access {
+            access
+            userid
+          }
+          created
+          nameLabel
+          nameDescription
+          finished
+          progress
+          result
+          residentOn
+        }
+        changeType
+      }
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Subscription<Subscription, Variables>
+          subscription={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
+    TChildProps;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<
+      TProps,
+      Subscription,
+      Variables,
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 export namespace TemplateList {
@@ -5096,6 +5203,8 @@ export namespace SubscriptionResolvers {
     pools?: PoolsResolver<GPoolsSubscription, TypeParent, Context>;
     /** Updates for a particular Pool */
     pool?: PoolResolver<Maybe<GPool>, TypeParent, Context>;
+    /** Updates for all user's tasks */
+    tasks?: TasksResolver<GTasksSubscription, TypeParent, Context>;
     /** Updates for a particular XenServer Task */
     task?: TaskResolver<Maybe<GTask>, TypeParent, Context>;
     /** Updates for a particular Playbook installation Task */
@@ -5154,6 +5263,11 @@ export namespace SubscriptionResolvers {
     uuid: string;
   }
 
+  export type TasksResolver<
+    R = GTasksSubscription,
+    Parent = {},
+    Context = {}
+  > = SubscriptionResolver<R, Parent, Context>;
   export type TaskResolver<
     R = Maybe<GTask>,
     Parent = {},
@@ -5235,6 +5349,26 @@ export namespace GPoolsSubscriptionResolvers {
   export type ValueResolver<
     R = GPool,
     Parent = GPoolsSubscription,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
+
+export namespace GTasksSubscriptionResolvers {
+  export interface Resolvers<Context = {}, TypeParent = GTasksSubscription> {
+    /** Change type */
+    changeType?: ChangeTypeResolver<Change, TypeParent, Context>;
+
+    value?: ValueResolver<GTask, TypeParent, Context>;
+  }
+
+  export type ChangeTypeResolver<
+    R = Change,
+    Parent = GTasksSubscription,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type ValueResolver<
+    R = GTask,
+    Parent = GTasksSubscription,
     Context = {}
   > = Resolver<R, Parent, Context>;
 }
@@ -5477,6 +5611,7 @@ export interface IResolvers<Context = {}> {
   GvMsSubscription?: GvMsSubscriptionResolvers.Resolvers<Context>;
   GHostsSubscription?: GHostsSubscriptionResolvers.Resolvers<Context>;
   GPoolsSubscription?: GPoolsSubscriptionResolvers.Resolvers<Context>;
+  GTasksSubscription?: GTasksSubscriptionResolvers.Resolvers<Context>;
   GTask?: GTaskResolvers.Resolvers<Context>;
   PlaybookTasksSubscription?: PlaybookTasksSubscriptionResolvers.Resolvers<
     Context
@@ -6095,6 +6230,8 @@ export interface Subscription {
   pools: GPoolsSubscription;
   /** Updates for a particular Pool */
   pool?: Maybe<GPool>;
+  /** Updates for all user's tasks */
+  tasks: GTasksSubscription;
   /** Updates for a particular XenServer Task */
   task?: Maybe<GTask>;
   /** Updates for a particular Playbook installation Task */
@@ -6122,6 +6259,13 @@ export interface GPoolsSubscription {
   changeType: Change;
 
   value: GPool;
+}
+
+export interface GTasksSubscription {
+  /** Change type */
+  changeType: Change;
+
+  value: GTask;
 }
 
 export interface GTask extends GAclXenObject {

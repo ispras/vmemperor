@@ -102,7 +102,9 @@ class Subscription(ObjectType):
     pools = graphene.Field(MakeSubscriptionWithChangeType(GPool), required=True, description="Updates for all pools available in VMEmperor")
     pool = graphene.Field(MakeSubscription(GPool), uuid=graphene.NonNull(graphene.ID), description="Updates for a particular Pool")
 
+    tasks = graphene.Field(MakeSubscriptionWithChangeType(GTask), required=True, description="Updates for all user's tasks")
     task = graphene.Field(MakeSubscription(GTask),  uuid=graphene.NonNull(graphene.ID), description="Updates for a particular XenServer Task")
+
 
     playbook_task = graphene.Field(MakeSubscription(PlaybookTask), id=graphene.NonNull(graphene.ID), description="Updates for a particular Playbook installation Task")
     playbook_tasks = graphene.Field(MakeSubscriptionWithChangeType(PlaybookTask), required=True, description="Updates for all Playbook Tasks")
@@ -110,6 +112,9 @@ class Subscription(ObjectType):
 
     def resolve_task(*args, **kwargs):
         return resolve_item_by_key(GTask, r.db(opts.database), 'tasks', key_name='uuid')(*args, **kwargs)
+
+    def resolve_tasks(*args, **kwargs):
+        return resolve_all_items_changes(GTask, r.db(opts.database), 'tasks')(*args, **kwargs)
 
     def resolve_vms(*args, **kwargs):
         return resolve_all_items_changes(GVM, r.db(opts.database), 'vms')(*args, **kwargs)

@@ -1,4 +1,5 @@
 import collections
+from collections import Mapping
 
 import XenAPI
 from xmlrpc.client import DateTime as xmldt
@@ -319,7 +320,7 @@ class XenObject(metaclass=XenObjectMeta):
         :return: nothing
         '''
         from rethinkdb_tools.helper import CHECK_ER
-
+        from xenadapter.task import Task
         if event['class'] in cls.EVENT_CLASSES:
             if event['operation'] == 'del':
                 CHECK_ER(db.table(cls.db_table_name).get_all(event['ref'], index='ref').delete().run())
@@ -329,9 +330,18 @@ class XenObject(metaclass=XenObjectMeta):
             if not cls.filter_record(record):
                 return
 
+
             if event['operation'] in ('mod', 'add'):
                 new_rec = cls.process_record(auth, event['ref'], record)
                 CHECK_ER(db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
+
+                if 'current_operations' in record and isinstance(record['current_operations'], Mapping):
+                    task_docs = [{
+                        "ref": k,
+                        "object": cls.__name__,
+                        "type": v
+                    } for k, v in record['current_operations'].items()]
+                    CHECK_ER(db.table(Task.db_table_name).update(task_docs).run())
 
     @classmethod
     def create_db(cls, db, indexes=None):
