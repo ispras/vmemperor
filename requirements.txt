@@ -14,3 +14,4 @@ SQLAlchemy==1.2.14
 tornado==5.1.1
 Werkzeug==0.14.1
 ldap3
+sentry-sdk
