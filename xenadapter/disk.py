@@ -1,3 +1,5 @@
+from collections import Sequence, Collection
+
 from handlers.graphql.resolvers.sr import resolve_sr, srType
 from handlers.graphql.resolvers.vm import resolve_vms, vmType
 from xenadapter.sr import SR
@@ -28,11 +30,10 @@ class Attachable:
         for vm_vbd in vm_vbds:
             for vdi_vbd in my_vbds:
                 if vm_vbd == vdi_vbd:
-                    vbd_uuid = self.auth.xen.api.VBD.get_uuid(vm_vbd)
-                    self.log.warning (f"Disk is already attached to {vm} using VBD '{vbd_uuid}'")
-                    return vbd_uuid
+                    self.log.warning (f"Disk is already attached to {vm} using VBD '{vm_vbd}'")
+                    return VBD(vm_vbd)
             try:
-                userdevice = int(self.auth.xen.api.VBD.get_userdevice(vm_vbd))
+                userdevice = int(self.xen.xen.api.VBD.get_userdevice(vm_vbd))
             except ValueError:
                 userdevice = -1
 
@@ -47,20 +48,20 @@ class Attachable:
         'other_config' : {},'qos_algorithm_type': '', 'qos_algorithm_params': {}}
 
         try:
-            vbd_ref =  VBD.create(self.auth, args)
+            vbd_ref =  VBD.create(self.xen, args)
         except XenAPI.Failure as f:
-            raise XenAdapterAPIError(self.auth.xen.log, "Failed to create VBD", f.details)
+            raise XenAdapterAPIError(self.xen.xen.log, "Failed to create VBD", f.details)
 
 
         # Plug
         if vm.get_power_state() == 'Running':
             try:
                 if sync:
-                     vbd = VBD(self.auth, ref=vbd_ref)
+                     vbd = VBD(self.xen, vbd_ref)
                      vbd.plug()
                      return vbd
                 else:
-                    return VBD(self.auth, ref=vbd_ref).async_plug()
+                    return VBD(self.xen, vbd_ref).async_plug()
             except:
                 if sync:
                     return vbd
@@ -68,7 +69,7 @@ class Attachable:
                     return None
         else:
             if sync:
-                return VBD(self.auth, ref=vbd_ref)
+                return VBD(self.xen, vbd_ref)
             else:
                 return None
 
@@ -79,15 +80,13 @@ class Attachable:
     def _detach(self : XenObject, vm, sync=False):
         vbds = vm.get_VBDs()
         for vbd_ref in vbds:
-
-            vdi = self.auth.xen.api.VBD.get_VDI(vbd_ref)
+            vbd = VBD(xen=self.xen, ref=vbd_ref)
+            vdi = VBD.get_VDI()
             if vdi == self.ref:
-                vbd_uuid = self.auth.xen.api.VBD.get_uuid(vbd_ref)
                 break
         else:
             return None
 
-        vbd = VBD(auth=self.auth, uuid=vbd_uuid)
 
         try:
             if sync:
@@ -100,12 +99,12 @@ class Attachable:
 
 
     @classmethod
-    def get_vbd_vms(self, record, auth):
+    def get_vbd_vms(self, record, xen):
 
         def vbd_to_vm_ref(vbd_ref):
             from .vbd import VBD
 
-            vbd = VBD(auth=auth, ref=vbd_ref)
+            vbd = VBD(xen=xen, ref=vbd_ref)
             return vbd.get_VM()
 
         return [vbd_to_vm_ref(ref) for ref in record['VBDs']]
@@ -143,10 +142,10 @@ class ISO(XenObject, Attachable):
         return query.items[0]['content_type'] == 'iso'
 
     @classmethod
-    def process_record(cls, auth, ref, record):
-        record['VMs'] = cls.get_vbd_vms(auth=auth, record=record)
+    def process_record(cls, xen, ref, record):
+        record['VMs'] = cls.get_vbd_vms(xen=xen, record=record)
         del record['VBDs']
-        return super().process_record(auth, ref, record)
+        return super().process_record(xen, ref, record)
 
     def attach(self, vm : VM, sync=False) -> VBD:
         '''
@@ -175,31 +174,37 @@ class VDI(ACLXenObject, Attachable):
     GraphQLType = GVDI
 
     @classmethod
-    def create(cls, auth, sr_uuid, size, name_label = None):
+    def create(cls, xen, sr_ref, size, access : Mapping[str, Collection[str]] = None, name_label = None):
         """
         Creates a VDI of a certain size in storage repository
-        :param sr_uuid: Storage Repository UUID
+        :param sr_ref: Storage Repository ref
         :param size: Disk size
         :param name_label: Name of created disk
         :return: Virtual Disk Image object
         """
-        sr_ref = auth.xen.api.SR.get_by_uuid(sr_uuid)
-        if not (name_label):
-            sr = auth.xen.api.SR.get_record(sr_ref)
-            name_label = sr['name_label'] + ' disk'
 
-        other_config = {}
-        if auth.get_id():
-            other_config['vmemperor_user'] = auth.get_id()
+        if not name_label:
+            sr = SR(xen, sr_ref)
+            name_label = sr.get_name_label() + ' disk'
+
+
 
         args = {'SR': sr_ref, 'virtual_size': str(size), 'type': 'system', \
-                'sharable': False, 'read_only': False, 'other_config': other_config, \
+                'sharable': False, 'read_only': False, 'other_config': {}, \
                 'name_label': name_label}
         try:
-            vdi_ref = auth.xen.api.VDI.create(args)
-            return vdi_ref
+            vdi_ref = VDI.create(xen, args)
+            vdi = VDI(xen, vdi_ref)
+            if access:
+                for k,v in access.items():
+                    for action in v:
+                        vdi.manage_actions()
+
+
+
+
         except XenAPI.Failure as f:
-            raise XenAdapterAPIError(auth.log, "Failed to create VDI:",f.details)
+            raise XenAdapterAPIError(xen.log, "Failed to create VDI:",f.details)
 
 
 
@@ -214,15 +219,15 @@ class VDI(ACLXenObject, Attachable):
         return query.items[0]['content_type'] != 'iso'
 
     @classmethod
-    def process_record(cls, auth, ref, record):
-        record['VMs'] = cls.get_vbd_vms(auth=auth, record=record)
+    def process_record(cls, xen, ref, record):
+        record['VMs'] = cls.get_vbd_vms(xen=xen, record=record)
         del record['VBDs']
-        return super().process_record(auth, ref, record)
+        return super().process_record(xen, ref, record)
 
 
 
     def destroy(self):
-        sr = SR(auth=self.auth, ref=self.get_SR())
+        sr = SR(xen=self.xen, ref=self.get_SR())
         if 'vdi_destroy' in sr.get_allowed_operations():
             self.async_destroy()
             return True
@@ -243,21 +248,21 @@ class VDI(ACLXenObject, Attachable):
 
 
 class VDIorISO:
-    def __new__(cls, auth, uuid=None, ref=None):
-        db = auth.xen.db
+    def __new__(cls, xen, uuid=None, ref=None):
+        db = xen.xen.db
 
         if uuid:
             if db.table(ISO.db_table_name).get(uuid).run():
-                return ISO(auth, uuid, ref)
+                return ISO(xen, uuid, ref)
             elif db.table(VDI.db_table_name).get(uuid).run():
-                return VDI(auth, uuid, ref)
+                return VDI(xen, uuid, ref)
             else:
                 return None
         elif ref:
             if len(db.table(ISO.db_table_name).get_all(ref, index='ref').run().items) == 1:
-                return ISO(auth, uuid, ref)
+                return ISO(xen, uuid, ref)
             elif len(db.table(VDI.db_table_name).get_all(ref, index='ref').run().items) == 1:
-                return VDI(auth, uuid, ref)
+                return VDI(xen, uuid, ref)
             else:
                 return None
 

@@ -150,19 +150,19 @@ class HostMetrics(XenObject):
 
 
             if event['operation'] in ('mod', 'add'):
-                rec = db.table(Host.db_table_name).get_all(event['ref'], index='metrics').pluck('uuid').run().items
+                rec = db.table(Host.db_table_name).get_all(event['ref'], index='metrics').pluck('ref').run().items
                 if len(rec) != 1:
                     auth.xen.log.warning(
                         f"HostMetrics::process_event: Cannot find a Host "
                         f"(or there are more than one) for metrics {event['ref']}")
                     return
 
-                host_uuid = rec[0]['uuid']
-                host = Host(auth=auth, uuid=host_uuid)
+                host_ref = rec[0]['ref']
+                host = Host(auth=auth, ref=host_ref)
                 memory_available = int(host.compute_free_memory())
                 memory_overhead = int(host.compute_memory_overhead())
                 new_rec = {
-                    'uuid': host_uuid,
+                    'ref': host_ref,
                     'live': record['live'],
                     'memory_total': int(record['memory_total']) / 1024, # This is kilobytes
                     'memory_free': int(record['memory_free']) / 1024,

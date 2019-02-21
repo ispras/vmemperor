@@ -1,5 +1,6 @@
 import collections
 from collections import Mapping
+from enum import Flag
 
 import XenAPI
 from xmlrpc.client import DateTime as xmldt
@@ -12,10 +13,11 @@ from rethinkdb import RethinkDB
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.paging import do_paging
+from xenadapter import XenAdapter
 
 r = RethinkDB()
 import logging
-from typing import Optional, Type
+from typing import Optional, Type, Collection
 from xenadapter.helpers import use_logger
 import graphene
 
@@ -45,26 +47,24 @@ class XenObjectMeta(type):
         if name.startswith('async_'):
             name = name[6:]
             from .task import Task
-            def async_method(auth, *args, **kwargs):
+            def async_method(xen, *args, **kwargs):
                 try:
-                    async_method = getattr(auth.xen.api, 'Async')
+                    async_method = getattr(xen.api, 'Async')
                     api = getattr(async_method, cls.api_class)
                     attr = getattr(api, name)
                     ret = attr(*args, **kwargs)
-                    t = Task(auth=auth, ref=ret)
-                    t.manage_actions('run', user=auth.get_id())
-                    return t.uuid
+                    return ret
 
                 except XenAPI.Failure as f:
-                    raise XenAdapterAPIError(auth.xen.log, f"Failed to execute {cls.api_class}::{name} asynchronously", f.details)
+                    raise XenAdapterAPIError(xen.log, f"Failed to execute {cls.api_class}::{name} asynchronously", f.details)
             return async_method
 
-        def method(auth, *args, **kwargs):
+        def method(xen, *args, **kwargs):
             if not hasattr(cls, 'api_class'):
-                raise XenAdapterArgumentError(auth.xen.log, "api_class not specified for XenObject")
+                raise XenAdapterArgumentError(xen.log, "api_class not specified for XenObject")
 
             api_class = getattr(cls, 'api_class')
-            api = getattr(auth.xen.api, api_class)
+            api = getattr(xen.api, api_class)
             attr = getattr(api, name)
 
             try:
@@ -73,7 +73,7 @@ class XenObjectMeta(type):
                     ret = dict_deep_convert(ret)
                 return ret
             except XenAPI.Failure as f:
-                raise XenAdapterAPIError(auth.xen.log, f"Failed to execute static method {api_class}::{name}", f.details)
+                raise XenAdapterAPIError(xen.log, f"Failed to execute static method {api_class}::{name}", f.details)
         return method
 
 
@@ -100,7 +100,6 @@ class GXenObject(graphene.Interface):
     name_label = graphene.Field(graphene.String, required=True, description="a human-readable name")
     name_description = graphene.Field(graphene.String, required=True, description="a human-readable description")
     ref = graphene.Field(graphene.ID, required=True, description="Unique constant identifier/object reference")
-    uuid = graphene.Field(graphene.ID, required=True, description="Unique session-dependent identifier/object reference")
 
 
 class XenObject(metaclass=XenObjectMeta):
@@ -119,12 +118,12 @@ class XenObject(metaclass=XenObjectMeta):
 
 
     def __str__(self):
-        return f"<{self.__class__.__name__} \"{self.uuid}\">"
+        return f"<{self.__class__.__name__} \"{self.ref}\">"
 
     def __repr__(self):
         return self.__str__()
 
-    def __init__(self, auth : BasicAuthenticator,  uuid:str=None , ref : str =None):
+    def __init__(self, xen : XenAdapter, ref : str =None):
         '''
 
         :param auth: authenticator
@@ -132,33 +131,21 @@ class XenObject(metaclass=XenObjectMeta):
         :param uuid: object uuid
         :param ref: object ref or object
         '''
-        self.auth = auth
         # if not isinstance(xen, XenAdapter):
         #          raise AttributeError("No XenAdapter specified")
-        self.log = self.auth.xen.log
-        self.xen = self.auth.xen
+        self.xen = xen
+        self.log = xen.log
 
-        if uuid:
-            if isinstance(uuid, str):
-                self.uuid = uuid
-            else:
-                raise XenAdapterAPIError(auth.xen.log,
-                                         f"Failed to initialize object of type {self.__class__.__name__}: invalid type of uuid. Expected: str, got {uuid.__class__.__name__}: {uuid}")
-            try:
-                getattr(self, 'ref') #uuid check
-            except XenAPI.Failure as f:
-                raise  XenAdapterAPIError(auth.xen.log,
-                                          f"Failed to initialize object of type {self.__class__.__name__} with UUID {self.uuid}",f.details)
-        elif ref:
-            if isinstance(ref, str):
-                self.ref = ref
-            else:
-                raise ValueError(
-                                 f"XenObject:Failed to initialize object of type {self.__class__.__name__}"
-                                 f": invalid type of ref. Expected: str, got {ref.__class__.__name__}")
 
+
+        if isinstance(ref, str):
+            self.ref = ref
         else:
-            raise AttributeError("Not uuid nor ref not specified")
+            raise ValueError(
+                             f"XenObject:Failed to initialize object of type {self.__class__.__name__}"
+                             f": invalid type of ref. Expected: str, got {ref.__class__.__name__}")
+
+
 
 
 
@@ -166,7 +153,7 @@ class XenObject(metaclass=XenObjectMeta):
 
 
     @classmethod
-    def resolve_one(cls, field_name=None, index='uuid'):
+    def resolve_one(cls, field_name=None):
         '''
         Use this method to resolve one XenObject that appears in tables as its uuid under its name
         :param field_name: root's field name to use (by default - this class' name)
@@ -180,8 +167,7 @@ class XenObject(metaclass=XenObjectMeta):
 
         if not field_name:
             field_name = cls.__name__
-        if index not in ('uuid', 'ref'):
-            raise ValueError("Index should be 'uuid' or 'ref'")
+
 
         from handlers.graphql.resolvers import with_connection
 
@@ -189,35 +175,27 @@ class XenObject(metaclass=XenObjectMeta):
         @with_default_authentication
         def resolver(root, info, **kwargs):
 
-            if 'uuid' in kwargs:
-                uuid = kwargs['uuid']
+            if 'ref' in kwargs:
+                ref = kwargs['ref']
             else:
-                uuid = getattr(root, field_name)
+                ref = getattr(root, field_name)
             try:
-                if index == 'uuid':
-                    obj = cls(uuid=uuid, auth=info.context.user_authenticator)
-                else:
-                    obj = cls(ref=uuid, auth=info.context.user_authenticator)
+                obj = cls(ref=ref, xen=info.context.xen)
             except AttributeError:
                 raise NotAuthenticatedException()
             except XenAdapterAPIError as e:
                 if e.details['error_code'] == 'UUID_INVALID':
                     return None
 
-
-
-
-
             obj.check_access(action=None)
 
-            if index is None:
-                record = cls.db.table(cls.db_table_name).get(uuid).run()
+
+            record = cls.db.table(cls.db_table_name).get(ref).run()
+
+            if not record or not len(record):
+                return None
             else:
-                record = cls.db.table(cls.db_table_name).get_all(uuid, index=index).coerce_to('array').run()
-                if not record or not len(record):
-                    return None
-                else:
-                    record = record[0]
+                record = record[0]
 
             return cls.GraphQLType(**record)
 
@@ -243,18 +221,18 @@ class XenObject(metaclass=XenObjectMeta):
         @with_connection
         @with_default_authentication
         def resolver(root, info, **kwargs):
-            if 'uuids' in kwargs:
-                uuids = kwargs['uuids']
+            if 'refs' in kwargs:
+                refs = kwargs['refs']
             else:
-                uuids = getattr(root, field_name)
+                refs = getattr(root, field_name)
             if not index:
-                records = cls.db.table(cls.db_table_name).get_all(*uuids).coerce_to('array').run()
+                records = cls.db.table(cls.db_table_name).get_all(*refs).coerce_to('array').run()
             else:
-                records = cls.db.table(cls.db_table_name).get_all(*uuids, index=index).coerce_to('array').run()
+                records = cls.db.table(cls.db_table_name).get_all(*refs, index=index).coerce_to('array').run()
 
             def create_graphql_type(record):
                 try:
-                    obj = cls(uuid=record['uuid'], auth=info.context.user_authenticator)
+                    obj = cls(ref=record['ref'], auth=info.context.user_authenticator)
                 except AttributeError:
                     raise NotAuthenticatedException()
                 try:
@@ -303,10 +281,11 @@ class XenObject(metaclass=XenObjectMeta):
         return resolver
 
 
-    def check_access(self,  action):
+    def check_access(self, user: str,   action):
         return True
 
-    def manage_actions(self, action,  revoke=False, user=None, group=None):
+
+    def manage_actions(self, actions: Collection, revoke=False, user: str = None):
         pass
 
     @classmethod
@@ -323,7 +302,7 @@ class XenObject(metaclass=XenObjectMeta):
         from xenadapter.task import Task
         if event['class'] in cls.EVENT_CLASSES:
             if event['operation'] == 'del':
-                CHECK_ER(db.table(cls.db_table_name).get_all(event['ref'], index='ref').delete().run())
+                CHECK_ER(db.table(cls.db_table_name).get(event['ref']).delete().run())
                 return
 
             record = event['snapshot']
@@ -341,7 +320,7 @@ class XenObject(metaclass=XenObjectMeta):
                         "object": cls.__name__,
                         "type": v
                     } for k, v in record['current_operations'].items()]
-                    CHECK_ER(db.table(Task.db_table_name).update(task_docs).run())
+                    CHECK_ER(db.table(Task.db_table_name).insert(task_docs, conflict='update').run())
 
     @classmethod
     def create_db(cls, db, indexes=None):
@@ -364,7 +343,7 @@ class XenObject(metaclass=XenObjectMeta):
 
             table_list = db.table_list().run()
             if cls.db_table_name not in table_list:
-                db.table_create(cls.db_table_name, durability='soft', primary_key='uuid').run()
+                db.table_create(cls.db_table_name, durability='soft', primary_key='ref').run()
             index_list = db.table(cls.db_table_name).index_list().coerce_to('array').run()
             for index in index_yielder():
                 if not index in index_list:
@@ -445,38 +424,7 @@ class XenObject(metaclass=XenObjectMeta):
 
     def __getattr__(self, name):
         api = getattr(self.xen.api, self.api_class)
-        if name == 'uuid': #ленивое вычисление uuid по ref
-            def fallback():
-                self.uuid = api.get_uuid(self.ref)
-                self.db_table_name = ""
-            if self.db_table_name:
-                try:
-                    self.uuid = self.db.table(self.db_table_name).get_all(self.ref, index='ref').pluck('uuid').coerce_to('array').run()[0]['uuid']
-                except IndexError as e: # this object is filtered out by DB cache (i.e. for VM can be filtered for being a control domain)
-                    if not self.FAIL_ON_NON_EXISTENCE:
-                        fallback()
-                    else:
-                        raise e
-            else:
-                self.uuid = api.get_uuid(self.ref)
-
-            return self.uuid
-        elif name == 'ref': #ленивое вычисление ref по uuid
-            def fallback():
-                self.ref = api.get_by_uuid(self.uuid)
-                self.db_table_name = ""
-            if self.db_table_name:
-                try:
-                    self.ref = self.db.table(self.db_table_name).get(self.uuid).pluck('ref').run()['ref']
-                except r.ReqlNonExistenceError as e:
-                    if not self.FAIL_ON_NON_EXISTENCE:
-                        fallback()
-                    else:
-                        raise e
-                if not self.ref:
-                    fallback()
-            else:
-                self.ref = api.get_by_uuid(self.uuid)
+        if name == 'ref':
             return self.ref
         if self.GraphQLType and self.db_table_name: #возьми из базы
             if name.startswith("get_"):
@@ -485,7 +433,7 @@ class XenObject(metaclass=XenObjectMeta):
 
                 if field_name in self.GraphQLType._meta.fields:
                     try:
-                        data = self.db.table(self.db_table_name).get(self.uuid).pluck(field_name).run()[field_name]
+                        data = self.db.table(self.db_table_name).get(self.ref).pluck(field_name).run()[field_name]
                         return lambda: data
                     except r.ReqlNonExistenceError as e:
                         pass
@@ -576,8 +524,8 @@ class ACLXenObject(XenObject):
                 entities = (f'users/{user_id}', 'any', *(f'groups/{group_id}' for group_id in auth.get_user_groups()))
                 query = \
                     cls.db.table(f'{cls.db_table_name}_user').get_all(*entities, index='userid'). \
-                        pluck('uuid').coerce_to('array'). \
-                        merge(cls.db.table(cls.db_table_name).get(r.row['uuid']).without('uuid'))
+                        pluck('ref').coerce_to('array'). \
+                        merge(cls.db.table(cls.db_table_name).get(r.row['ref']).without('ref'))
 
             if 'page' in kwargs:
                 page_size = kwargs['page_size']
@@ -602,7 +550,7 @@ class ACLXenObject(XenObject):
 
 
     @use_logger
-    def check_access(self,  action):
+    def check_access(self, user, action):
         '''
         Check if it's possible to do 'action' with specified Xen Object
         :param action: action to perform. If action is None, check for the fact that user can view this Xen object
@@ -623,7 +571,7 @@ class ACLXenObject(XenObject):
             f"Checking {self.__class__.__name__} {self.uuid} rights for user {self.auth.get_id()}: action {action}")
         from rethinkdb.errors import ReqlNonExistenceError
 
-        db = self.auth.xen.db
+        db = self.xen.db
         try:
             access_info = db.table(self.db_table_name).get(self.uuid).pluck('access').run()
         except ReqlNonExistenceError:
@@ -674,30 +622,29 @@ class ACLXenObject(XenObject):
                 if 'access' in emperor:
                     if authenticator_name in emperor['access']:
                         auth_dict = emperor['access'][authenticator_name]
-                        for k, v in auth_dict.items():
-                            yield {'userid': k, 'access': v}
-                        else:
-                            if cls.ALLOW_EMPTY_XENSTORE:
-                                yield {'userid': 'any', 'access': ['all']}
+                        return auth_dict
+                    else:
+                        if cls.ALLOW_EMPTY_XENSTORE:
+                            return {'any':  ['ALL']}
 
-        return list(read_other_config_access_rights(other_config))
+        return read_other_config_access_rights(other_config)
 
-    def manage_actions(self, action,  revoke=False, user=None, group=None):
+    def manage_actions(self, action : Flag, revoke=False, user : str = None):
         '''
         Changes action list for a Xen object
         :param action:
         :param revoke:
-        :param user: User ID as returned from authenticator.get_id()
+        :param user: User ID  in form "users/USER_ID" or "groups/GROUP_ID"
         :param group:
         '''
+        if not isinstance(action, self.Actions):
+            raise ValueError()
+
+
         from json import JSONDecodeError
-        if all((user,group)) or not any((user, group)):
+        if not user.startswith('users/') or not user.startswith('groups/'):
             raise XenAdapterArgumentError(self.log, f'Specify user OR group for {self.__class__.__name__}::manage_actions')
 
-        if user:
-            real_name = f'users/{user}'
-        elif group:
-            real_name = f'groups/{group}'
 
         other_config = self.get_other_config()
         auth_name = self.auth.class_name()
@@ -711,28 +658,25 @@ class ACLXenObject(XenObject):
                 emperor = {'access': {auth_name: {}}}
 
         if auth_name in emperor['access']:
-            auth_list = emperor['access'][auth_name]
+            previous_actions = self.Actions[emperor['access'][auth_name]]
         else:
-            auth_list = []
+            previous_actions = self.Actions
             emperor['access'][auth_name] = {}
 
-        if real_name in auth_list and isinstance(auth_list[real_name], list) and action != 'all':
-            action_list = auth_list[real_name]
+        if user in previous_actions and isinstance(previous_actions[user], list) and 'ALL' not in actions:
+            previous_actions = set(previous_actions[user])
         else:
-            action_list = []
+            previous_actions = set()
 
 
         if revoke:
-            if action in action_list:
-                action_list.remove(action)
+            previous_actions.difference_update(actions)
         else:
-            if action not in action_list:
-                action_list.append(action)
-
-        if action_list:
-            emperor['access'][auth_name][real_name] = action_list
+            previous_actions.update(actions)
+        if previous_actions:
+            emperor['access'][auth_name][user] = list(previous_actions)
         else:
-            del emperor['access'][auth_name][real_name]
+            del emperor['access'][auth_name][user]
 
         if not emperor['access'][auth_name]:
             del emperor['access'][auth_name]

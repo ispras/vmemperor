@@ -24,6 +24,10 @@ from xenadapter.xenobject import XenObject
 from .osdetect import OSChooser
 from exc import *
 from enum import auto
+from enum import Flag
+
+class Access(Flag):
+    pass
 
 
 @dataclass

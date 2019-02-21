@@ -84,7 +84,7 @@ class Template(AbstractVM):
         try:
             new_vm_ref = self.__getattr__('clone')(name_label)
             vm = VM(self.auth, ref=new_vm_ref)
-            self.log.info(f"New VM is created: UUID:{vm.uuid}, name_label: {name_label}")
+            self.log.info(f"New VM is created: ref:{vm.ref}, name_label: {name_label}")
             return vm
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(self.log, f"Failed to clone template: {f.details}")
@@ -99,10 +99,10 @@ class Template(AbstractVM):
         try:
             if enabled:
                 self.add_tags('vmemperor')
-                self.log.info(f"Enabled template UUID {self.uuid}")
+                self.log.info(f"enabled")
             else:
                 self.remove_tags('vmemperor')
-                self.log.info(f"Disabled template UUID {self.uuid}")
+                self.log.info(f"disabled")
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(self.log, f"Failed to {'enable' if enabled else 'disable'} template: {f.details}")
 
