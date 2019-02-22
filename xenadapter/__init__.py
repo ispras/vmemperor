@@ -1,7 +1,11 @@
+import asyncio
+import queue
+
 import XenAPI
+from exc import XenAdapterConnectionError, XenAdapterArgumentError
 from loggable import Loggable
 from .singleton import Singleton
-from exc import *
+from tornado.options import options as opts
 import threading
 from rethinkdb import RethinkDB
 r = RethinkDB()
@@ -57,27 +61,31 @@ class XenAdapter(Loggable, metaclass=Singleton):
 
 
 class XenAdapterPool(metaclass=Singleton):
-    def __init__(self, qty=200):
-        self._xens = []
-        self.qty = qty
-
-
+    def __init__(self):
+        self._xens = queue.Queue()
+        self._asyncio_xens = asyncio.Queue()
 
     def get(self):
-        if len(self._xens) == self.qty:
-            #waiting for lock to be unlocked in at least one XenAdapter
-           for xen in self._xens:
-               if not xen.session.locked:
-                   xen.log.debug("Getting existing XenAdapter from XenAdapterPool")
-                   return xen
+        if not self._xens.empty():
+           return self._xens.get()
         else:
-            from vmemperor import opts
-            self._xens.append(XenAdapter({**opts.group_dict('xenadapter'), **opts.group_dict('rethinkdb')}, nosingleton=True))
-            xen = self._xens[-1]
-            xen.log.debug("Getting new XenAdapter from XenAdapterPool")
+            xen = XenAdapter({**opts.group_dict('xenadapter'), **opts.group_dict('rethinkdb')}, nosingleton=True)
+            xen.log.debug("Getting new XenAdapter from XenAdapterPool: Empty queue!")
             return xen
-
-        #TODO dont know what to do if limit exceeded
 
     def unget(self, xen):
         xen.log.debug("Pushing back into XenPool")
+        self._xens.put_nowait(xen)
+
+    async def get_asyncio(self):
+        if not self._asyncio_xens.empty():
+            return await self._asyncio_xens.get()
+        else:
+            xen = XenAdapter({**opts.group_dict('xenadapter'), **opts.group_dict('rethinkdb')}, nosingleton=True)
+            xen.log.debug("Getting new XenAdapter from XenAdapterPool (for AsyncIO): Empty queue!")
+            return xen
+
+    async def unget_asyncio(self, xen):
+        xen.log.debug("Pushing back into XenPool (for AsyncIO)")
+        await self._asyncio_xens.put(xen)
+

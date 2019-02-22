@@ -12,7 +12,7 @@ class GPBD(GXenObjectType):
     '''
     ref = graphene.Field(graphene.ID, required=True, description="Unique constant identifier/object reference")
     uuid = graphene.Field(graphene.ID, required=True,
-                          description="Unique session-dependent identifier/object reference")
+                          description="Unique non-primary identifier/object reference")
     host = graphene.Field(hostType, required=True, description="Host to which the SR is supposed to be connected to", resolver=resolve_host)
     device_config = graphene.Field(graphene.JSONString, required=True)
     SR = graphene.Field(srType, required=True, resolver=resolve_sr)

@@ -1,11 +1,11 @@
 from .xenobject import XenObject
-
+import constants.re as re
 class VMGuest(XenObject):
     api_class = 'VM_guest_metrics'
     #EVENT_CLASSES = ['vm_guest_metrics']
 
     @classmethod
-    def process_event(cls, auth, event, db, authenticator_name):
+    def process_event(cls, xen, event):
         '''
         Make changes to a RethinkDB-based cache, processing a XenServer event
         :param auth: auth object
@@ -27,7 +27,7 @@ class VMGuest(XenObject):
 
 
             if event['operation'] in ('mod', 'add'):
-                rec = db.table(VM.db_table_name).get_all(event['ref'], index='guest_metrics').pluck('uuid').run().items
+                rec = re.db.table(VM.db_table_name).get_all(event['ref'], index='guest_metrics').pluck('uuid').run().items
                 if len(rec) != 1:
                     #auth.xen.log.warning(
                     #    f"VMGuest::process_event: Cannot find a VM (or theres more than one)"
@@ -52,5 +52,5 @@ class VMGuest(XenObject):
                 #new_rec = {'uuid': vm_uuid, 'networks' : {record['device']:
                 #{'VIF': record['uuid'], 'network': net.uuid, 'attached': record['currently_attached'], 'MAC': record['MAC'], 'status': record['status_detail']}} }
 
-                CHECK_ER(db.table(VM.db_table_name).insert(new_rec, conflict="update").run())
+                CHECK_ER(re.db.table(VM.db_table_name).insert(new_rec, conflict="update").run())
 

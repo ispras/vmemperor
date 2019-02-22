@@ -1,17 +1,15 @@
 import json
 from json import JSONDecodeError
 from xenadapter.pool import Pool
-from authentication import AdministratorAuthenticator
+import constants.auth as auth
 class Quota:
-    def __init__(self, auth, auth_name=None):
+    def __init__(self, xen):
         '''
-
-        :param auth: Any authenticator that represents one pool. It could be AdministratorAuthenticator or User's authenticator
         :param auth_name:
         '''
-        self.auth = auth
-        self.auth_name = auth.__class__.__name__ if not auth_name else auth_name
-        self.pool = Pool(auth)
+        self.auth = xen
+
+        self.pool = Pool(xen)
 
     def set_storage_quota(self, user, bytes):
         '''
@@ -21,11 +19,9 @@ class Quota:
         :return:
         '''
 
-
-        assert isinstance(self.auth, AdministratorAuthenticator)
         # Get other_config field
         other_config = self.pool.get_other_config()
-        field_name = f'vmemperor_quotas_{self.auth_name}'
+        field_name = f'vmemperor_quotas_{auth.auth_name}'
         if field_name in other_config:
             try:
                 docs = json.loads(other_config[field_name])
@@ -68,7 +64,7 @@ class Quota:
             else:
                 data = self.pool.db.table('vdis_user').merge(
                      lambda rec: {'virtual_size':
-                     self.pool.db.table('vdis').get(rec['uuid'])['virtual_size']}).filter({'access':['all']}).group('userid').sum('virtual_size').ungroup()\
+                     self.pool.db.table('vdis').get(rec['ref'])['virtual_size']}).filter({'access':['all']}).group('userid').sum('virtual_size').ungroup()\
                     .eq_join('group', self.pool.db.table(Pool.quotas_table_name))\
                     .map({'userid':r.row['right']['userid'], 'storage': r.row['right']['storage'], 'storage_usage': r.row['left']['reduction']}).run()
 

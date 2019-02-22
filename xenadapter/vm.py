@@ -3,14 +3,16 @@ from typing import Sequence, Optional, List, Dict
 import graphene
 from graphene.types.resolver import dict_resolver
 from rethinkdb.errors import ReqlTimeoutError, ReqlDriverError
-
-
+from sentry_sdk import capture_exception
+from serflag import SerFlag
+import constants.re as re
 from handlers.graphql.resolvers.interface import resolve_interfaces
 from handlers.graphql.types.blockdevice import BlockDevice
 
 from handlers.graphql.types.interface import Interface
 from handlers.graphql.types.vm import resolve_disks
 from xenadapter import XenAdapterPool
+from xenadapter.vif import GVIF, VIF
 from xenadapter.xenobject import GAclXenObject
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from xenadapter.abstractvm import AbstractVM
@@ -26,8 +28,6 @@ from exc import *
 from enum import auto
 from enum import Flag
 
-class Access(Flag):
-    pass
 
 
 @dataclass
@@ -120,27 +120,56 @@ class GVM(GXenObjectType):
     domain_type = graphene.Field(DomainType, required=True)
     guest_metrics = graphene.Field(graphene.ID, required=True)
     install_time = graphene.Field(graphene.DateTime, required=True)
-    memory_actual = graphene.Field(graphene.Int, required=True)
-    memory_static_min = graphene.Field(graphene.Int, required=True)
-    memory_static_max = graphene.Field(graphene.Int, required=True)
-    memory_dynamic_min = graphene.Field(graphene.Int, required=True)
-    memory_dynamic_max = graphene.Field(graphene.Int, required=True)
+    memory_actual = graphene.Field(graphene.Float, required=True)
+    memory_static_min = graphene.Field(graphene.Float, required=True)
+    memory_static_max = graphene.Field(graphene.Float, required=True)
+    memory_dynamic_min = graphene.Field(graphene.Float, required=True)
+    memory_dynamic_max = graphene.Field(graphene.Float, required=True)
     metrics = graphene.Field(graphene.ID, required=True)
     os_version = graphene.Field(OSVersion)
     power_state = graphene.Field(PowerState, required=True)
     start_time = graphene.Field(graphene.DateTime, required=True)
+    VIFs = graphene.Field(graphene.List(GVIF), required=True, resolver=VIF.resolve_many())
+
+class Actions(SerFlag):
+    snapshot = auto()
+    clone = auto()
+    copy = auto()
+    create_template = auto()
+    revert = auto()
+    checkpoint = auto()
+    snapshot_with_quiesce = auto()
+    #provision = auto()
+    start = auto()
+    start_on = auto()
+    pause = auto()
+    unpause = auto()
+    clean_shutdown = auto()
+    clean_reboot = auto()
+    hard_shutdown = auto()
+    power_state_reset = auto()
+    hard_reboot = auto()
+    suspend = auto()
+    csvm = auto()
+    resume = auto()
+    resume_on = auto()
+    pool_migrate = auto()
+    migrate_send = auto()
+    shutdown = auto()
+    destroy = auto()
+
 
 
 class VM (AbstractVM):
     EVENT_CLASSES = ['vm', 'vm_metrics', 'vm_guest_metrics']
     db_table_name = 'vms'
     GraphQLType = GVM
-    def __init__(self, auth, uuid=None, ref=None):
-        super().__init__(auth, uuid, ref)
+    def __init__(self, xen, ref):
+        super().__init__(xen, ref)
 
 
     @classmethod
-    def process_event(cls,  auth, event, db, authenticator_name):
+    def process_event(cls,  xen, event):
 
         from rethinkdb_tools.helper import CHECK_ER
         # patch event[snapshot] so that if it doesn't have domain_type, guess it from HVM_boot_policy
@@ -151,70 +180,56 @@ class VM (AbstractVM):
             pass
 
         if event['class'] == 'vm':
-            super(cls, VM).process_event(auth, event, db, authenticator_name)
+            super(cls, VM).process_event(xen, event)
         else:
             if event['operation'] == 'del':
                 return # Metrics removed when VM has already been removed
             if event['class'] == 'vm_metrics':
 
 
-                new_rec = cls.process_metrics_record(auth, event['snapshot'])
+                new_rec = cls.process_metrics_record(xen, event['snapshot'])
                 # get VM by metrics ref
-                metrics_query = db.table(cls.db_table_name).get_all(event['ref'], index='metrics')
+                metrics_query = re.db.table(cls.db_table_name).get_all(event['ref'], index='metrics')
                 rec_len = len(metrics_query.run().items)
                 if rec_len == 0:
-                    #auth.xen.log.warning("VM: Cannot find a VM for metrics {0}".format(event['ref']))
+                    #xen.log.warning("VM: Cannot find a VM for metrics {0}".format(event['ref']))
                     return
                 elif rec_len > 1:
-                    auth.xen.log.warning("VM::process_event: More than one ({1}) VM for metrics {0}: DB broken?".format(event['ref'], rec_len))
+                    xen.log.warning("VM::process_event: More than one ({1}) VM for metrics {0}: DB broken?".format(event['ref'], rec_len))
                     return
 
 
                 CHECK_ER(metrics_query.update(new_rec).run())
             elif event['class'] == 'vm_guest_metrics':
 
-                new_rec = cls.process_guest_record(auth, event['snapshot'])
-                guest_metics_query = db.table(VM.db_table_name).get_all(event['ref'], index='guest_metrics')
-                rec_len = len(guest_metics_query.run().items)
-                if rec_len != 1:
+
+                guest_metics_query = re.db.table(VM.db_table_name).get_all(event['ref'], index='guest_metrics')
+                items = guest_metics_query.pluck('ref').run().items
+                if len(items) != 1:
                     # TODO Snapshots
-                    auth.xen.log.warning(
-                        f"VMGuest::process_event: Cannot find a VM (or theres more than one)"
+                    xen.log.warning(
+                        f"VMGuest::process_event: Cannot find a VM (or theres more than one : {len(items)})"
                         f" for guest metrics {event['ref']}")
 
                     return
-
+                new_rec = cls.process_guest_record(xen, event['snapshot'], items[0]['ref'])
                 CHECK_ER(guest_metics_query.update(new_rec).run())
 
     @classmethod
-    def filter_record(cls, record):
+    def filter_record(cls, xen, record, ref):
         return not (record['is_a_template'] or record['is_control_domain'])
 
 
     @classmethod
-    def create_db(cls, db, indexes=None): #ignore indexes
-        super(VM, cls).create_db(db, indexes=['metrics', 'guest_metrics'])
+    def create_db(cls, indexes=None): #ignore indexes
+        super(VM, cls).create_db(indexes=['metrics', 'guest_metrics'])
+
 
     @classmethod
-    def process_record(cls, auth, ref, record):
-        '''
-        Creates a (shortened) dict record from long XenServer record. If no record could be created, return false
-        :param record:
-        :return: record for DB
-        interfaces are filled in network.py
-
-        '''
-        new_rec = super().process_record(auth, ref, record)
-        new_rec['interfaces'] = {}
-        new_rec['disks'] = {}
-        return new_rec
-
-    @classmethod
-    def process_metrics_record(cls, auth, record):
+    def process_metrics_record(cls, xen, record):
         '''
         Process a record from VM_metrics. Used by init_db and process_event when
         processing a vm_metrics event
-        :param auth:
         :param record:
         :return: record for DB
         '''
@@ -223,103 +238,39 @@ class VM (AbstractVM):
         return XenObjectDict({k: v for k, v in record.items() if k in keys})
 
     @classmethod
-    def process_guest_record(cls, auth, record):
-        new_rec = {'os_version': record['os_version'], 'interfaces': {},
+    def process_guest_record(cls, xen, record, vm_ref):
+        new_rec = {'os_version': record['os_version'],
                    'PV_drivers_version': record['PV_drivers_version'],
                    'PV_drivers_up_to_date': record['PV_drivers_up_to_date']}
 
-        for k, v in record['networks'].items():
-            try:
+        def vif_generator():
+            for ref in VM(xen, vm_ref).get_VIFs():
+                vif = VIF(xen, ref)
+                yield (vif.get_device(), ref)
+
+        vif_dict = {i[0]: i[1] for i in vif_generator()} # Key: device number, value: ref
+        vif_data = {}  # key: ref, value: "ip", "ipv6", etc
+
+        try:
+            for k, v in record['networks'].items():
                 net_name, key, *rest = k.split('/')
-                new_rec['interfaces'][net_name] = {**new_rec['interfaces'][net_name], **{key: v}} if net_name in \
-                                                                                                     new_rec[
-                                                                                                         'interfaces'] else {
-                    key: v}
-            except ValueError:
-                auth.xen.log.warning(f"Can't get network information for VM {record['VM']}: {k}:{v}")
+                vif_ref = vif_dict[net_name]
+                if not vif_ref in vif_data:
+                    vif_data[vif_ref] = {}
+
+                vif_data[vif_ref][key] = v
+
+            documents = [{'ref': key, **value} for key, value in vif_data.items()]
+            re.db.table(VIF.db_table_name).insert(documents).run()
+        except ValueError as e:
+            xen.log.warning(f"Can't get network information for VM {vm_ref}")
+            capture_exception(e)
 
         return new_rec
 
-    @classmethod
-    def get_access_data(cls, record, authenticator_name) -> List[Dict]:
-        '''
-        Obtain access data from XenStore
-        :param record:
-        :param authenticator_name:
-        :return:
-        '''
-        xenstore = record['xenstore_data']
-        def read_xenstore_access_rights(xenstore_data):
-            filtered_iterator = filter(
-                lambda keyvalue: keyvalue[1] and keyvalue[0].startswith(cls.VMEMPEROR_ACCESS_PREFIX),
-                xenstore_data.items())
-
-            for k, v in filtered_iterator:
-                key_components = k[len(cls.VMEMPEROR_ACCESS_PREFIX) + 1:].split('/')
-                if key_components[0] == authenticator_name:
-                    yield {'userid': f'{key_components[1]}/{key_components[2]}', 'access': v.split(';')}
-
-            else:
-                if cls.ALLOW_EMPTY_XENSTORE:
-                    yield {'userid': 'any', 'access': ['all']}
-
-        return list(read_xenstore_access_rights(xenstore))
-
-
-    def manage_actions(self, action,  revoke=False, user=None, group=None):
-        '''
-        Changes ACL for VM (in XenStore)
-        :param action:
-        :param revoke:
-        :param user: User ID as returned from authenticator.get_id()
-        :param group:
-        :param force: Change actionlist even if user do not have sufficient permissions. Used by CreateVM
-        :return: False if failed
-        '''
-
-        if all((user, group)) or not any((user, group)):
-            raise XenAdapterArgumentError(self.log, 'Specify user or group for XenObject::manage_actions')
-
-
-        if user:
-            real_name = self.get_access_path(user, False)
-        elif group:
-            real_name = self.get_access_path(group, True)
-
-        xenstore_data = self.get_xenstore_data()
-        if real_name in xenstore_data:
-            actionlist = xenstore_data[real_name].split(';')
-        else:
-            actionlist = []
-
-        if revoke and action == 'all':
-            for name in xenstore_data:
-                if name == real_name:
-                    continue
-
-                actionlist = xenstore_data[real_name].split(';')
-                if 'all' in actionlist:
-                    break
-            else:
-                raise XenAdapterArgumentError('I cannot revoke "all" from {0} because there are no other admins of the resource'.format(real_name))
-
-
-        if revoke:
-            if action in actionlist:
-                actionlist.remove(action)
-        else:
-            if action not in actionlist:
-                actionlist.append(action)
-
-        actions = ';'.join(actionlist)
-
-        xenstore_data[real_name] = actions
-
-        self.set_xenstore_data(xenstore_data)
-
 
     @use_logger
-    def create(self, insert_log_entry, provision_config : Sequence[SetDisksEntry], net, ram_size, template=None, ip=None, install_url=None, override_pv_args=None, iso=None,
+    def create(self, user, insert_log_entry, provision_config : Sequence[SetDisksEntry], net, ram_size, template=None, ip=None, install_url=None, override_pv_args=None, iso=None,
                username=None, password=None, hostname=None, partition=None, fullname=None, vcpus=1, return_xenadapter_to_query=True):
         '''
         Creates a virtual machine and installs an OS
@@ -340,16 +291,15 @@ class VM (AbstractVM):
         :param iso: ISO Image object. If specified, will be mounted
 
         '''
-        self.insert_log_entry = lambda *args, **kwargs: insert_log_entry(self.uuid, *args, **kwargs)
+        self.insert_log_entry = lambda *args, **kwargs: insert_log_entry(self.ref, *args, **kwargs)
         self.install = True
         self.remove_tags('vmemperor')
-        if not self.auth.is_admin():
-            self.manage_actions('all',  user=self.auth.get_id())
+        self.manage_actions(self.Actions.ALL, user=user)
         self.set_ram_size(ram_size)
         self.set_VCPUs_max(vcpus)
         self.set_VCPUs_at_startup(vcpus)
         self.set_disks(provision_config)
-
+        self.user = user
         if iso:
             try:
                 iso.attach(self, sync=True)
@@ -370,7 +320,7 @@ class VM (AbstractVM):
 
         else:
             if template.get_os_kind():
-                self.xen.log.warning(f"os_kind specified as {template.get_os_kind()}, but no network specified. The OS won't install automatically")
+                self.log.warning(f"os_kind specified as {template.get_os_kind()}, but no network specified. The OS won't install automatically")
 
 
         if template.get_os_kind():
@@ -392,21 +342,18 @@ class VM (AbstractVM):
 
         from constants import need_exit
 
-        state = self.db.table(VM.db_table_name).get(self.uuid).pluck('power_state').run()['power_state']
+        state = self.db.table(VM.db_table_name).get(self.ref).pluck('power_state').run()['power_state']
         if state != 'Running':
             self.insert_log_entry('failed',
                                   f"failed to start VM for installation (low resources?). State: {state}")
             return
 
-        cur = self.db.table('vms').get(self.uuid).changes().run()
+        cur = self.db.table('vms').get(self.ref).changes().run()
         other_config = self.get_other_config()
 
         self.log.debug(f"Waiting for {self} to finish installing")
         if 'convert-to-hvm' in other_config and other_config['convert-to-hvm']:
             self.log.debug(f"Changing {self} type to HVM after reboot")
-        else:
-            if return_xenadapter_to_query:
-                XenAdapterPool().unget(self.auth.xen)
 
 
         while True:
@@ -419,7 +366,7 @@ class VM (AbstractVM):
                     continue
             except ReqlDriverError as e:
                 self.log.error(
-                    f"ReQL error while trying to retrieve VM '{self.uuid}': install status: {e}")
+                    f"ReQL error while trying to retrieve VM '{self.ref}': install status: {e}")
                 return
 
             if change['new_val']['power_state'] == 'Halted':
@@ -427,14 +374,12 @@ class VM (AbstractVM):
                     self.log.debug(f"Halted: finalizing installation of {self}")
                     if 'convert-to-hvm' in other_config and other_config['convert-to-hvm']:
                         self.set_domain_type('hvm')
-                        if return_xenadapter_to_query:
-                            XenAdapterPool().unget(self.auth.xen)
 
 
                     self.start_stop_vm(True)
-                    self.insert_log_entry(self.uuid, "installed", "OS successfully installed")
+                    self.insert_log_entry(self.ref, "installed", "OS successfully installed")
                 except XenAdapterAPIError as e:
-                    self.insert_log_entry(self.uuid, "failed-after-install", e.message)
+                    self.insert_log_entry(self.ref, "failed-after-install", e.message)
                 finally:
                     break
 
@@ -456,7 +401,7 @@ class VM (AbstractVM):
             try:
                 raise e
             except XenAPI.Failure as f:
-                self.insert_log_entry(state='failed-ram',message= f.details)
+                self.insert_log_entry(state='failed-ram', message= f.details)
                 raise XenAdapterAPIError(self.log, f"Failed to set ram size: {mbs} Mb", f.details)
 
 
@@ -479,7 +424,7 @@ class VM (AbstractVM):
             specs.disks.append(provision.Disk(f'{i}', size, entry.SR.uuid, True))
             i += 1
         try:
-            provision.setProvisionSpec(self.auth.xen.session, self.ref, specs)
+            provision.setProvisionSpec(self.xen.xen.session, self.ref, specs)
         except Exception as e:
             try:
                 raise e
@@ -509,14 +454,13 @@ class VM (AbstractVM):
             self.insert_log_entry(state='provisioned',message=str(specs))
 
             for item in self.get_VBDs():
-                vbd = VBD(auth=self.auth, ref=item)
-                vdi = VDIorISO(self.auth, ref=vbd.get_VDI())
+                vbd = VBD(self.xen, ref=item)
+                vdi = VDIorISO(self.xen, ref=vbd.get_VDI())
                 if isinstance(vdi, VDI):
 
-                    vdi.set_name_description(f"Created by VMEmperor for VM {self.uuid}")
+                    vdi.set_name_description(f"Created by VMEmperor for VM with UUID {self.get_uuid()}")
                     # After provision. manage disks actions
-                    if not self.auth.is_admin():
-                        vdi.manage_actions('all', user=self.auth.get_id())
+                    vdi.manage_actions(self.Actions.ALL, user=self.user)
 
 
 
@@ -536,10 +480,10 @@ class VM (AbstractVM):
             assert mode is not None
             assert mode is not None
         for vbd in self.get_VBDs():
-            vbd_obj = VBD(auth=self.auth, ref=vbd)
+            vbd_obj = VBD(self.xen, vbd)
             if vbd in vdi_vbds:
 
-                self.log.warning(f"Disk {vdi.uuid} is already attached to VBD {vbd_obj.uuid}")
+                self.log.warning(f"Disk {vdi} is already attached to VBD {vbd_obj}")
                 return vbd_obj
             try:
                 userdevice = int(vbd_obj.get_userdevice())
@@ -558,11 +502,11 @@ class VM (AbstractVM):
                 'other_config' : {},'qos_algorithm_type': '', 'qos_algorithm_params': {}}
 
         try:
-            new_vbd = VBD.create(self.auth, args)
+            new_vbd = VBD.create(self.xen, args)
         except XenAPI.Failure as f:
-            raise XenAdapterAPIError(self.auth.xen.log, "Failed to create VBD", f.details)
+            raise XenAdapterAPIError(self.log, "Failed to create VBD", f.details)
 
-        return VBD(auth=self.auth, ref=new_vbd)
+        return VBD(self.xen, new_vbd)
 
     @use_logger
     def os_detect(self, os_kind, guest_device, net_conf, hostname, install_url, override_pv_args, fullname, username, password, partition):
@@ -615,11 +559,11 @@ class VM (AbstractVM):
         '''
         from .disk import ISO
         from xenadapter.sr import SR
-        for ref in SR.get_all(self.auth):
-            sr = SR(ref=ref, auth=self.auth)
+        for ref in SR.get_all(self.xen):
+            sr = SR(ref=ref, xen=self.xen)
             if sr.get_is_tools_sr():
                 for vdi_ref in sr.get_VDIs():
-                    vdi = ISO(ref=vdi_ref, auth=self.auth)
+                    vdi = ISO(ref=vdi_ref, xen=self.xen)
                     if vdi.get_is_tools_iso():
                         vbd = vdi.attach(self, sync=True)
                         #get_device won't work here so we'll hack based on our vdi.attach implementation
@@ -711,11 +655,11 @@ class VM (AbstractVM):
         self.start_stop_vm(False)
 
         vbds = self.get_VBDs()
-        vdis = [VBD(self.auth, ref=vbd_ref).get_VDI() for vbd_ref in vbds]
+        vdis = [VBD(self.xen, ref=vbd_ref).get_VDI() for vbd_ref in vbds]
 
         try:
             for vdi_ref in vdis:
-                vdi = VDI(auth=self.auth, ref=vdi_ref)
+                vdi = VDI(self.xen, vdi_ref)
                 if len(vdi.get_VBDs()) < 2:
                     vdi.destroy()
             self.destroy()

@@ -1,3 +1,5 @@
+import json
+
 import graphene
 
 from xenadapter.xenobject import GAclXenObject
@@ -26,20 +28,19 @@ class Template(AbstractVM):
     GraphQLType = GTemplate
 
     @classmethod
-    def filter_record(cls, record):
+    def filter_record(cls, xen, record, ref):
         return record['is_a_template']
 
     @classmethod
-    def process_record(cls, auth, ref, record):
+    def process_record(cls, xen, ref, record):
         '''
         Contary to parent method, this method can return many records as one XenServer template may convert to many
         VMEmperor templates
-        :param auth:
         :param ref:
         :param record:
         :return:
         '''
-        new_rec = super().process_record(auth, ref, record)
+        new_rec = super().process_record(xen, ref, record)
 
         if record['HVM_boot_policy'] == '':
             new_rec['hvm'] = False
@@ -68,9 +69,9 @@ class Template(AbstractVM):
         return new_rec
 
     @classmethod
-    def get_access_data(cls, record, authenticator_name):
+    def get_access_data(cls, record):
         if cls.is_enabled(record):
-            return super().get_access_data(record, authenticator_name)
+            return super().get_access_data(record)
         else:
             return []
 
@@ -83,7 +84,7 @@ class Template(AbstractVM):
     def clone(self, name_label):
         try:
             new_vm_ref = self.__getattr__('clone')(name_label)
-            vm = VM(self.auth, ref=new_vm_ref)
+            vm = VM(self.xen, new_vm_ref)
             self.log.info(f"New VM is created: ref:{vm.ref}, name_label: {name_label}")
             return vm
         except XenAPI.Failure as f:

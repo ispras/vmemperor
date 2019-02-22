@@ -11,7 +11,7 @@ from xenadapter.vm import VM, DomainType
 
 
 class VMInput(InputObjectType):
-    uuid = graphene.InputField(graphene.ID, required=True, description="VM ID")
+    ref = graphene.InputField(graphene.ID, required=True, description="VM ref")
     name_label = graphene.InputField(graphene.String, description="VM human-readable name")
     name_description = graphene.InputField(graphene.String, description="VM human-readable description")
     domain_type = graphene.InputField(DomainType, description="VM domain type: 'pv', 'hvm', 'pv_in_pvh'")
@@ -46,7 +46,7 @@ class VMMutation(graphene.Mutation):
     def mutate(root, info, vm):
         ctx : ContextProtocol = info.context
 
-        m = VM(auth=ctx.user_authenticator, uuid=vm.uuid)
+        m = VM(ctx.xen, uuid=vm.uuid)
 
 
         mutations = [

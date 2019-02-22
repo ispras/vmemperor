@@ -1,5 +1,3 @@
-from collections import Sequence, Collection
-
 from handlers.graphql.resolvers.sr import resolve_sr, srType
 from handlers.graphql.resolvers.vm import resolve_vms, vmType
 from xenadapter.sr import SR
@@ -19,7 +17,7 @@ class Attachable:
         :param vm:VM to attach to
         :param mode: 'RO'/'RW'
         :param type: 'CD'/'Disk'/'Floppy'
-        :return: VBD UUID
+        :return VBD
         '''
         #vm.check_access('attach') #done by vmemperor
 
@@ -96,19 +94,15 @@ class Attachable:
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(self.log, "Failed to detach disk:", f.details)
 
-
-
     @classmethod
-    def get_vbd_vms(self, record, xen):
-
-        def vbd_to_vm_ref(vbd_ref):
-            from .vbd import VBD
-
-            vbd = VBD(xen=xen, ref=vbd_ref)
-            return vbd.get_VM()
-
-        return [vbd_to_vm_ref(ref) for ref in record['VBDs']]
-
+    def SR_type(cls, xen,  record, ref):
+        '''
+        This method returns SR type of this record
+        :param record:
+        :return:
+        '''
+        sr = SR(xen, record['SR'])
+        return sr.get_content_type()
 
 class DiskImage(GXenObject):
     SR = graphene.Field(srType, resolver=resolve_sr)
@@ -133,19 +127,9 @@ class ISO(XenObject, Attachable):
     from .vm import VM
 
     @classmethod
-    def filter_record(cls, record):
-        query = cls.db.table(SR.db_table_name).get_all(record['SR'], index='ref').run()
-        if len(query.items) != 1:
-            raise XenAdapterAPIError(f"Unable to get SR for ISO {record['uuid']}",
-                                     f"No such SR: {record['SR']}")
+    def filter_record(cls, xen, record, ref):
+       return cls.SR_type(xen, record, ref) == 'iso'
 
-        return query.items[0]['content_type'] == 'iso'
-
-    @classmethod
-    def process_record(cls, xen, ref, record):
-        record['VMs'] = cls.get_vbd_vms(xen=xen, record=record)
-        del record['VBDs']
-        return super().process_record(xen, ref, record)
 
     def attach(self, vm : VM, sync=False) -> VBD:
         '''
@@ -174,7 +158,7 @@ class VDI(ACLXenObject, Attachable):
     GraphQLType = GVDI
 
     @classmethod
-    def create(cls, xen, sr_ref, size, access : Mapping[str, Collection[str]] = None, name_label = None):
+    def create(cls, xen, sr_ref, size, access = None, name_label = None):
         """
         Creates a VDI of a certain size in storage repository
         :param sr_ref: Storage Repository ref
@@ -196,9 +180,8 @@ class VDI(ACLXenObject, Attachable):
             vdi_ref = VDI.create(xen, args)
             vdi = VDI(xen, vdi_ref)
             if access:
-                for k,v in access.items():
-                    for action in v:
-                        vdi.manage_actions()
+                for user, action in access.items():
+                    vdi.manage_actions(action, user=user)
 
 
 
@@ -210,21 +193,8 @@ class VDI(ACLXenObject, Attachable):
 
 
     @classmethod
-    def filter_record(cls, record):
-        query = cls.db.table(SR.db_table_name).get_all(record['SR'], index='ref').run()
-        if len(query.items) != 1:
-            raise XenAdapterAPIError(f"Unable to get SR for VDI {record['uuid']}",
-                                     f"No such SR: {record['SR']}")
-
-        return query.items[0]['content_type'] != 'iso'
-
-    @classmethod
-    def process_record(cls, xen, ref, record):
-        record['VMs'] = cls.get_vbd_vms(xen=xen, record=record)
-        del record['VBDs']
-        return super().process_record(xen, ref, record)
-
-
+    def filter_record(cls, xen, record, ref):
+        return cls.SR_type(xen, record, ref) != 'iso'
 
     def destroy(self):
         sr = SR(xen=self.xen, ref=self.get_SR())

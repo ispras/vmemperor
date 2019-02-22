@@ -7,7 +7,7 @@ from rethinkdb_tools.dbcreator import create_db_for_me
 
 class CreateVMTask(ObjectType):
     id = graphene.Field(graphene.ID, required=True, description="VM creation task ID")
-    uuid = graphene.Field(graphene.ID, description="UUID of created VM")
+    ref = graphene.Field(graphene.ID, description="ref of created VM")
     state = graphene.Field(graphene.String, description="VM installation state")
     message = graphene.Field(graphene.String, description="Human-readable message")
 

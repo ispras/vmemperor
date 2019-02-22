@@ -1,3 +1,5 @@
+from typing import Collection, Iterable
+
 import graphene
 
 from handlers.graphql.types.objecttype import ObjectType
@@ -22,6 +24,8 @@ class GXenObjectType(ObjectType):
                                 self.type = self.type.of_type
 
                     def serialize(self, value):
+                        if isinstance(value, str) or not isinstance(value, Iterable):
+                            raise TypeError(f"value should be an iterable, but not string. Got: {type(value)} ")
                         return [self.type.serialize(item) for item in value]
 
                 return ListSerializer()

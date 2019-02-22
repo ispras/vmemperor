@@ -5,6 +5,8 @@ from __future__ import absolute_import, division, print_function
 import sys
 import traceback
 from functools import wraps
+
+from sentry_sdk import capture_exception
 from tornado import web
 from tornado.escape import json_decode, json_encode
 from tornado.log import app_log
@@ -76,23 +78,21 @@ class GQLHandler(web.RequestHandler):
 
     @error_response
     def post(self):
-        return self.handle_graqhql()
+        return self.handle_graphql()
 
-    def handle_graqhql(self):
+    def handle_graphql(self):
         result = self.execute_graphql()
         app_log.debug('GraphQL result data: %s errors: %s invalid %s',
                       result.data, result.errors, result.invalid)
         if result and (result.errors or result.invalid):
             ex = ExecutionError(errors=result.errors)
-            app_log.warn(f'GraphQL Error: {ex}. Check graphql_errors.log')
+            app_log.error(f'GraphQL Error: {result.errors}')
             for error in result.errors:
                 if hasattr(error, 'original_error'):
-                    print_graphql_exception(error.original_error)
-                    raise error.original_error
+                    capture_exception(error.original_error)
 
                 elif isinstance(error, str):
                     app_log.error(error)
-
             raise ex
 
 

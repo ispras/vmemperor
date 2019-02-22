@@ -34,7 +34,7 @@ class GSR(GXenObjectType):
     class Meta:
         interfaces = (GXenObject,)
     PBDs = graphene.Field(graphene.List(GPBD),
-                                 required=True, resolver=PBD.resolve_many(index='ref'),
+                                 required=True, resolver=PBD.resolve_many(),
                                  description="Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI")
 
     VDIs = graphene.Field(graphene.List(vdiType), resolver=resolve_vdis)

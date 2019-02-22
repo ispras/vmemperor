@@ -42,7 +42,7 @@ class GrapheneTaskList(TaskList):
                 id = getattr(root, field_name)
 
             try:
-                record = cls.db.table(cls.table_name()).get(id).\
+                record = re.db.table(cls.table_name()).get(id).\
                 pluck(*cls.task_type()._meta.fields).run()
             except Exception as e:
                 return None
@@ -65,7 +65,7 @@ class GrapheneTaskList(TaskList):
         def resolver(root, info, **kwargs):
 
 
-            query = cls.db.table(cls.table_name()).\
+            query = re.db.table(cls.table_name()).\
                 pluck(*cls.task_type()._meta.fields).coerce_to('array')
 
             if 'page' in kwargs:
@@ -80,12 +80,12 @@ class GrapheneTaskList(TaskList):
         return resolver
 
 
-    def upsert_task(self, auth, task_data):
+    def upsert_task(self, user : str, task_data):
         assert isinstance(task_data, self.task_type())
-        super().upsert_task(auth, XenObjectDict(**task_data))
+        super().upsert_task(user, XenObjectDict(**task_data))
 
-    def get_task(self, auth, id):
-        data = super().get_task(auth, id)
+    def get_task(self, user : str, id):
+        data = super().get_task(user, id)
         task = self.task_type()
         for field in task._meta.fields.keys():
             setattr(task, field, data[field])

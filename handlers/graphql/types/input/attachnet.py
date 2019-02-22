@@ -17,11 +17,11 @@ class AttachNetworkMutation(graphene.Mutation):
     @staticmethod
     @with_authentication(access_class=Network, access_action='attach', id_field='net_uuid')
     @with_authentication(access_class=VM, access_action='attach', id_field='vm_uuid')
-    def mutate(root, info, net_uuid, vm_uuid, is_attach):
+    def mutate(root, info, net_ref, vm_ref, is_attach):
         ctx: ContextProtocol = info.context
-        network = Network(uuid=net_uuid, auth=ctx.user_authenticator)
+        network = Network(uuid=net_ref, xen=ctx.xen)
         if is_attach:
-            taskId = network.attach(VM(uuid=vm_uuid, auth=ctx.user_authenticator))
+            taskId = network.attach(VM(uuid=vm_ref, auth=ctx.user_authenticator))
         else:
-            taskId = network.detach(VM(uuid=vm_uuid, auth=ctx.user_authenticator))
+            taskId = network.detach(VM(uuid=vm_ref, auth=ctx.user_authenticator))
         return AttachNetworkMutation(taskId=taskId)

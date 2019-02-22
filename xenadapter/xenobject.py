@@ -1,23 +1,28 @@
 import collections
+import json
 from collections import Mapping
 from enum import Flag
+
+from sentry_sdk import capture_exception
+from serflag import SerFlag
 
 import XenAPI
 from xmlrpc.client import DateTime as xmldt
 from datetime import datetime
 import pytz
+
+import constants.re as re
+from constants.auth import auth_name
 from exc import *
-from authentication import BasicAuthenticator, AdministratorAuthenticator, NotAuthenticatedException, \
-    with_default_authentication
-from rethinkdb import RethinkDB
+from authentication import AdministratorAuthenticator, NotAuthenticatedException, \
+    with_default_authentication, BasicAuthenticator
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
+from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
 from handlers.graphql.utils.paging import do_paging
-from xenadapter import XenAdapter
-
-r = RethinkDB()
+from xenadapter import XenAdapter, XenAdapterPool
 import logging
-from typing import Optional, Type, Collection
+from typing import Optional, Type, Collection, Dict
 from xenadapter.helpers import use_logger
 import graphene
 
@@ -35,6 +40,9 @@ def dict_deep_convert(d):
         return v
 
     return {k: convert_to_bool(v) for k, v in d.items()}
+
+
+
 
 
 
@@ -92,28 +100,24 @@ class XenObjectMeta(type):
 
 
 
-
-
-
-
 class GXenObject(graphene.Interface):
     name_label = graphene.Field(graphene.String, required=True, description="a human-readable name")
     name_description = graphene.Field(graphene.String, required=True, description="a human-readable description")
-    ref = graphene.Field(graphene.ID, required=True, description="Unique constant identifier/object reference")
-
+    ref = graphene.Field(graphene.ID, required=True, description="Unique constant identifier/object reference (primary)")
+    uuid = graphene.Field(graphene.ID, required=True, description="Unique constant identifier/object reference (used in XenCenter)")
 
 class XenObject(metaclass=XenObjectMeta):
     api_class = None
     GraphQLType : GXenObjectType = None # Specify GraphQL type to access Rethinkdb cache
     REF_NULL = "OpaqueRef:NULL"
     db_table_name = ''
+    Actions: SerFlag = None
     """
     Database table name for a XenObject. Set by every XenObject class. Don't use field value from the class instance as individual instances may disable
     db caching for themselves by clearing this variable. Instead, use a value provided at class level.
     """
     EVENT_CLASSES=[]
     _db_created = False
-    db = None
     FAIL_ON_NON_EXISTENCE = False # Fail if object does not exist in cache database. Usable if you know for sure that filter_record is always true
 
 
@@ -126,8 +130,7 @@ class XenObject(metaclass=XenObjectMeta):
     def __init__(self, xen : XenAdapter, ref : str =None):
         '''
 
-        :param auth: authenticator
-        either
+                either
         :param uuid: object uuid
         :param ref: object ref or object
         '''
@@ -187,10 +190,10 @@ class XenObject(metaclass=XenObjectMeta):
                 if e.details['error_code'] == 'UUID_INVALID':
                     return None
 
-            obj.check_access(action=None)
+            obj.check_access(action=None, auth=info.context.user_authenticator)
 
 
-            record = cls.db.table(cls.db_table_name).get(ref).run()
+            record = re.db.table(cls.db_table_name).get(ref).run()
 
             if not record or not len(record):
                 return None
@@ -226,18 +229,18 @@ class XenObject(metaclass=XenObjectMeta):
             else:
                 refs = getattr(root, field_name)
             if not index:
-                records = cls.db.table(cls.db_table_name).get_all(*refs).coerce_to('array').run()
+                records = re.db.table(cls.db_table_name).get_all(*refs).coerce_to('array').run()
             else:
-                records = cls.db.table(cls.db_table_name).get_all(*refs, index=index).coerce_to('array').run()
+                records = re.db.table(cls.db_table_name).get_all(*refs, index=index).coerce_to('array').run()
 
             def create_graphql_type(record):
                 try:
-                    obj = cls(ref=record['ref'], auth=info.context.user_authenticator)
+                    obj = cls(ref=record['ref'], xen=info.context.xen)
                 except AttributeError:
                     raise NotAuthenticatedException()
                 try:
-                    obj.check_access(action=None)
-                except:
+                    obj.check_access(action=None, auth=info.context.user_authenticator)
+                except XenAdapterUnauthorizedActionException as e:
                     return None
                 return cls.GraphQLType(**record)
 
@@ -267,7 +270,7 @@ class XenObject(metaclass=XenObjectMeta):
             :return:
             '''
 
-            query =  cls.db.table(cls.db_table_name).coerce_to('array')
+            query =  re.db.table(cls.db_table_name).coerce_to('array')
 
             if 'page' in kwargs:
                 if 'page_size' in kwargs:
@@ -281,7 +284,7 @@ class XenObject(metaclass=XenObjectMeta):
         return resolver
 
 
-    def check_access(self, user: str,   action):
+    def check_access(self, auth: BasicAuthenticator,  action):
         return True
 
 
@@ -289,30 +292,29 @@ class XenObject(metaclass=XenObjectMeta):
         pass
 
     @classmethod
-    def process_event(cls,  auth, event, db, authenticator_name, ):
+    def process_event(cls,  xen, event):
+
         '''
         Make changes to a RethinkDB-based cache, processing a XenServer event
-        :param auth: auth object
         :param event: event dict
-        :param db: rethinkdb DB
-        :param authenticator_name: authenticator class name - used by access control
-        :return: nothing
+                :return: nothing
         '''
         from rethinkdb_tools.helper import CHECK_ER
         from xenadapter.task import Task
         if event['class'] in cls.EVENT_CLASSES:
             if event['operation'] == 'del':
-                CHECK_ER(db.table(cls.db_table_name).get(event['ref']).delete().run())
+                CHECK_ER(re.db.table(cls.db_table_name).get(event['ref']).delete().run())
                 return
 
             record = event['snapshot']
-            if not cls.filter_record(record):
+
+            if not cls.filter_record(xen, record, event['ref']):
                 return
 
 
             if event['operation'] in ('mod', 'add'):
-                new_rec = cls.process_record(auth, event['ref'], record)
-                CHECK_ER(db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
+                new_rec = cls.process_record(xen, event['ref'], record)
+                CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
 
                 if 'current_operations' in record and isinstance(record['current_operations'], Mapping):
                     task_docs = [{
@@ -320,10 +322,10 @@ class XenObject(metaclass=XenObjectMeta):
                         "object": cls.__name__,
                         "type": v
                     } for k, v in record['current_operations'].items()]
-                    CHECK_ER(db.table(Task.db_table_name).insert(task_docs, conflict='update').run())
+                    CHECK_ER(re.db.table(Task.db_table_name).insert(task_docs, conflict='update').run())
 
     @classmethod
-    def create_db(cls, db, indexes=None):
+    def create_db(cls, indexes=None):
         '''
         Creates a DB table named cls.db_table_name and specified indexes
         :param db:
@@ -333,34 +335,28 @@ class XenObject(metaclass=XenObjectMeta):
         if not cls.db_table_name:
             return
         def index_yielder():
-            yield 'ref'
             if hasattr(indexes, '__iter__'):
                 for y in indexes:
                     yield y
 
 
-        if not cls.db:
-
-            table_list = db.table_list().run()
-            if cls.db_table_name not in table_list:
-                db.table_create(cls.db_table_name, durability='soft', primary_key='ref').run()
-            index_list = db.table(cls.db_table_name).index_list().coerce_to('array').run()
-            for index in index_yielder():
-                if not index in index_list:
-                    db.table(cls.db_table_name).index_create(index).run()
-                    db.table(cls.db_table_name).index_wait(index).run()
-                    db.table(cls.db_table_name).wait().run()
-
-            cls.db = db
+        table_list = re.db.table_list().run()
+        if cls.db_table_name not in table_list:
+            re.db.table_create(cls.db_table_name, durability='soft', primary_key='ref').run()
+        index_list = re.db.table(cls.db_table_name).index_list().coerce_to('array').run()
+        for index in index_yielder():
+            if not index in index_list:
+                re.db.table(cls.db_table_name).index_create(index).run()
+                re.db.table(cls.db_table_name).index_wait(index).run()
+                re.db.table(cls.db_table_name).wait().run()
 
 
 
 
     @classmethod
-    def process_record(cls, auth, ref, record) -> dict:
+    def process_record(cls, xen, ref, record) -> dict:
         '''
         Used by init_db. Should return dict with info that is supposed to be stored in DB
-        :param auth: current authenticator
         :param record:
         :return: dict suitable for document-oriented DB
         : default: return record as-is, adding a 'ref' field with current opaque ref
@@ -403,7 +399,7 @@ class XenObject(metaclass=XenObjectMeta):
         return new_record
 
     @classmethod
-    def filter_record(cls, record):
+    def filter_record(cls, xen, record, ref):
         '''
         Returns true if record is suitable for a class
         :param record: record from get_all_records (pure XenAPI method)
@@ -411,11 +407,6 @@ class XenObject(metaclass=XenObjectMeta):
         '''
         return True
 
-    @classmethod
-    def get_all_records(cls, auth):
-        method = getattr(cls, '_get_all_records')
-        return {k: v for k, v in method(auth).items()
-                if cls.filter_record(v)}
 
     def set_other_config(self, config):
         config = {k : str(v) for k,v in config.items()}
@@ -433,9 +424,9 @@ class XenObject(metaclass=XenObjectMeta):
 
                 if field_name in self.GraphQLType._meta.fields:
                     try:
-                        data = self.db.table(self.db_table_name).get(self.ref).pluck(field_name).run()[field_name]
+                        data = re.db.table(self.db_table_name).get(self.ref).pluck(field_name).run()[field_name]
                         return lambda: data
-                    except r.ReqlNonExistenceError as e:
+                    except re.r.ReqlNonExistenceError as e:
                         pass
                     except KeyError: # Returning a db-only field (i.e. not that of XenAPI) that is not computed (yet or purposefully)
                         return lambda: None
@@ -443,12 +434,10 @@ class XenObject(metaclass=XenObjectMeta):
 
 
         if name.startswith('async_'):
-            async_ = True
             async_method = getattr(self.xen.api, 'Async')
             api = getattr(async_method, self.api_class)
             name = name[6:]
-        else:
-            async_ = False
+
 
         if name[0] == '_':
             name=name[1:]
@@ -456,18 +445,14 @@ class XenObject(metaclass=XenObjectMeta):
         def method (*args, **kwargs):
             try:
                 ret = attr(self.ref, *args, **kwargs)
-                if async_:
-                    from .task import Task
-                    t = Task(auth=self.auth, ref=ret)
-                    t.manage_actions('run', user=self.auth.get_id())
-                    return t.uuid
 
-                elif isinstance(ret, dict):
+                if isinstance(ret, dict):
                     ret = dict_deep_convert(ret)
 
                 return ret
             except XenAPI.Failure as f:
                 raise XenAdapterAPIError(self.log, f"Failed to execute {self.api_class}::{name} asynchronously", f.details)
+
         return method
 
 
@@ -480,17 +465,6 @@ class GAclXenObject(GXenObject):
 
 
 class ACLXenObject(XenObject):
-    VMEMPEROR_ACCESS_PREFIX = 'vm-data/vmemperor/access'
-
-    def get_access_path(self, username=None, is_group=False):
-        '''
-        used by manage_actions' default implementation
-        :param username:
-        :param is_group:
-        :return:
-        '''
-        return f'{self.access_prefix}/{self.auth.class_name()}/{"groups" if is_group else "users"}/{username}'
-
     ALLOW_EMPTY_XENSTORE = False # Empty xenstore for some objects might treat them as for-all-by-default
 
     @classmethod
@@ -504,6 +478,7 @@ class ACLXenObject(XenObject):
         from handlers.graphql.resolvers import with_connection
         @with_connection
         def resolver(root, info, **kwargs):
+
             '''
 
             :param root:
@@ -515,17 +490,17 @@ class ACLXenObject(XenObject):
             from constants import user_table_ready
 
             auth = info.context.user_authenticator
-            if isinstance(auth, AdministratorAuthenticator):  # return all
+            if auth.is_admin():
                 query = \
-                    cls.db.table(cls.db_table_name).coerce_to('array')
+                    re.db.table(cls.db_table_name).coerce_to('array')
             else:
                 user_table_ready.wait()
                 user_id = auth.get_id()
                 entities = (f'users/{user_id}', 'any', *(f'groups/{group_id}' for group_id in auth.get_user_groups()))
                 query = \
-                    cls.db.table(f'{cls.db_table_name}_user').get_all(*entities, index='userid'). \
+                    re.db.table(f'{cls.db_table_name}_user').get_all(*entities, index='userid'). \
                         pluck('ref').coerce_to('array'). \
-                        merge(cls.db.table(cls.db_table_name).get(r.row['ref']).without('ref'))
+                        merge(re.db.table(cls.db_table_name).get(re.r.row['ref']).without('ref'))
 
             if 'page' in kwargs:
                 page_size = kwargs['page_size']
@@ -535,45 +510,43 @@ class ACLXenObject(XenObject):
             return [cls.GraphQLType(**record) for record in records]
 
         return resolver
+
     @classmethod
-    def process_record(cls, auth, ref, record):
+    def process_record(cls, xen, ref, record):
         '''
         Adds an 'access' field to processed record containing access rights
-        :param auth:
         :param ref:
         :param record:
         :return:
         '''
-        new_rec = super().process_record(auth, ref, record)
-        new_rec['access'] = cls.get_access_data(record, auth.__name__)
+        new_rec = super().process_record(xen, ref, record)
+        new_rec['access'] = cls.get_access_data(record)
         return new_rec
 
 
     @use_logger
-    def check_access(self, user, action):
+    def check_access(self, auth : BasicAuthenticator, action):
         '''
-        Check if it's possible to do 'action' with specified Xen Object
+        Check if it's possible to do 'action' by specified user with specified Xen Object
         :param action: action to perform. If action is None, check for the fact that user can view this Xen object
-        for 'Xen object'  these are
-
-        - launch: can start/stop vm
-        - destroy: can destroy vm
-        - attach: can attach/detach disk/network interfaces
-        :return: True if access granted, False if access denied, None if no info
+        :param auth: authenticator - an object containing info about user and all its groups
 
         Implementation details:
         looks for self.db_table_name and then in db to table $(self.db_table_name)_access
+        :raise XenAdapterUnauthorizedActionException - user is not authorized to perform action
+
         '''
-        if self.auth.is_admin():
+        if not action:
+            action = self.Actions.NONE
+        if auth.get_id():
             return True # admin can do it all
 
         self.log.info(
-            f"Checking {self.__class__.__name__} {self.uuid} rights for user {self.auth.get_id()}: action {action}")
+            f"Checking {self.__class__.__name__} {self.ref} rights for user {auth.get_id()}: action {action}")
         from rethinkdb.errors import ReqlNonExistenceError
 
-        db = self.xen.db
         try:
-            access_info = db.table(self.db_table_name).get(self.uuid).pluck('access').run()
+            access_info = re.db.table(self.db_table_name).get(self.ref).pluck('access').run()
         except ReqlNonExistenceError:
             access_info = None
             
@@ -583,26 +556,31 @@ class ACLXenObject(XenObject):
                     return True
             raise XenAdapterUnauthorizedActionException(self.log,
                                                         f"Unauthorized attempt "
-                                                        f"on object {self} (no info on access rights) by {self.auth.get_id()}: {'requested action {action}' if action else ''}")
+                                                        f"on object {self} (no info on access rights) by {auth.get_id()} : {action}")
 
 
         username = f'users/{self.auth.get_id()}'
         groupnames = [f'groups/{group}' for group in self.auth.get_user_groups()]
-        for item in access_info:
-            if ((action in item['access'] or 'all' in item['access'])\
-                    or (action is None and len(item['access']) > 0))and\
-                    (username == item['userid'] or (item['userid'].startswith('groups/') and item['userid'] in groupnames)):
-                self.log.info(
-                    f'User {self.auth.get_id()} is allowed to perform action {action} on {self.__class__.__name__} {self.uuid}')
-                return True
+        for userid in (username, *groupnames):
+            for item in access_info.get(userid, []):
+                if not item:
+                    continue
+                available_actions = SerFlag.deserialize(item)
+                if action & available_actions:
+                    return True
+
+
+
+
 
 
 
         raise XenAdapterUnauthorizedActionException(self.log,
-            f"Unauthorized attempt on object {self} by {self.auth.get_id()}{': requested action {action}' if action else ''}")
+            f"Unauthorized attempt on object"
+            f" {self} by {auth.get_id()}{': requested action {action}' if action else ''}")
 
     @classmethod
-    def get_access_data(cls, record, authenticator_name):
+    def get_access_data(cls, record):
         '''
         Obtain access data from other_config
         :param record:
@@ -611,7 +589,7 @@ class ACLXenObject(XenObject):
         '''
         other_config = record['other_config']
 
-        def read_other_config_access_rights(other_config):
+        def read_other_config_access_rights(other_config) -> Dict[str, cls.Actions]:
             from json import JSONDecodeError
             if 'vmemperor' in other_config:
                 try:
@@ -620,16 +598,16 @@ class ACLXenObject(XenObject):
                     emperor = {}
 
                 if 'access' in emperor:
-                    if authenticator_name in emperor['access']:
-                        auth_dict = emperor['access'][authenticator_name]
-                        return auth_dict
+                    if auth_name in emperor['access']:
+                        auth_dict = emperor['access'][auth_name]
+                        return deserialize_auth_dict(cls, auth_dict)
                     else:
                         if cls.ALLOW_EMPTY_XENSTORE:
-                            return {'any':  ['ALL']}
+                            return {'any':  cls.Actions.ALL}
 
         return read_other_config_access_rights(other_config)
 
-    def manage_actions(self, action : Flag, revoke=False, user : str = None):
+    def manage_actions(self, action : SerFlag, revoke=False, clear=False, user : str = None):
         '''
         Changes action list for a Xen object
         :param action:
@@ -647,7 +625,7 @@ class ACLXenObject(XenObject):
 
 
         other_config = self.get_other_config()
-        auth_name = self.auth.class_name()
+
         if 'vmemperor' not in other_config:
             emperor = {'access': {auth_name : {}}}
         else:
@@ -657,24 +635,20 @@ class ACLXenObject(XenObject):
             except JSONDecodeError:
                 emperor = {'access': {auth_name: {}}}
 
-        if auth_name in emperor['access']:
-            previous_actions = self.Actions[emperor['access'][auth_name]]
+        if auth_name in emperor['access'] and not clear:
+            previous_actions = deserialize_auth_dict(self, emperor['access'][auth_name])
         else:
-            previous_actions = self.Actions
+            previous_actions = {}
             emperor['access'][auth_name] = {}
 
-        if user in previous_actions and isinstance(previous_actions[user], list) and 'ALL' not in actions:
-            previous_actions = set(previous_actions[user])
-        else:
-            previous_actions = set()
-
+        user_actions: SerFlag = previous_actions.get(user, self.Actions.NONE)
 
         if revoke:
-            previous_actions.difference_update(actions)
+            user_actions = user_actions ^ action
         else:
-            previous_actions.update(actions)
-        if previous_actions:
-            emperor['access'][auth_name][user] = list(previous_actions)
+            user_actions = user_actions | action
+        if user_actions:
+            emperor['access'][auth_name][user] = user_actions.serialize()
         else:
             del emperor['access'][auth_name][user]
 

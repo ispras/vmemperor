@@ -1,5 +1,5 @@
 from rethinkdb import RethinkDB
-
+import constants.re as re
 import queue
 from xenadapter import singleton
 from loggable import Loggable
@@ -11,7 +11,7 @@ class ReDBConnection(Loggable, metaclass=singleton.Singleton):
         self.conn_queue : queue.Queue
         self.host : str = None
         self.port : int = None
-        self.db = None
+        self.db = re.db
         self.user : str = None
         self.password : str = None
         self.init_log()

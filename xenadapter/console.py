@@ -9,9 +9,9 @@ class Console(XenObject):
     db_table_name = "consoles"
 
     @classmethod
-    def create_db(cls, db, indexes=None):
-        super().create_db(db, indexes=['VM'])
+    def create_db(cls, indexes=None):
+        super().create_db(indexes=['VM'])
 
     @classmethod
-    def filter_record(cls, record):
+    def filter_record(cls, xen, record, ref):
         return record['protocol'] == 'rfb'

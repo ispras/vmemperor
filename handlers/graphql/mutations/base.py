@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import NewType, Callable, Sequence, Any, Optional
 import graphene
+from serflag import SerFlag
+
 from authentication import AdministratorAuthenticator, NotAuthenticatedAsAdminException
 
 from handlers.graphql.graphql_handler import ContextProtocol
@@ -16,7 +18,7 @@ class MutationMethod:
     '''
     #func : Callable[[ContextProtocol, XenObject, InputObject, OutputObject, ...], None]
     func : Callable
-    access_action : Optional[str]
+    access_action : Optional[SerFlag]
 
 
 

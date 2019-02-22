@@ -1,5 +1,5 @@
 import graphene
-
+import constants.re as re
 from handlers.graphql.resolvers.sr import srType, resolve_sr
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.resolvers.host import hostType, resolve_host
@@ -7,6 +7,7 @@ from rethinkdb_tools.helper import CHECK_ER
 from .xenobject import XenObject, GXenObject
 import json
 from json import JSONDecodeError
+from constants.auth import auth_name
 
 class GPool(GXenObjectType):
     class Meta:
@@ -24,7 +25,7 @@ class Pool (XenObject):
     GraphQLType = GPool
 
     @classmethod
-    def create_db(cls, db, indexes=None):
+    def create_db(cls, indexes=None):
         '''
         This implementation creates a DB for quotas and then runs parent implementation
         The quotas table has the following document structure:
@@ -37,33 +38,30 @@ class Pool (XenObject):
         :return:
         '''
 
-        if not cls.db:
-            table_list = db.table_list().run()
-            if cls.quotas_table_name not in table_list:
-                db.table_create(cls.quotas_table_name, durability='soft', primary_key='userid').run()
+        re.db.table_create(cls.quotas_table_name, durability='soft', primary_key='userid').run()
 
-        super().create_db(db, indexes)
+        super().create_db(indexes)
 
 
 
     @classmethod
-    def process_event(cls, auth, event, db, authenticator_name):
+    def process_event(cls, xen, event):
         '''
         Calls parent implementation and then inserts JSON documents from Pool's
-        other_config field named vmemperor_quotas_$authenticator_name
+        other_config field named vmemperor_quotas_auth_name
         Reads fields with JSON.reads
 
-        :param auth:
+        :param xen:
         :param event:
         :param db:
-        :param authenticator_name:
+        :param xenenticator_name:
         :return:
         '''
-        super().process_event(auth, event, db, authenticator_name)
+        super().process_event(xen, event)
 
         if 'snapshot' not in event:
             return
-        field_name = f'vmemperor_quotas_{authenticator_name}'
+        field_name = f'vmemperor_quotas_{auth_name}'
         record =  event['snapshot']
         if field_name not in record['other_config']:
             return
@@ -72,20 +70,20 @@ class Pool (XenObject):
         try:
             json_doc = json.loads(json_string)
         except JSONDecodeError as e:
-            auth.log.error(f"Error while loading JSON quota info for {authenticator_name}: {e}")
+            xen.log.error(f"Error while loading JSON quota info for {auth_name}: {e}")
             return
         for doc in json_doc:
             if 'userid' not in doc:
-                auth.log.error(f"Malformed JSON quota document in {field_name}: {doc}")
+                xen.log.error(f"Malformed JSON quota document in {field_name}: {doc}")
                 return
 
 
-        CHECK_ER(db.table(cls.quotas_table_name).insert(json_doc, conflict='update').run())
+        CHECK_ER(re.db.table(cls.quotas_table_name).insert(json_doc, conflict='update').run())
 
-    def __init__(self, auth):
-        records = Pool.get_all(auth)
+    def __init__(self, xen):
+        records = Pool.get_all(xen)
         assert len(records) == 1
-        super().__init__(auth, ref=records[0])
+        super().__init__(xen, ref=records[0])
 
 
 

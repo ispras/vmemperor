@@ -10,18 +10,18 @@ class AttachVDIMutation(graphene.Mutation):
     taskId = graphene.ID(description="Attach/Detach task ID. If already attached/detached, returns null")
 
     class Arguments:
-        vdi_uuid = graphene.ID(required=True)
-        vm_uuid = graphene.ID(required=True)
+        vdi_ref = graphene.ID(required=True)
+        vm_ref = graphene.ID(required=True)
         is_attach = graphene.Boolean(required=True, description="True if attach, False if detach")
 
     @staticmethod
-    @with_authentication(access_class=VDIorISO, access_action='attach', id_field='vdi_uuid')
-    @with_authentication(access_class=VM, access_action='attach', id_field='vm_uuid')
-    def mutate(root, info, vdi_uuid, vm_uuid, is_attach):
+    @with_authentication(access_class=VDIorISO, access_action='attach', id_field='vdi_ref')
+    @with_authentication(access_class=VM, access_action='attach', id_field='vm_ref')
+    def mutate(root, info, vdi_ref, vm_ref, is_attach):
         ctx: ContextProtocol = info.context
-        vdi = VDIorISO(uuid=vdi_uuid, auth=ctx.user_authenticator)
+        vdi = VDIorISO(ref=vdi_ref, xen=ctx.xen)
         if is_attach:
-            taskId = vdi.attach(VM(uuid=vm_uuid, auth=ctx.user_authenticator))
+            taskId = vdi.attach(VM(ref=vm_ref, xen=ctx.xen))
         else:
-            taskId = vdi.detach(VM(uuid=vm_uuid, auth=ctx.user_authenticator))
+            taskId = vdi.detach(VM(ref=vm_ref,xen=ctx.xen))
         return AttachVDIMutation(taskId=taskId)

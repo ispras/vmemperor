@@ -3,7 +3,7 @@ from graphene import ObjectType
 from rethinkdb import RethinkDB
 from rx import Observable
 from enum import Enum
-
+import constants.re as re
 from connman import ReDBConnection
 
 
@@ -49,7 +49,7 @@ def MakeSubscription(_class : type) -> type:
     return _class
 
 
-def resolve_item_by_key(item_class: type, db, table_name : str, key_name: str='uuid'):
+def resolve_item_by_key(item_class: type,  table_name : str, key_name:str = 'ref'):
     """
     Returns an asynchronous function that resolves every change in RethinkDB table with item with said primary key
     If item is deleted or does not exist, returns null in place of an item
@@ -71,7 +71,7 @@ def resolve_item_by_key(item_class: type, db, table_name : str, key_name: str='u
                 if not key:
                     yield None
                     return
-                table = db.table(table_name)
+                table = re.db.table(table_name)
                 changes = await table.get_all(key) \
                                      .pluck(*item_class._meta.fields)\
                                      .changes(include_types=True, include_initial=True).run(conn)
@@ -91,7 +91,7 @@ def resolve_item_by_key(item_class: type, db, table_name : str, key_name: str='u
     return resolve_item
 
 
-def resolve_all_items_changes(item_class: type, db,  table_name : str):
+def resolve_all_items_changes(item_class: type,   table_name : str):
     """
     Returns an asynchronous function that resolves every change in RethinkDB table
 
@@ -112,7 +112,7 @@ def resolve_all_items_changes(item_class: type, db,  table_name : str):
         '''
         async def iterable_to_items():
             async with ReDBConnection().get_async_connection() as conn:
-                table = db.table(table_name)
+                table = re.db.table(table_name)
                 changes = await table.pluck(*item_class._meta.fields.keys()).changes(include_types=True, include_initial=True).run(conn)
                 while True:
                     change = await changes.next()

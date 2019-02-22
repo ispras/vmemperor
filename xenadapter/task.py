@@ -1,4 +1,4 @@
-from xenadapter import XenAdapterPool
+import constants.re as re
 from .xenobject import ACLXenObject, GAclXenObject
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 import graphene
@@ -25,10 +25,10 @@ class Task(ACLXenObject):
     GraphQLType = GTask
     
     @classmethod
-    def process_event(cls, auth, event, db, authenticator_name):
+    def process_event(cls, xen, event):
         '''
         Make changes to a RethinkDB-based cache, processing a XenServer event
-        :param auth: auth object
+
         :param event: event dict
         :param db: rethinkdb DB
         :param authenticator_name: authenticator class name - used by access control
@@ -36,27 +36,21 @@ class Task(ACLXenObject):
         '''
         from rethinkdb_tools.helper import CHECK_ER
 
-        cls.create_db(db)
-
         if event['class'] in cls.EVENT_CLASSES:
             if event['operation'] == 'del':
                 #CHECK_ER(db.table(cls.db_table_name).get_all(event['ref'], index='ref').delete().run())
                 return
 
             record = event['snapshot']
-            if not cls.filter_record(record):
+            if not cls.filter_record(xen, record, event['ref']):
                 return
 
             if event['operation'] in ('mod', 'add'):
-                new_rec = cls.process_record(auth, event['ref'], record)
-                CHECK_ER(db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
+                new_rec = cls.process_record(xen, event['ref'], record)
+                CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
                 if record['status'] in ['success', 'failure', 'cancelled'] and new_rec['access']: # only our tasks have non-empty 'access'
-                    if not hasattr(auth, 'xen'):
-                        auth.log.warning("Creating a XenAdaptor when it's likely should be provided")
-                        auth.xen = XenAdapterPool().get()
-                    auth.xen.api.task.destroy(event['ref'])
-                    if not hasattr(auth, 'xen'):
-                        XenAdapterPool().unget(auth.xen)
+                    xen.api.task.destroy(event['ref'])
+
 
 
         

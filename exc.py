@@ -2,6 +2,11 @@ import json
 from  rethinkdb import  RethinkDB
 r = RethinkDB()
 import tornado.options as opts
+__all__ = ['EmperorException',
+           'XenAdapterException',
+           'XenAdapterUnauthorizedActionException',
+           'XenAdapterAPIError', 'XenAdapterArgumentError', 'XenAdapterConnectionError',
+           'AuthenticationException', 'AuthenticationRealmException',  'AuthenticationUserNotFoundException', 'AuthenticationWithEmptyPasswordException']
 class EmperorException(Exception):
     def __init__(self, log, message):
         log.error(f"{type(self).__name__}: {message}", exc_info=True)
@@ -10,7 +15,7 @@ class EmperorException(Exception):
         self.log = log
 
     def __str__(self):
-        return "<{0}>: {1}".format(self.__class__.__name__, self.message)
+        return f"<{self.__class__.__name__}>: {self.message}"
 
 
 class XenAdapterException(EmperorException):
@@ -32,20 +37,13 @@ class XenAdapterAPIError(XenAdapterException):
 
     @staticmethod
     def print_details(details):
+        if not details:
+            return None
         if details[0] == 'VDI_MISSING':
-            db = r.db(opts.database)
-            sr = db.table('srs').get_all(details[1], index='ref').pluck('uuid', 'content_type').coerce_to('array').run()[0]
-            if sr['content_type'] == 'iso':
-                table_name = 'isos'
-            else:
-                table_name = 'vdis'
-            disk = db.table(table_name).get_all(details[2], index='ref').pluck('uuid').run()[0]
-
             return {
                 "error_code" : details[0],
-                "SR": sr['uuid'],
-                "content_type": sr['content_type'],
-                "VDI": disk['uuid'],
+                "SR": details[1],
+                "VDI": details[2],
             }
         elif details[0] == 'UUID_INVALID':
             return {
@@ -55,9 +53,6 @@ class XenAdapterAPIError(XenAdapterException):
             }
         else:
             return details
-
-
-
 
 
 class XenAdapterArgumentError(XenAdapterException):

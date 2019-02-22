@@ -36,47 +36,48 @@ class AutoInstall(graphene.InputObjectType):
     partition = graphene.InputField(graphene.String, required=True, description="Partition scheme (TODO)")
     static_ip_config  = graphene.InputField(NetworkConfiguration, description="Static IP configuration, if needed")
 
-def createvm(ctx : ContextProtocol, task_id : str, template: str, VCPUs : int, disks : Sequence[NewVDI], ram : int, name_label : str, name_description : str, network : str, iso : str =None, install_params : AutoInstall=None):
+def createvm(ctx : ContextProtocol, task_id : str, user: str, template: str, VCPUs : int, disks : Sequence[NewVDI], ram : int, name_label : str, name_description : str, network : str, iso : str =None, install_params : AutoInstall=None):
     from xenadapter.network import Network
     from xenadapter.disk import ISO
     from xenadapter.sr import SR
-    from tornado.options import options as opts
     from rethinkdb import RethinkDB
     from xenadapter import XenAdapterPool
     r = RethinkDB()
     with ReDBConnection().get_connection():
-        auth = ctx.user_authenticator
-        auth.xen = XenAdapterPool().get()
+        xen = XenAdapterPool().get()
         task_list = CreateVMTaskList()
-        task_list.upsert_task(auth, CreateVMTask(id=task_id, uuid=template, state='cloning',
-                                                 message=f'cloning template'))
-        tmpl = Template(auth, uuid=template)
-        net = Network(auth=auth, uuid=network)
-        iso = ISO(auth=auth, uuid=iso) if iso else None
-        # TODO: Check quotas here as well as in create vdi method
-        provision_config = [SetDisksEntry(SR=SR(auth=auth, uuid=entry.SR), size=entry.size)
-                            for entry in disks]
+        try:
+            task_list.upsert_task(user, CreateVMTask(id=task_id, ref=template, state='cloning',
+                                                     message=f'cloning template'))
+            tmpl = Template(xen, template)
+            net = Network(xen, network)
+            iso = ISO(xen, iso) if iso else None
+            # TODO: Check quotas here as well as in create vdi method
+            provision_config = [SetDisksEntry(SR=SR(xen, ref=entry.SR), size=entry.size)
+                                for entry in disks]
 
-        vm = tmpl.clone(name_label)
-        task_list.upsert_task(auth, CreateVMTask(id=task_id, uuid=vm.uuid, state='cloned', message=f'cloned from {tmpl.uuid}'))
-        vm.set_name_description(name_description)
-        vm.create(
-            insert_log_entry=lambda uuid, state, message: task_list.upsert_task(auth, CreateVMTask(id=task_id, uuid=uuid, state=state, message=message)),
-            provision_config=provision_config,
-            ram_size=ram,
-            net=net,
-            template=tmpl,
-            iso=iso,
-            hostname=install_params.hostname if install_params else None,
-            ip=install_params.static_ip_config if install_params else None,
-            install_url=install_params.mirror_url if install_params else None,
-            username=install_params.username if install_params else None,
-            password=install_params.password if install_params else None,
-            partition=install_params.partition if install_params else None,
-            fullname=install_params.fullname if install_params else None,
-            vcpus = VCPUs,
-
+            vm = tmpl.clone(name_label)
+            task_list.upsert_task(user, CreateVMTask(id=task_id, ref=vm.ref, state='cloned', message=f'cloned from {tmpl.uuid}'))
+            vm.set_name_description(name_description)
+            vm.create(
+                insert_log_entry=lambda ref, state, message: task_list.upsert_task(user, CreateVMTask(id=task_id, ref=ref, state=state, message=message)),
+                provision_config=provision_config,
+                ram_size=ram,
+                net=net,
+                template=tmpl,
+                iso=iso,
+                hostname=install_params.hostname if install_params else None,
+                ip=install_params.static_ip_config if install_params else None,
+                install_url=install_params.mirror_url if install_params else None,
+                username=install_params.username if install_params else None,
+                password=install_params.password if install_params else None,
+                partition=install_params.partition if install_params else None,
+                fullname=install_params.fullname if install_params else None,
+                vcpus = VCPUs,
+                user = user,
         )
+        finally:
+            XenAdapterPool.unget(xen)
 
 
 
@@ -104,8 +105,8 @@ class CreateVM(graphene.Mutation):
     @with_connection
     def mutate(root, info, *args, **kwargs):
         task_id  = str(uuid.uuid4())
-        ctx = info.context
+        ctx :ContextProtocol = info.context
 
         tornado.ioloop.IOLoop.current().run_in_executor(ctx.executor,
-                                                        lambda: createvm(ctx, task_id, *args, **kwargs))
+        lambda: createvm(ctx, task_id, user=ctx.user_authenticator.get_id(), *args, **kwargs))
         return CreateVM(task_id=task_id)

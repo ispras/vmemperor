@@ -1,3 +1,5 @@
+import json
+
 import sentry_sdk
 
 
@@ -5,9 +7,11 @@ import pathlib
 import signal
 import atexit
 
+import constants.re as re
 import constants
+import constants.auth
 from connman import ReDBConnection
-import subprocess
+
 
 import handlers.graphql.graphql_handler as gql_handler
 from datetimeencoder import DateTimeEncoder
@@ -143,114 +147,6 @@ class LogOut(RESTHandler):
         self.write({'status': 'ok'})
 
 
-class Playbooks(RESTHandler):
-    @auth_required
-    def get(self):
-
-        _playbooks = constants.playbooks.values()
-        if not isinstance(self.user_authenticator, AdministratorAuthenticator):
-            _playbooks = filter(lambda playbook: not playbook.get_inventory(), _playbooks)
-        _playbooks = list(_playbooks)
-        self.write(json.dumps(list(_playbooks), cls=PlaybookEncoder))
-
-
-class TurnTemplate(RESTHandler):
-    @admin_required
-    def post(self):
-        uuid = self.get_argument('uuid')
-        action = self.get_argument('action')
-        tmpl = Template(self.user_authenticator, uuid=uuid)
-        if action not in ('on', 'off'):
-            self.set_status(400)
-            self.write({'status': 'error', 'message': 'action is either on or off'})
-            return
-        try:
-            tmpl.enable_disable(action == 'on')
-        except XenAdapterAPIError as e:
-            self.set_status(400)
-            self.write({'status': 'error', 'message': e.message})
-            return
-
-        self.write({'status': 'ok'})
-
-class AllTemplates(RESTHandler):
-    @admin_required
-    def get(self):
-        tmpl = Template.get_all_records(self.user_authenticator)
-        self.write(json.dumps(tmpl, cls=DateTimeEncoder))
-
-class SetQuota(RESTHandler):
-    @admin_required
-    def post(self):
-        userid = self.get_argument('userid')
-        name = self.get_argument('name')
-        value = self.get_argument('value')
-        quota = Quota(self.user_authenticator, constants.auth_class_name)
-        if name == 'storage':
-            quota.set_storage_quota(userid, int(value))
-
-        self.write({'status':'ok'})
-
-class GetQuota(RESTHandler):
-    @admin_required
-    def post(self):
-        userid = self.get_argument('userid', None)
-        with self.conn:
-            quota = Quota(self.user_authenticator, constants.auth_class_name)
-            self.write(json.dumps(quota.get_storage_usage(userid)))
-
-    @auth_required
-    def get(self):
-        with self.conn:
-            quota = Quota(self.user_authenticator, constants.auth_class_name)
-            self.write(json.dumps(quota.get_storage_usage()))
-
-
-
-class ResourceList(RESTHandler):
-    @auth_required
-    def get(self):
-        with self.conn:
-            db = r.db(opts.database)
-            constants.user_table_ready.wait()
-            try:
-                if isinstance(self.user_authenticator, AdministratorAuthenticator):
-                    query = db.table(self.table).coerce_to('array')
-
-                else:
-                    userid = str(self.user_authenticator.get_id())
-                    query = db.table(self.table + '_user').get_all('users/%s' % userid, index='userid'). \
-                        pluck('uuid').coerce_to('array'). \
-                        merge(db.table(self.table).get(r.row['uuid']).without('uuid'))
-
-                    for group in self.user_authenticator.get_user_groups():
-                        group = str(group)
-                        query = query.union(db.table(self.table + '_user').get_all('groups/%s' % group, index='userid'). \
-                                            without('id').coerce_to('array'). \
-                                            merge(db.table(self.table).get(r.row['uuid']).without('uuid')))
-
-                page = int(self.get_argument('page', -1))
-                if page > 0:
-                    page_size = int(self.get_argument('page_size', 10))
-                    query = query.slice((page - 1) * page_size, page_size)
-
-                self.write(json.dumps(query.run()))
-
-
-            except Exception as e:
-                self.set_status(500)
-                self.log.error("Exception: {0}".format(e))
-
-
-class NetworkList(ResourceList):
-    table = 'nets'
-
-
-class VDIList(ResourceList):
-    table = 'vdis'
-
-
-
 class PoolListPublic(RESTHandler):
     def get(self):
         '''
@@ -258,351 +154,6 @@ class PoolListPublic(RESTHandler):
         :return: list of pools available for login (ids only)
         '''
         self.write(json.dumps([{'id': 1}]))
-
-
-class PoolList(RESTHandler):
-    @auth_required
-    def get(self):
-        """
-        XenServer pool list
-        TODO: Rewrite it using RethinkDB cache
-         """
-
-        with self.conn:
-
-            pool_info = {}
-            api = self.user_authenticator.xen.api
-
-            pools = api.pool.get_all_records()
-            default_sr = None
-            pool_description = None
-            for pool in pools.values():
-                default_sr = pool['default_SR']
-                pool_description = pool['name_description']
-                pool_id = pool['uuid']
-
-            if default_sr == 'OpaqueRef:NULL':
-                default_sr = None
-
-            networks = api.network.get_all_records()
-            # TODO: implement filtering by tags some time
-            pool_info["networks"] = []
-            for net in networks.values():
-                if net["name_label"] == "Host internal management network":
-                    continue
-                pool_info["networks"].append({"uuid": net["uuid"], "name_label": net["name_label"]})
-
-            pool_info["storage_resources"] = []
-            storage_resources = api.SR.get_all_records()
-
-            for key, sr in storage_resources.items():
-                if sr["type"] == "lvmoiscsi" or sr["type"] == "lvm":
-                    if default_sr is None and sr["name_label"] == "Local storage":
-                        default_sr = key
-
-                    label = ''.join((sr["name_label"], " (Available %d GB)" % (
-                            (int(sr['physical_size']) - int(sr['virtual_allocation'])) / (1024 * 1024 * 1024))))
-                    if sr["shared"]:
-                        label = ''.join(("Shared storage: ", label))
-                        pool_info["storage_resources"].insert(0, {"uuid": sr["uuid"], "name_label": label})
-                    else:
-                        pool_info["storage_resources"].append({"uuid": sr["uuid"], "name_label": label})
-
-            sr_info = api.SR.get_record(default_sr)
-            pool_info['hdd_available'] = (int(sr_info['physical_size']) - int(sr_info['virtual_allocation'])) / (
-                    1024 * 1024 * 1024)
-
-            pool_info['host_list'] = []
-
-            records = api.host.get_all_records()
-            for host_ref, record in records.items():
-                metrics = api.host_metrics.get_record(record['metrics'])
-                host_entry = dict()
-                for i in ['name_label', 'resident_VMs', 'software_version', 'cpu_info']:
-                    host_entry[i] = record[i]
-                host_entry['memory_total'] = int(metrics['memory_total']) / (1024 * 1024)
-                host_entry['memory_free'] = int(metrics['memory_free']) / (1024 * 1024)
-                host_entry['live'] = metrics['live']
-                host_entry['memory_available'] = int(api.host.compute_free_memory(host_ref)) / (1024 * 1024)
-                pool_info['host_list'].append(host_entry)
-
-            # For now we have a single endpoint
-            pool_info['url'] = opts.url
-            pool_info['description'] = pool_description
-            pool_info['uuid'] = pool_id
-
-            # TODO filter templates by tag??
-
-            tmpls_table = r.db(opts.database).table('tmpls')
-            pool_info['templates_enabled'] = [x for x in tmpls_table.run()]
-
-        self.write(json.dumps([pool_info]))
-
-
-class TemplateList(RESTHandler):
-    @auth_required
-    def get(self):
-        """
-        List of available templates
-        format:
-        [{'uuid': template UUID,
-          'name_label': template human-readable name,
-          'hvm': True if this is an HVM template, False if PV template
-          },...]
-
-         """
-
-        # read from db
-        with self.conn:
-            table = r.db(opts.database).table('tmpls')
-            list = [x for x in table.run()]
-
-            self.write(json.dumps(list))
-
-
-class ISOList(RESTHandler):
-    @auth_required
-    def get(self):
-        """
-        List of available ISOs
-        format:
-        [{'location': 'file name or device file path',
-          'name_description': 'human readable description',
-          'name_label': file name OR device name if it's a real CD device,
-          'uuid': 'db199908-f133-4c7f-b06c-10ac2784ad5d'}]
-         """
-
-        # read from db
-        with self.conn:
-            table = r.db(opts.database).table('isos')
-            list = [x for x in table.run()]
-
-            self.write(json.dumps(list))
-
-
-class ConvertVM(RESTHandler):
-    @auth_required
-    def post(self):
-        vm_uuid = self.get_argument('uuid')
-        mode = self.get_argument('mode')
-        self.try_xenadapter(lambda auth: VM(auth, uuid=vm_uuid).set_domain_type(mode))
-
-
-class EnableDisableTemplate(RESTHandler):
-    @auth_required
-    def post(self):
-        """
-         Enable or disable template
-         Arguments:
-             uuid: VM UUID
-             enable: True if template needs to be enabled
-         """
-        uuid = self.get_argument('uuid')
-        enable = self.get_argument('enable')
-
-        self.try_xenadapter(lambda auth: Template(auth, uuid=uuid).enable_disable(bool(enable)))
-
-
-class TaskStatus(RESTHandler):
-    @auth_required
-    def post(self):
-        task = self.get_argument('task')
-
-        operation = None
-        try:
-            operation = self.op.get_task(self.user_authenticator, task)
-        except KeyError:
-            self.set_status(404)
-            self.finish()
-            return
-
-
-        try:
-            self.write(json.dumps({k: v for k, v in operation.items() if k != 'auth'},
-                                  cls=DateTimeEncoder))
-        except Exception as e:
-            self.write({'status': 'error', 'details': 'no such task'})
-            self.set_status(400)
-        finally:
-            self.finish()
-
-
-class ExecutePlaybook(RESTHandler):
-    _ASYNC_KEY = 'pb'
-
-    def run_ansible(self):
-        with ReDBConnection().get_connection():
-            self.log.info(f"Running: {self.cmd_line} in {self.cwd} as {self.cwd.name}")
-            task = {'id': self.cwd.name}
-
-            log_path = Path(opts.ansible_logs).joinpath(self.cwd.name)
-            os.makedirs(log_path)
-            with open(log_path.joinpath('stdout'), 'w') as _stdout:
-                with open(log_path.joinpath('stderr'), 'w') as _stderr:
-                    task['returncode'] = None
-                    self.op.upsert_task(self.user_authenticator, task)
-                    proc = subprocess.run(self.cmd_line,
-                                          cwd=self.cwd, stdout=_stdout, stderr=_stderr,
-                                          env={"ANSIBLE_HOST_KEY_CHECKING":"False"})
-
-                    task['returncode'] = proc.returncode
-                    self.op.upsert_task(None, task)
-
-            self.log.info(f'Finished {self.cwd.name} with return code {constants.tasks[self.cwd.name]["returncode"]}')
-
-    @auth_required
-    def post(self):
-        vms = self.get_argument('vms')
-        ans = {}
-        with self.conn:
-            for _vm in vms:
-                vm = VM(self.user_authenticator, uuid=_vm)
-                try:
-                    vm.check_access('launch')
-                except XenAdapterUnauthorizedActionException as e:
-                    self.set_status(403)
-                    self.write({'status': 'access denied', 'message': e.message})
-                    return
-
-            _playbook = self.get_argument('playbook')
-            if not _playbook in constants.playbooks:
-                self.set_status(400)
-                self.write({'status': 'error', 'message': 'no such playbook: {0}'.format(_playbook)})
-                return
-            p = constants.playbooks[_playbook]
-
-            temp_dir = tempfile.mkdtemp(prefix='vmemperor-', suffix=f'-playbook-{_playbook}')
-            self.log.info(f"Creating temporary directory {temp_dir}")
-            from distutils.dir_util import copy_tree
-            playbook_dir = p.get_playbook_dir()
-            self.log.info(f"Copying {playbook_dir} into temporary directory")
-            copy_tree(playbook_dir, temp_dir)
-            temp_path = Path(temp_dir)
-            table = r.db(opts.database).table('vms')
-            documents = table.get_all(*vms).coerce_to('array').run()
-
-            if not p.get_inventory():
-                hosts_file = 'hosts'
-                yaml_hosts = {'all': {'hosts': {}}}
-                for vm in documents:
-                    for net in vm['networks'].values():
-                        if not net['network'] in opts.ansible_networks:
-                            continue
-                        if not 'ip' in net or not net['ip']:
-                            continue
-                        yaml_hosts['all']['hosts'][vm['name_label']] = {
-                            'ansible_user': 'root',
-                            'ansible_host': net['ip']
-                        }
-                        break
-                    else:
-                        self.log.warning(
-                            f"Ignoring VM {vm['uuid']}: not connected to any of 'ansible_networks'. Check your configuration")
-                        if 'warnings' in ans:
-                            if 'notconnected' in ans['warnings']:
-                                ans['warnings']['notconnencted'].append(vm['uuid'])
-                            else:
-                                ans['warnings'] = {'notconnected': vm['uuid']}
-                        else:
-                            ans['warnings'] = {'notconnected': vm['uuid']}
-
-                if yaml_hosts['all']['hosts']:
-                    # Create ansible execution task
-
-                    with open(temp_path.joinpath(hosts_file), 'w') as file:
-                        yaml.dump(yaml_hosts, file)
-                    self.log.info("Hosts file created")
-                else:
-                    self.set_status(400)
-                    self.write(ans)
-                    self.log.error(f"{temp_dir}: No suitable VMs found")
-                    shutil.rmtree(temp_dir, ignore_errors=True)
-                    self.finish()
-                    return
-
-
-            else:
-                hosts_file = p.get_inventory()
-
-            self.log.info("Patching variables files...")
-
-            for key, vars in p.vars.items():
-                vars_copy = vars.copy()
-                for variable in p.variables_locations[key]:
-                    value = self.get_argument(variable, p.config['variables'][variable]['value'])
-                    vars_copy[variable] = value
-                file_name = temp_path.joinpath(key, 'all')
-                with open(file_name, 'w') as file:
-                    yaml.dump(vars_copy, file)
-
-                self.log.info(f'File {file_name} patched')
-
-            self.cmd_line = [opts.ansible_playbook, '-i', hosts_file, p.get_playbook_file()]
-            self.cwd = temp_path
-            ans['task'] = self.cwd.name
-            self._run_task = ans['task']
-            ioloop = tornado.ioloop.IOLoop.instance()
-            ioloop.run_in_executor(self.executor, self.run_ansible)
-            self.write(ans)
-            self.finish()
-
-
-class ResourceAbstractHandler(RESTHandler):
-    '''
-    Abstact handler for resource requests
-    requires: function self.get_data returning something we can write
-              attribute self.access - access mode
-              attribute self.resource - resource class
-    provides: self.uuid <- vm_uuid
-
-    '''
-
-    @auth_required
-    def post(self):
-
-        uuid = self.get_argument('uuid')
-        self.uuid = uuid
-        with self.conn:
-            try:
-                resource_name = self.resource.__name__.lower()
-                self.__setattr__(resource_name, self.resource(self.user_authenticator, uuid=uuid))
-            except XenAdapterAPIError as e:
-                self.set_status(400)
-                self.write({'status': 'bad request', 'message': e.message})
-                return
-
-            try:
-                from xenadapter.xenobject import ACLXenObject
-                if isinstance(self.__getattribute__(resource_name), ACLXenObject):
-                    self.__getattribute__(resource_name).check_access(self.access)
-            except XenAdapterUnauthorizedActionException as e:
-                self.set_status(403)
-                self.write({'status': 'access denied', 'message': e.message})
-                return
-
-            ret = self.get_data()
-            if ret:
-                self.write(json.dumps(ret, cls=DateTimeEncoder))
-
-    def get_data(self):
-        '''return answer information (if everything is OK). Else use set_status and write'''
-        raise NotImplementedError()
-
-
-class VMAbstractHandler(ResourceAbstractHandler):
-    resource = VM
-
-
-class NetworkAbstractHandler(ResourceAbstractHandler):
-    resource = Network
-
-
-class VDIAbstractHandler(ResourceAbstractHandler):
-    resource = VDI
-
-
-class ISOAbstractHandler(ResourceAbstractHandler):
-    resource = ISO
 
 
 class SetAccessHandler(RESTHandler):
@@ -736,305 +287,6 @@ class GetAccessHandler(RESTHandler):
             self.write(db.table(type_obj.db_table_name).get(uuid).pluck('access').run())
 
 
-class InstallStatus(RESTHandler):
-    @auth_required
-    def post(self):
-        taskid = self.get_argument('taskid')
-
-
-class VMInfo(VMAbstractHandler):
-    access = 'launch'
-
-    def get_data(self):
-        db = r.db(opts.database)
-        try:
-            d = db.table('vms').get(self.uuid).run()
-            return d
-        except Exception as e:
-            self.log.error("Exception: {0}".format(e))
-            self.set_status(500)
-            self.write({'status': 'database error/no info'})
-            return
-
-
-class VMNetInfo(VMAbstractHandler):
-    access = 'launch'
-
-    def get_data(self):
-        db = r.db(opts.database)
-        try:
-            vm_data = db.table('vms').get(self.uuid).do(lambda vm: vm['networks'].keys(). \
-                                                        map(lambda key: r.expr([key, vm['networks'][key].merge(
-                db.table('nets').get(vm['networks'][key]['network']).without('uuid'))])).filter(
-                lambda item: item[1] != None). \
-                                                        coerce_to('object')).run()
-            return vm_data
-        except Exception as e:
-            self.log.error("Exception: {0}".format(e))
-            traceback.print_exc()
-            self.set_status(500)
-            self.write({'status': 'database error/no info'})
-            return
-
-
-class VMDiskInfo(VMAbstractHandler):
-    access = 'launch'
-
-    def get_data(self):
-        db = r.db(opts.database)
-        try:
-
-            vm_data = db.table('vms').get(self.uuid).do(lambda vm: vm['disks'].keys(). \
-                                                        map(
-                lambda diskKey: r.expr([diskKey, vm['disks'][diskKey].merge(r.branch(
-                    vm['disks'][diskKey]['VDI'] != None, #if
-                    r.branch( #then
-                    vm['disks'][diskKey]['type'].eq('Disk'), #inner if
-                    db.table('vdis').get(vm['disks'][diskKey]['VDI']).without('uuid'), # inner then
-                    db.table('isos').get(vm['disks'][diskKey]['VDI']).without('uuid')), # inner else
-                    {} # else
-                    ))])).filter(lambda item: item[1] != None).coerce_to('object')).run()
-            return vm_data
-
-
-
-        except Exception as e:
-            self.log.error("Exception: {0}".format(e))
-            traceback.print_exc()
-            self.set_status(500)
-            self.write({'status': 'database error/no info'})
-            return
-
-
-class NetworkInfo(NetworkAbstractHandler):
-    access = 'attach'
-
-    def get_data(self):
-        db = r.db(opts.database)
-        try:
-            d = db.table('nets').get(self.uuid).run()
-            return d
-        except Exception as e:
-            self.log.error("Exception: {0}".format(e))
-            self.set_status(500)
-            self.write({'status': 'database error/no info'})
-            return
-
-
-class VDIInfo(VDIAbstractHandler):
-    access = 'attach'
-
-    def get_data(self):
-        db = r.db(opts.database)
-        try:
-            d = db.table('vdis').get(self.uuid).run()
-            return d
-        except Exception as e:
-            self.log.error("Exception: {0}".format(e))
-            self.set_status(500)
-            self.write({'status': 'database error/no info'})
-            return
-
-
-
-class ISOInfo(ISOAbstractHandler):
-    def get_data(self):
-        db = r.db(opts.database)
-        try:
-            d = db.table('isos').get(self.uuid).run()
-            return d
-        except Exception as e:
-            self.log.error("Exception: {0}".format(e))
-            self.set_status(500)
-            self.write({'status': 'database error/no info'})
-            return
-
-
-class DestroyVM(VMAbstractHandler):
-    access = 'destroy'
-    _ASYNC_KEY = 'destroyvm'
-    def get_data(self):
-        uuid = self.get_argument('uuid')
-
-        def run(auth):
-            task = VM(auth, uuid=uuid).async_destroy()
-            if task:
-                self.async_run(task)
-                return {'task': task}
-
-        self.try_xenadapter(run)
-
-class DestroyVDI(VDIAbstractHandler):
-    access = 'destroy'
-    _ASYNC_KEY = 'destroyvdi'
-    def get_data(self):
-        uuid = self.get_argument('uuid')
-
-        def run(auth):
-            task = VDI(auth, uuid=uuid).async_destroy()
-            if task:
-                self.async_run(task)
-                return {'task': task}
-
-        self.try_xenadapter(run)
-
-class StartStopVM(VMAbstractHandler):
-    access = 'launch'
-    _ASYNC_KEY = 'startstopvm'
-    def get_data(self):
-        uuid = self.get_argument('uuid')
-        enable = self.get_argument('enable')
-
-        if isinstance(enable, str) and enable.lower() == "false":
-            enable = False
-
-        def run(auth):
-            task = VM(auth, uuid=uuid).start_stop_vm(enable)
-            if task:
-                self.async_run(task)
-                return {'task': task}
-
-        self.try_xenadapter(run)
-
-
-class RebootVM(VMAbstractHandler):
-    access = 'launch'
-    _ASYNC_KEY = 'rebootvm'
-    def get_data(self):
-        uuid = self.get_argument('uuid')
-
-        def run(auth):
-            task = VM(auth, uuid=uuid).async_clean_reboot()
-            if task:
-                self.async_run(task)
-                return {'task': task}
-
-        self.try_xenadapter(run)
-
-
-
-class AttachDetachIso(VMAbstractHandler):
-    access = 'attach'
-
-    def get_data(self):
-        '''
-        Attach/detach ISO from/to vm
-        Arguments:
-            uuid: VM UUID
-            iso_uuid: ISO UUID
-            action: 'attach' or 'detach'
-        :return:
-        '''
-        self.log.info("check if ISO UUID is valid")
-        iso = self.get_argument('iso')
-        action = self.get_argument('action')
-        if action == 'attach':
-            is_attach = True
-        elif action == 'detach':
-            is_attach = False
-        else:
-            self.set_status(400)
-            self.write({'status': 'error', 'message': 'invalid parameter "action": should be one of '
-                                                      '"attach", "detach", got %s' % action})
-            return
-
-        db = r.db(opts.database)
-        res = db.table('isos').get(iso).run()
-        if res:
-            self.log.info("UUID {1} valid, {0}...".format(
-                "attaching" if is_attach else "detaching",
-                iso))
-
-            def attach(auth: BasicAuthenticator):
-                _iso = ISO(uuid=iso, auth=auth)
-                if is_attach:
-                    _iso.attach(self.vm)
-                else:
-                    _iso.detach(self.vm)
-
-            self.try_xenadapter(attach)
-        else:
-            self.log.info("UUID {1} invalid, not {0}...".format("attaching" if is_attach else "detaching",
-                                                                iso))
-            self.set_status(400)
-            self.write({'status': 'error', 'message': 'invalid UUID iso_uuid'})
-            return
-
-
-class AttachDetachVDI(VMAbstractHandler):
-    access = 'attach'
-
-    def get_data(self):
-        vdi = self.get_argument('vdi')
-
-        action = self.get_argument('action')
-        if action == 'attach':
-            is_attach = True
-        elif action == 'detach':
-            is_attach = False
-        else:
-            self.set_status(400)
-            self.write({'status': 'error', 'message': 'invalid parameter "action": should be one of '
-                                                      '"attach", "detach", got %s' % action})
-            return
-
-        vdi = self.get_argument('vdi')
-
-        _vdi = VDIorISO(auth=self.user_authenticator, uuid=vdi)
-
-        try:
-            _vdi.check_access('attach')
-        except XenAdapterUnauthorizedActionException as e:
-            self.set_status(403)
-            self.write({'status': 'access denied', 'message': e.message})
-            return
-
-        def attach(auth):
-
-            if is_attach:
-                _vdi.attach(self.vm)
-            else:
-                _vdi.detach(self.vm)
-
-        self.try_xenadapter(attach)
-
-
-class NetworkAction(VMAbstractHandler):
-    access = 'attach'
-
-    def get_data(self):
-        _net = self.get_argument('net')
-
-        action = self.get_argument('action')
-        if action == 'attach':
-            is_attach = True
-        elif action == 'detach':
-            is_attach = False
-        else:
-            self.set_status(400)
-            self.write({'status': 'error', 'message': 'invalid parameter "action": should be one of '
-                                                      '"attach", "detach", got %s' % action})
-            return
-
-        net = Network(auth=self.user_authenticator, uuid=_net)
-
-        try:
-            net.check_access('attach')
-        except XenAdapterUnauthorizedActionException as e:
-            self.set_status(403)
-            self.write({'status': 'access denied', 'message': e.message})
-            return
-
-        def attach(auth):
-            # TODO support arguments: MAC. MTU, qos_algorithm_type
-            if is_attach:
-                net.attach(self.vm)
-            else:
-                net.detach(self.vm)
-
-        self.try_xenadapter(attach)
-
-
 class EventLoop(Loggable):
     """every n seconds asks all vms about their status and updates collections (dbs, tables)
     of corresponding user, if they are logged in (have open connection to dbms notifications)
@@ -1051,8 +303,8 @@ class EventLoop(Loggable):
         self.executor = executor
         self.authenticator = authenticator
 
-        self.log.info(f"Using database {opts.database}")
-        self.db = r.db(opts.database)
+
+        
 
 
     def do_user_table(self):
@@ -1060,12 +312,12 @@ class EventLoop(Loggable):
             conn = ReDBConnection().get_connection()
             log = self.log
             with conn:
-                self.db.table_create('users', durability='soft').run()
-                self.db.table_create('groups', durability='soft').run()
+                re.db.table_create('users', durability='soft').run()
+                re.db.table_create('groups', durability='soft').run()
                 users = self.authenticator.get_all_users(log=log)
                 groups = self.authenticator.get_all_groups(log=log)
-                self.db.table('users').insert(users, conflict='update').run()
-                self.db.table('groups').insert(groups, conflict='update').run()
+                re.db.table('users').insert(users, conflict='update').run()
+                re.db.table('groups').insert(groups, conflict='update').run()
                 while True:
                     if constants.need_exit.is_set():
                         return
@@ -1081,20 +333,20 @@ class EventLoop(Loggable):
 
                     new_users = self.authenticator.get_all_users(log=log)
                     new_groups = self.authenticator.get_all_groups(log=log)
-                    self.db.table('users').insert(new_users, conflict='update').run()
-                    self.db.table('groups').insert(new_groups, conflict='update').run()
+                    re.db.table('users').insert(new_users, conflict='update').run()
+                    re.db.table('groups').insert(new_groups, conflict='update').run()
 
                     new_users_set = set(map(lambda item: item['id'], new_users))
                     users_set = set(map(lambda item: item['id'], users))
                     difference = users_set.difference(new_users_set)
                     if difference:
-                        self.db.table('users').get(*difference).delete().run()
+                        re.db.table('users').get(*difference).delete().run()
 
                     new_groups_set = set(map(lambda item: item['id'], new_users))
                     groups_set = set(map(lambda item: item['id'], users))
                     difference = groups_set.difference(new_groups_set)
                     if difference:
-                        self.db.table('groups').get(*difference).delete().run()
+                        re.db.table('groups').get(*difference).delete().run()
 
 
         except Exception as e:
@@ -1110,29 +362,32 @@ class EventLoop(Loggable):
             # log = self.create_additional_log('AccessMonitor')
             log = self.log
             with conn:
-                table_list = self.db.table_list().run()
+                table_list = re.db.table_list().run()
 
                 class_list = list(db_classes.CREATE_DB_FOR_CLASSES_WITH_ACL)
-                query = self.db.table(class_list[0].db_table_name).pluck('uuid', 'access') \
+                query = re.db.table(class_list[0].db_table_name).pluck('ref', 'access') \
                 .merge({'table': class_list[0].db_table_name}).changes(include_initial=True, include_types=True)
 
                 def initial_merge(table):
                     nonlocal table_list
 
-                    self.db.table(table).wait().run()
+                    re.db.table(table).wait().run()
                     table_user = table + '_user'
                     if table_user in table_list:
-                        self.db.table_drop(table_user).run()
+                        re.db.table_drop(table_user).run()
 
-                    self.db.table_create(table_user, durability='soft').run()
-                    self.db.table(table_user).wait().run()
-                    self.db.table(table_user).index_create('uuid_and_userid', [r.row['uuid'], r.row['userid']]).run()
-                    self.db.table(table_user).index_wait('uuid_and_userid').run()
-                    self.db.table(table_user).index_create('userid', r.row['userid']).run()
-                    self.db.table(table_user).index_wait('userid').run()
+                    re.db.table_create(table_user, durability='soft').run()
+                    re.db.table(table_user).wait().run()
+                    re.db.table(table_user).index_create('ref').run()
+                    re.db.table(table_user).index_wait('ref').run()
+                    re.db.table(table_user).index_create('ref_and_userid', [r.row['ref'], r.row['userid']]).run()
+
+                    re.db.table(table_user).index_wait('ref_and_userid').run()
+                    re.db.table(table_user).index_create('userid', r.row['userid']).run()
+                    re.db.table(table_user).index_wait('userid').run()
                     # no need yet
-                    # self.db.table(table_user).index_create('uuid', r.row['uuid']).run()
-                    # self.db.table(table_user).index_wait('uuid').run()
+                    # re.db.table(table_user).index_create('uuid', r.row['uuid']).run()
+                    # re.db.table(table_user).index_wait('uuid').run()
 
                 i = 0
                 while i < len(class_list):
@@ -1140,19 +395,19 @@ class EventLoop(Loggable):
                     initial_merge(class_list[i].db_table_name)
 
                     if i > 0:
-                        query = query.union(self.db.table(class_list[i].db_table_name).pluck('uuid', 'access') \
+                        query = query.union(re.db.table(class_list[i].db_table_name).pluck('ref', 'access') \
                                             .merge({'table': class_list[i].db_table_name}).changes(include_initial=True,
                                                                                                                     include_types=True))
                     i += 1
 
                 # indicate that vms_user table is ready
                 constants.user_table_ready.set()
-                self.log.debug("Changes query: {0}".format(query))
+                self.log.debug(f"Changes query: {query}")
                 cur = query.run()
-                self.log.debug("Started access_monitor in thread {0}".format(threading.get_ident()))
+                self.log.debug(f"Started access_monitor in thread {threading.get_ident()}")
 
-                def uuid_delete(table_user, uuid):
-                    CHECK_ER(self.db.table(table_user).filter({'uuid': uuid}).delete().run())
+                def ref_delete(table_user, ref):
+                    CHECK_ER(re.db.table(table_user).get_all(ref, index='ref').delete().run())
 
                 while True:
                     try:
@@ -1165,38 +420,31 @@ class EventLoop(Loggable):
                             continue
 
                     if record['new_val']:  # edit
-                        uuid = record['new_val']['uuid']
+                        ref = record['new_val']['ref']
                         table = record['new_val']['table']
-                        access = record['new_val'].get('access', [])
+                        access = record['new_val'].get('access', {}) # key - user, value - access data
                         table_user = table + '_user'
 
 
-                        if 'old_val' not in record or not record['old_val']:
-                            if access:
-                                log.info("Adding access rights for %s (table %s): %s" %
-                                         (uuid, table, json.dumps(access)))
-                            for item in access:
-                                CHECK_ER(self.db.table(table_user).insert(r.expr(item).merge({'uuid': uuid})).run())
-                        else:
 
-                            access_diff = set((frozendict(x) for x in access)) - \
-                                          set((frozendict(x) for x in record['old_val']['access'])
-                                              if 'access' in record['old_val'] else [])
+                        if access: # Update access rights with data from new_val
+                            log.info(f"Updating access rights for {ref} (table {table}): {json.dumps(access)}")
+                            for k, v in access.items():
+                                CHECK_ER(re.db.table(table_user).insert(r.expr(v).merge({'ref': ref, 'userid': k}), conflict='replace').run())
 
-                            if access_diff:
-                                log.info("Adding access rights for %s (table %s): %s" %
-                                         (uuid, table, json.dumps(access_diff, cls=FrozenDictEncoder)))
-                            for item in access_diff:
-                                CHECK_ER(self.db.table(table_user).insert(r.expr(item).merge({'uuid': uuid})).run())
-
-
+                        if 'old_val' in record and record['old_val']: # Delete values in old_val but not in new_val
+                            old_access_list = record['old_val'].get('access', {}).keys()
+                            access_to_delete = set(old_access_list).difference(access.keys())
+                            items = [[ref, item] for item in access_to_delete]
+                            log.info(f"Deleting access rights for {ref} (table {table}): {items}")
+                            CHECK_ER(re.db.table(table_user).get_all(*items).delete().run())
 
                     else:
-                        uuid = record['old_val']['uuid']
+                        ref = record['old_val']['ref']
                         table = record['old_val']['table']
                         table_user = table + '_user'
-                        log.info("Deleting access rights for %s (table %s)" % (uuid, table))
-                        uuid_delete(table_user, uuid)
+                        log.info(f"Deleting access rights for {ref} (table {table})")
+                        CHECK_ER(re.db.table(table_user).get_all(ref, index='ref').delete())
         except Exception as e:
             self.log.error("Exception in access_monitor: {0}"
                            .format(e))
@@ -1213,11 +461,7 @@ class EventLoop(Loggable):
         while True:
             constants.load_playbooks.wait()
             with ReDBConnection().get_connection():
-                db = r.db(opts.database)
-                if PlaybookLoader.PLAYBOOK_TABLE_NAME in db.table_list().run():
-                    db.table_drop(PlaybookLoader.PLAYBOOK_TABLE_NAME).run()
-
-                db.table_create(PlaybookLoader.PLAYBOOK_TABLE_NAME, durability='soft').run()
+                re.db.table_create(PlaybookLoader.PLAYBOOK_TABLE_NAME, durability='soft').run()
                 PlaybookLoader.load_playbooks()
             constants.load_playbooks.clear()
 
@@ -1251,7 +495,7 @@ class EventLoop(Loggable):
             self.log.debug("Started process_xen_events. You can kill this thread and 'freeze'"
                            " cache databases (except for access) by sending signal USR2")
             constants.first_batch_of_events.clear()
-            queue = EventQueue(self.authenticator, self.db)
+            queue = EventQueue()
 
             while True:
                 try:
@@ -1408,7 +652,7 @@ class AutoInstall(RESTHandler):
             pubkey_path = pathlib.Path(constants.ansible_pubkey)
             pubkey = pubkey_path.read_text()
         if not filename:
-            raise ValueError("OS {0} doesn't support autoinstallation".format(os_kind))
+            raise ValueError(f"OS {os_kind} doesn't support autoinstallation")
         # filename = 'raid10.cfg'
         self.render(f"templates/installation-scenarios/{filename}", hostname=hostname, username=username,
                     fullname=fullname, password=password, mirror_url=mirror_url, mirror_path=mirror_path,
@@ -1423,6 +667,8 @@ def make_app(executor, auth_class=None, debug=False):
         module = opts.authenticator if opts.authenticator else None
         if not auth_class:
             auth_class = d.load_class(class_base=BasicAuthenticator, module=module)[0]
+
+        constants.auth.auth_name = auth_class.__name__
 
     settings = {
         "cookie_secret": "SADFccadaeqw221fdssdvxccvsdf",
@@ -1439,52 +685,18 @@ def make_app(executor, auth_class=None, debug=False):
         (constants.POSTINST_ROUTE + r'.*', Postinst, dict(pool_executor=executor)),
         (r'/console.*', ConsoleHandler, dict(pool_executor=executor)),
         (r'/createvm', CreateVM, dict(pool_executor=executor)),
-        (r'/startstopvm', StartStopVM, dict(pool_executor=executor)),
-        (r'/rebootvm', RebootVM, dict(pool_executor=executor)),
-        (r'/poollist', PoolList, dict(pool_executor=executor)),
+
         (r'/list_pools', PoolListPublic, dict(pool_executor=executor)),
-        (r'/tmpllist', TemplateList, dict(pool_executor=executor)),
-        (r'/netlist', NetworkList, dict(pool_executor=executor)),
-        (r'/enabledisabletmpl', EnableDisableTemplate, dict(pool_executor=executor)),
-        (r'/attachdetachvdi', AttachDetachVDI, dict(pool_executor=executor)),
-        (r'/attachdetachiso', AttachDetachIso, dict(pool_executor=executor)),
-        (r'/netaction', NetworkAction, dict(pool_executor=executor)),
-        (r'/destroyvm', DestroyVM, dict(pool_executor=executor)),
         (r'/adminauth', AdminAuth, dict(pool_executor=executor, authenticator=auth_class)),
-        (r'/convertvm', ConvertVM, dict(pool_executor=executor)),
-        (r'/installstatus', InstallStatus, dict(pool_executor=executor)),
-        (r'/vminfo', VMInfo, dict(pool_executor=executor)),
-        (r'/isolist', ISOList, dict(pool_executor=executor)),
-        (r'/vdilist', VDIList, dict(pool_executor=executor)),
         (r'/setaccess', SetAccessHandler, dict(pool_executor=executor)),
         (r'/getaccess', GetAccessHandler, dict(pool_executor=executor)),
-        (r'/netinfo', NetworkInfo, dict(pool_executor=executor)),
         (r'/userinfo', UserInfo, dict(pool_executor=executor)),
-        (r'/vdiinfo', VDIInfo, dict(pool_executor=executor)),
-        (r'/isoinfo', ISOInfo, dict(pool_executor=executor)),
-        (r'/vmdiskinfo', VMDiskInfo, dict(pool_executor=executor)),
-        (r'/vmnetinfo', VMNetInfo, dict(pool_executor=executor)),
-        (r'/turntemplate', TurnTemplate, dict(pool_executor=executor)),
-        (r'/playbooks', Playbooks, dict(pool_executor=executor)),
-        (r'/executeplaybook', ExecutePlaybook, dict(pool_executor=executor)),
-        (r'/taskstatus', TaskStatus, dict(pool_executor=executor)),
         (r'/userlist', UserList, dict(pool_executor=executor)),
         (r'/grouplist', GroupList, dict(pool_executor=executor)),
-        (r'/alltemplates', AllTemplates, dict(pool_executor=executor)),
-        (r'/destroyvdi', DestroyVDI, dict(pool_executor=executor)),
-        (r'/setquota', SetQuota, dict(pool_executor=executor)),
-        (r'/getquota', GetQuota, dict(pool_executor=executor)),
 
         (r'/graphql', gql_handler.GraphQLHandler, dict(pool_executor=executor, graphiql=False, schema=schema)),
-        #(r'/graphql/batch', gql_handler.GraphQLHandler, dict(pool_executor=executor, graphiql=True, schema=schema, batch=True)),
         (r'/graphiql', gql_handler.GraphQLHandler, dict(pool_executor=executor, graphiql=True, schema=schema)),
-        #(r'/graphql', tornadoql.GraphQLHandler, dict(pool_executor=executor, schema=schema)),
-        #(r'/graphql/graphiql', tornadoql.GraphiQLHandler, dict(pool_executor=executor, schema=schema)),
         (r'/subscriptions', gql_handler.GraphQLSubscriptionHandler, dict(pool_executor=executor, schema=schema))
-
-
-
-
     ], **settings)
 
     app.auth_class = auth_class
@@ -1572,21 +784,22 @@ def rotateLogs():
 
 
 def create_dbs():
+
+    re.db =  r.db(opts.database)
     with ReDBConnection().get_connection():
         logging.debug(f"Creating tables for {db_classes.CREATE_DB_FOR_CLASSES}")
         if opts.database in r.db_list().run():
             r.db_drop(opts.database).run()
 
         r.db_create(opts.database).run()
-        db = r.db(opts.database)
         logging.debug(f"Creating tables (with ACL) for {db_classes.CREATE_DB_FOR_CLASSES_WITH_ACL}")
-        for obj in db_classes.CREATE_DB_FOR_CLASSES_WITH_ACL:
-            obj.create_db(db)
+        for cl in db_classes.CREATE_DB_FOR_CLASSES_WITH_ACL:
+            cl.create_db()
 
 
 
         for cl in db_classes.CREATE_DB_FOR_CLASSES:
-            cl.create_db(db=r.db(opts.database))
+            cl.create_db()
 
 
 def main():

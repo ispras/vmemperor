@@ -10,14 +10,10 @@ from rethinkdb import RethinkDB
 r = RethinkDB()
 
 
-@with_authentication(access_class=VM, access_action='vnc', id_field='vm_uuid')
+@with_authentication(access_class=VM, access_action='vnc', id_field='vm_ref')
 @with_connection
-def resolve_console(root, info, vm_uuid):
+def resolve_console(root, info, vm_ref):
     db = r.db(options.database)
-    vm = db.table(VM.db_table_name).get(vm_uuid).pluck('ref').run()
-    if not vm:
-        return None
-    vm_ref = vm['ref']
     console = db.table(Console.db_table_name).get_all(vm_ref, index='VM')\
         .pluck('location').coerce_to('array').run()
     if not len(console):

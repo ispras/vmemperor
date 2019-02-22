@@ -85,7 +85,7 @@ class Authentication(metaclass=ABCMeta):
 
 
 @Authentication.register
-class BasicAuthenticator:
+class BasicAuthenticator():
     @classmethod
     def class_name(cls):
         return cls.__name__
@@ -95,6 +95,10 @@ class BasicAuthenticator:
 
     def is_admin(self):
         return False
+
+    def get_id(self):
+        return None
+
 
 
 
@@ -172,7 +176,7 @@ class NotAuthenticatedAsAdminException(Exception):
     def __init__(self):
         super().__init__("You are not authenticated as administrator")
 
-def with_authentication(access_class : type = None, access_action : str = None, id_field="uuid"):
+def with_authentication(access_class : type = None, access_action : str = None, id_field="ref"):
     def decorator(method):
         from xenadapter.xenobject import ACLXenObject
         @wraps(method)
@@ -182,8 +186,8 @@ def with_authentication(access_class : type = None, access_action : str = None, 
 
             if access_class:
                 try:
-                    obj : ACLXenObject = access_class(auth=info.context.user_authenticator, uuid=kwargs[id_field])
-                    obj.check_access(access_action)
+                    obj : ACLXenObject = access_class(auth=info.context.user_authenticator, ref=kwargs[id_field])
+                    obj.check_access(info.context.user_authenticator, access_action)
                 except XenAdapterAPIError as e:
                     if e.details['error_code'] == 'UUID_INVALID':
                         kwargs[id_field] = None

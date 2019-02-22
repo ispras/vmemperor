@@ -1,7 +1,11 @@
 import json
+import pickle
 from typing import Optional
 
 from rethinkdb import RethinkDB
+
+from xenadapter import XenAdapterPool
+
 r = RethinkDB()
 import tornado.ioloop
 import tornado.web
@@ -23,34 +27,53 @@ class HandlerMethods(Loggable):
         first_batch_of_events.wait()
         self.actions_log = self.create_additional_log('actions')
 
+
+    def prepare(self):
+        self.xen = XenAdapterPool().get()
+        self.request.xen = self.xen
+
+    def on_finish(self):
+        self.log.debug(f"Finishing request: {self.request}")
+        XenAdapterPool().unget(self.xen)
+
     def get_current_user(self):
         return self.get_secure_cookie('user')
 
     def setRepr(self):
         self.__repr__ = f"{self.__class__.__name__} ({self.request.uri})"
 
+
+
 class RequestHandler(tornado.web.RequestHandler):
     def initialize(self, *args, **kwargs):
         super().initialize()
 
-    def prepare(self):
-        super().prepare()
-        self.conn = ReDBConnection().get_connection()
 
-    def on_finish(self):
-        super().on_finish()
 
 class BaseHandler(RequestHandler, HandlerMethods):
     _ASYNC_KEY = None
 
     def prepare(self):
-        super().prepare()
+        HandlerMethods.prepare(self)
         self.setRepr()
         self.log.debug(f"Handling request: {self.request}")
 
+
+        self.request.log = self.log
+        self.request.actions_log = self.actions_log
+
+        self.request.executor = self.executor
+        user = self.get_current_user()
+        if user:
+            user_authenticator: BasicAuthenticator = pickle.loads(user)
+            self.request.user = user_authenticator.get_id()
+            self.request.user_authenticator = user_authenticator
+
+
+
     def on_finish(self):
-        super().on_finish()
-        self.log.debug(f"Finishing request: {self.request}")
+        HandlerMethods.on_finish(self)
+
 
     def initialize(self, *args, **kwargs):
 
@@ -123,16 +146,15 @@ class BaseWSHandler(WebSocketHandler, HandlerMethods):
         super().initialize()
 
     def prepare(self):
-        super().prepare()
+        HandlerMethods.prepare(self)
         self.setRepr()
         self.log.debug(f"Handling WebSocket request: {self.request}")
 
 
     def on_finish(self):
-        super().on_finish()
+        HandlerMethods.on_finish(self)
         self.log.debug(f"Finishing WebSocket request: {self.request}")
 
-        self.user_authenticator = Optional[BasicAuthenticator]
 
 
     def check_origin(self, origin):

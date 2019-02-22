@@ -8,7 +8,7 @@ from handlers.graphql.types.objecttype import InputObjectType
 from xenadapter.template import Template
 
 class TemplateInput(InputObjectType):
-    uuid = graphene.InputField(graphene.ID, required=True, description="Template ID")
+    ref = graphene.InputField(graphene.ID, required=True, description="Template ID")
     enabled = graphene.InputField(graphene.Boolean,
                                 description="Should this template be enabled, i.e. used in VMEmperor by users")
 
@@ -33,7 +33,7 @@ class TemplateMutation(graphene.Mutation):
     def mutate(root, info, template):
         ctx : ContextProtocol = info.context
 
-        t = Template(auth=ctx.user_authenticator, uuid=template.uuid)
+        t = Template(auth=ctx.user_authenticator, ref=template.ref)
 
 
         mutations = [

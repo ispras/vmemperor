@@ -22,8 +22,9 @@ class ContextProtocol(_Protocol):
 
     log : Logger # XenAdapter log, see loggable.py, logs in vmemperor.log
     actions_log : Logger #XenAdapter actions log, for VM installs, logs in action.log
-    conn: Any  # RethinkDB connection manager
-    user_authenticator: BasicAuthenticator # Current user's authenticator
+    xen: XenAdapter
+    user_authenticator: BasicAuthenticator
+
 
 
 
@@ -38,20 +39,11 @@ class GraphQLHandler(BaseHandler, BaseGQLHandler):
     def prepare(self):
         super().prepare()
 
-        #copy some members to context, we'll use then in a resolvers
-        self.request.async_run = self.async_run
 
-        self.request.log = self.log
-        self.request.actions_log = self.actions_log
-        user = self.get_current_user()
-        self.request.executor = self.executor
-        if user:
-            self.request.user_authenticator = pickle.loads(user)
-            self.request.user_authenticator.xen = XenAdapter({**opts.group_dict('xenadapter'), **opts.group_dict('rethinkdb')})
 
-            self.request.set_task_status = lambda **operation: self.op.upsert_task(self.request.user_authenticator, operation)
-            self.request.get_task_status = lambda id: self.op.get_task(self.request.user_authenticator, id)
-        self.request.conn = self.conn
+
+
+
 
 
 class GraphQLSubscriptionHandler(BaseWSHandler, BaseGQLSubscriptionHandler):
@@ -81,15 +73,15 @@ class GraphQLSubscriptionHandler(BaseWSHandler, BaseGQLSubscriptionHandler):
             return False
         token = payload['authToken'].strip('\'"')
         cookie = self.get_secure_cookie('user', value=token)
-        value = pickle.loads(cookie)
-        if not isinstance(value, BasicAuthenticator):
+        user_auth = pickle.loads(cookie)
+        if not isinstance(user_auth, BasicAuthenticator):
             self.log.error("GraphQL connection initiated, Loaded authToken, not a BasicAuthenticator")
             return False
-        value.xen = XenAdapterPool().get()
-        self.request.user_authenticator = value
-        self.log.debug(f"GraphQL subscription authentication successful (as {value.get_id()})")
+        self.request.user = user_auth.get_id()
+
+
+
+        self.log.debug(f"GraphQL subscription authentication successful (as {user_auth.get_id()})")
         return True
 
-    def on_finish(self):
-        if hasattr(self.request, 'user_authenticator'):
-            XenAdapterPool().unget(self.request.user_authenticator.xen)
+
