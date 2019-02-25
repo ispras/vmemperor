@@ -158,7 +158,7 @@ class VDI(ACLXenObject, Attachable):
     GraphQLType = GVDI
 
     @classmethod
-    def create(cls, xen, sr_ref, size, access = None, name_label = None):
+    def create(cls, xen, sr_ref, size, access = None, name_label=None):
         """
         Creates a VDI of a certain size in storage repository
         :param sr_ref: Storage Repository ref
@@ -171,8 +171,6 @@ class VDI(ACLXenObject, Attachable):
             sr = SR(xen, sr_ref)
             name_label = sr.get_name_label() + ' disk'
 
-
-
         args = {'SR': sr_ref, 'virtual_size': str(size), 'type': 'system', \
                 'sharable': False, 'read_only': False, 'other_config': {}, \
                 'name_label': name_label}
@@ -183,13 +181,8 @@ class VDI(ACLXenObject, Attachable):
                 for user, action in access.items():
                     vdi.manage_actions(action, user=user)
 
-
-
-
         except XenAPI.Failure as f:
-            raise XenAdapterAPIError(xen.log, "Failed to create VDI:",f.details)
-
-
+            raise XenAdapterAPIError(xen.log, "Failed to create VDI:", f.details)
 
 
     @classmethod
@@ -204,7 +197,6 @@ class VDI(ACLXenObject, Attachable):
         else:
             return False
 
-
     def attach(self, vm, sync=False) -> VBD:
         '''
         Attaches ISO to a vm
@@ -218,22 +210,14 @@ class VDI(ACLXenObject, Attachable):
 
 
 class VDIorISO:
-    def __new__(cls, xen, uuid=None, ref=None):
+    def __new__(cls, xen, ref):
         db = xen.xen.db
 
-        if uuid:
-            if db.table(ISO.db_table_name).get(uuid).run():
-                return ISO(xen, uuid, ref)
-            elif db.table(VDI.db_table_name).get(uuid).run():
-                return VDI(xen, uuid, ref)
-            else:
-                return None
-        elif ref:
-            if len(db.table(ISO.db_table_name).get_all(ref, index='ref').run().items) == 1:
-                return ISO(xen, uuid, ref)
-            elif len(db.table(VDI.db_table_name).get_all(ref, index='ref').run().items) == 1:
-                return VDI(xen, uuid, ref)
-            else:
-                return None
+        if db.table(ISO.db_table_name).get(ref).run():
+            return ISO(xen, ref)
+        elif db.table(VDI.db_table_name).get(ref).run():
+            return VDI(xen,  ref)
+        else:
+            return None
 
 
