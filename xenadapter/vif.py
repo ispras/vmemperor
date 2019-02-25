@@ -1,5 +1,6 @@
 import graphene
 
+from handlers.graphql.resolvers.network import networkType, resolve_network
 from handlers.graphql.resolvers.vm import vmType, resolve_vm
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from xenadapter.xenobject import XenObject, GXenObject
@@ -15,6 +16,8 @@ class GVIF(GXenObjectType):
     ip = graphene.Field(graphene.String)
     ipv4 = graphene.Field(graphene.String)
     ipv6 = graphene.Field(graphene.String)
+    network = graphene.Field(networkType, required=True, resolver=resolve_network)
+
 class VIF(XenObject):
     api_class = 'VIF'
     EVENT_CLASSES = ['vif']

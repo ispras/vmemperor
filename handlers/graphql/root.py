@@ -11,6 +11,7 @@ from handlers.graphql.types.input.attachvdi import AttachVDIMutation
 from handlers.graphql.types.input.createvm import CreateVM
 from handlers.graphql.types.input.vm import VMMutation, VMStartMutation, VMShutdownMutation, VMRebootMutation, \
     VMPauseMutation, VMDeleteMutation
+from handlers.graphql.types.input.vmaccessset import VMAccessSet
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
@@ -21,7 +22,8 @@ from xenadapter.pool import GPool, Pool
 from xenadapter.task import GTask
 from xenadapter.template import Template, GTemplate
 from xenadapter.sr import SR, GSR
-from xenadapter.vm import VM, GVM
+from xenadapter.vm import VM
+from handlers.graphql.types.vm import GVM
 from xenadapter.network import Network, GNetwork
 
 from handlers.graphql.types.input.template import TemplateMutation
@@ -74,18 +76,25 @@ class Query(ObjectType):
 
 class Mutation(ObjectType):
     create_VM = CreateVM.Field(description="Create a new VM")
+
     template = TemplateMutation.Field(description="Edit template options")
+
     vm = VMMutation.Field(description="Edit VM options")
     vm_start = VMStartMutation.Field(description="Start VM")
     vm_shutdown = VMShutdownMutation.Field(description="Shut down VM")
     vm_reboot = VMRebootMutation.Field(description="Reboot VM")
     vm_pause = VMPauseMutation.Field(description="If VM is Running, pause VM. If Paused, unpause VM")
-    playbook_launch = PlaybookLaunchMutation.Field(description="Launch an Ansible Playbook on specified VMs")
     vm_delete = VMDeleteMutation.Field(description="Delete a Halted VM")
+    vm_access_set = VMAccessSet.Field(description="Set VM access rights")
+
+    playbook_launch = PlaybookLaunchMutation.Field(description="Launch an Ansible Playbook on specified VMs")
+
 
     net_attach = AttachNetworkMutation.Field(description="Attach VM to a Network by creating a new Interface")
     iso_attach = AttachISOMutation.Field(description="Attach ISO to a VM by creating a new virtual block device")
     vdi_attach = AttachVDIMutation.Field(description="Attach VDI to a VM by creating a new virtual block device")
+
+
 
 
 

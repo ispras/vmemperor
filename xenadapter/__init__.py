@@ -52,13 +52,6 @@ class XenAdapter(Loggable, metaclass=Singleton):
                                             f'Failed to login: url: "{url}"; username: "{username}"; password: "{password}"; error: {str(e)}')
 
 
-        self.conn = r.connect(settings['host'], settings['port'], db=settings['database']).repl()
-        if not settings['database'] in r.db_list().run():
-            r.db_create(settings['database']).run()
-
-        self.db  = r.db(settings['database'])
-
-
 
 class XenAdapterPool(metaclass=Singleton):
     def __init__(self):

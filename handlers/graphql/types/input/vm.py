@@ -4,10 +4,11 @@ import graphene
 
 from authentication import with_authentication, with_default_authentication
 from handlers.graphql.graphql_handler import ContextProtocol
-from handlers.graphql.mutations.base import MutationMethod, MutationHelper
+from handlers.graphql.mutation_utils.base import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
 from handlers.graphql.types.objecttype import InputObjectType
-from xenadapter.vm import VM, DomainType
+from xenadapter.vm import VM
+from handlers.graphql.types.vm import DomainType
 
 
 class VMInput(InputObjectType):
@@ -46,15 +47,14 @@ class VMMutation(graphene.Mutation):
     def mutate(root, info, vm):
         ctx : ContextProtocol = info.context
 
-        m = VM(ctx.xen, uuid=vm.uuid)
-
+        mutable = VM(ctx.xen, vm.ref)
 
         mutations = [
-            MutationMethod(func=set_name_label, access_action='rename'),
-            MutationMethod(func=set_name_description, access_action='rename'),
-            MutationMethod(func=set_domain_type, access_action='change_domain_type')
+            MutationMethod(func=set_name_label, access_action=VM.Actions.rename),
+            MutationMethod(func=set_name_description, access_action=VM.Actions.rename),
+            MutationMethod(func=set_domain_type, access_action=VM.Actions.change_domain_type)
         ]
-        helper = MutationHelper(mutations, ctx, m)
+        helper = MutationHelper(mutations, ctx, mutable)
         helper.perform_mutations(vm)
 
         return VMMutation(success=True)
@@ -70,14 +70,14 @@ class VMStartMutation(graphene.Mutation):
     taskId = graphene.ID(required=True, description="Start task ID")
 
     class Arguments:
-        uuid = graphene.ID(required=True)
+        ref = graphene.ID(required=True)
         options = graphene.Argument(VMStartInput)
 
     @staticmethod
-    @with_authentication(access_class=VM, access_action='change_power_state')
-    def mutate(root, info, uuid, options : VMStartInput = None):
+    @with_authentication(access_class=VM, access_action=VM.Actions.start)
+    def mutate(root, info, ref, options : VMStartInput = None, **kwargs):
         ctx :ContextProtocol = info.context
-        vm = VM(auth=ctx.user_authenticator, uuid=uuid)
+        vm = kwargs['VM']
         paused = options.paused if options else False
         force = options.force if options else False
         return VMStartMutation(taskId=vm.async_start(paused, force))
@@ -92,72 +92,92 @@ class VMShutdownMutation(graphene.Mutation):
     taskId = graphene.ID(required=True, description="Shutdown task ID")
 
     class Arguments:
-        uuid = graphene.ID(required=True)
+        ref = graphene.ID(required=True)
         force = graphene.Argument(ShutdownForce, description="Force shutdown in a hard or clean way")
 
     @staticmethod
-    @with_authentication(access_class=VM, access_action='change_power_state')
-    def mutate(root, info, uuid, force: Optional[ShutdownForce] = None):
-        ctx: ContextProtocol = info.context
-        vm = VM(auth=ctx.user_authenticator, uuid=uuid)
+    def mutate(root, info, ref, force: Optional[ShutdownForce] = None):
         if force is None:
-            return VMShutdownMutation(taskId=vm.async_shutdown())
+            access_action = VM.Actions.shutdown
+            method = 'async_shutdown'
         elif force == ShutdownForce.HARD:
-            return VMShutdownMutation(taskId=vm.async_hard_shutdown())
+            access_action = VM.Actions.hard_shutdown
+            method = 'async_hard_shutdown'
         elif force == ShutdownForce.CLEAN:
-            return VMShutdownMutation(taskId=vm.async_clean_shutdown())
+            access_action = VM.Actions.clean_shutdown
+            method = 'async_clean_shutdown'
+
+        @with_authentication(access_class=VM, access_action=access_action)
+        def get_vm(*args, **kwargs):
+            return kwargs['VM']
+
+        vm = get_vm(root, info, ref, force)
+        call = getattr(vm, method)
+        return VMShutdownMutation(taskId=call())
 
 
 class VMRebootMutation(graphene.Mutation):
     taskId = graphene.ID(required=True, description="Reboot task ID")
 
     class Arguments:
-        uuid = graphene.ID(required=True)
+        ref = graphene.ID(required=True)
         force = graphene.Argument(ShutdownForce, description="Force reboot in a hard or clean way. Default: clean")
 
     @staticmethod
-    @with_authentication(access_class=VM, access_action='change_power_state')
-    def mutate(root, info, uuid, force: Optional[ShutdownForce] = ShutdownForce.CLEAN):
-        ctx: ContextProtocol = info.context
-        vm = VM(auth=ctx.user_authenticator, uuid=uuid)
+    def mutate(root, info, ref, force: Optional[ShutdownForce] = ShutdownForce.CLEAN):
         if force == ShutdownForce.HARD:
-            return VMShutdownMutation(taskId=vm.async_hard_reboot())
+            access_action = VM.Actions.hard_reboot
+            method = 'async_hard_reboot'
         elif force == ShutdownForce.CLEAN:
-            return VMShutdownMutation(taskId=vm.async_clean_reboot())
+            access_action = VM.Actions.clean_reboot
+            method = 'async_clean_reboot'
+
+        @with_authentication(access_class=VM, access_action=access_action)
+        def get_vm(*args, **kwargs):
+            return kwargs['VM']
+
+        vm = get_vm(root, info, ref, force)
+        call = getattr(vm, method)
+        return VMRebootMutation(taskId=call())
 
 
 class VMPauseMutation(graphene.Mutation):
     taskId = graphene.ID(required=True, description="Pause/unpause task ID")
 
     class Arguments:
-        uuid = graphene.ID(required=True)
+        ref = graphene.ID(required=True)
 
     @staticmethod
-    @with_authentication(access_class=VM, access_action='change_power_state')
-    def mutate(root, info, uuid):
+    @with_authentication
+    def mutate(root, info, ref):
         ctx: ContextProtocol = info.context
-        vm = VM(auth=ctx.user_authenticator, uuid=uuid)
+
+        vm = VM(ctx.xen, ref)
         if vm.get_power_state() == "Running":
-            return VMPauseMutation(taskId=vm.async_pause())
+            access_action = VM.Actions.pause
+            method = 'async_pause'
         elif vm.get_power_state() == "Paused":
-            return VMPauseMutation(taskId=vm.async_unpause())
+            access_action = VM.Actions.unpause
+            method = 'async_unpause'
         else:
             raise ValueError(f"Pause mutation requires powerState 'Running' or 'Paused'. Got: {vm.get_power_state()}")
+
+        vm.check_access(ctx.user_authenticator, access_action)
+
+        return VMPauseMutation(taskId=getattr(vm, method)())
 
 
 class VMDeleteMutation(graphene.Mutation):
     taskId = graphene.ID(required=True, description="Deleting task ID")
 
     class Arguments:
-        uuid = graphene.ID(required=True)
+        ref = graphene.ID(required=True)
 
     @staticmethod
-    @with_authentication(access_class=VM, access_action='delete')
-    def mutate(root, info, uuid):
-        ctx: ContextProtocol = info.context
-        vm = VM(auth=ctx.user_authenticator, uuid=uuid)
-        if vm.get_power_state() == "Halted":
-            return VMDeleteMutation(taskId=vm.async_destroy())
+    @with_authentication(access_class=VM, access_action=VM.Actions.destroy)
+    def mutate(root, info, ref, VM):
+        if VM.get_power_state() == "Halted":
+            return VMDeleteMutation(taskId=VM.async_destroy())
         else:
-            raise ValueError(f"Delete mutation requires powerState 'Halted'. Got: {vm.get_power_state()}")
+            raise ValueError(f"Delete mutation requires powerState 'Halted'. Got: {VM.get_power_state()}")
 

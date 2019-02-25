@@ -426,11 +426,10 @@ class EventLoop(Loggable):
                         table_user = table + '_user'
 
 
-
                         if access: # Update access rights with data from new_val
                             log.info(f"Updating access rights for {ref} (table {table}): {json.dumps(access)}")
                             for k, v in access.items():
-                                CHECK_ER(re.db.table(table_user).insert(r.expr(v).merge({'ref': ref, 'userid': k}), conflict='replace').run())
+                                CHECK_ER(re.db.table(table_user).insert({'ref': ref, 'userid': k, 'actions': v}, conflict='replace').run())
 
                         if 'old_val' in record and record['old_val']: # Delete values in old_val but not in new_val
                             old_access_list = record['old_val'].get('access', {}).keys()
@@ -668,7 +667,7 @@ def make_app(executor, auth_class=None, debug=False):
         if not auth_class:
             auth_class = d.load_class(class_base=BasicAuthenticator, module=module)[0]
 
-        constants.auth.auth_name = auth_class.__name__
+        constants.auth.name = auth_class.__name__
 
     settings = {
         "cookie_secret": "SADFccadaeqw221fdssdvxccvsdf",

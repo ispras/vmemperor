@@ -1,4 +1,9 @@
+import json
+
 from rethinkdb import RethinkDB
+from rethinkdb.ast import ReQLEncoder
+from serflag import SerFlag
+
 import constants.re as re
 import queue
 from xenadapter import singleton
@@ -63,7 +68,8 @@ class ReDBConnection(Loggable, metaclass=singleton.Singleton):
                 r = RethinkDB()
                 if not hasattr(myself, 'conn') or not myself.conn  or not myself.conn.is_open():
 
-                    myself.conn = r.connect(self.host, self.port, self.db, user=self.user, password=self.password)
+                    myself.conn = r.connect(self.host, self.port, self.db, user=self.user, password=self.password,
+                                         )
                     self.log.debug(f"Connecting using connection: {myself}")
 
                 if not myself.conn.is_open():

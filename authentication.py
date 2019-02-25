@@ -3,6 +3,8 @@ from functools import wraps
 import logging
 from typing import Union, Sequence
 
+from serflag import SerFlag
+
 from exc import XenAdapterAPIError
 
 
@@ -176,7 +178,18 @@ class NotAuthenticatedAsAdminException(Exception):
     def __init__(self):
         super().__init__("You are not authenticated as administrator")
 
-def with_authentication(access_class : type = None, access_action : str = None, id_field="ref"):
+def with_authentication(access_class : type = None, access_action : SerFlag = None, id_field="ref"):
+    '''
+    This decorator takes a resolver method.
+    It performs authentication checks
+    If access_class is None, it checks that the user is authenticated and throws NotAuthenticatedException otherwise
+    Else it creates an instance of type access_class, checks that permissions for access_action are granted
+    and calls the resolver method with the instance as kwargs[access_class.__name__]
+    :param access_class: ACLXenObject to check permissions against
+    :param access_action: SerFlag that is the action we should check
+    :param id_field:  name of keyword argument that contains access_class's ref. Default: 'ref' or args[0]
+    :return:  decorated method
+    '''
     def decorator(method):
         from xenadapter.xenobject import ACLXenObject
         @wraps(method)
@@ -185,14 +198,17 @@ def with_authentication(access_class : type = None, access_action : str = None, 
                 raise NotAuthenticatedException()
 
             if access_class:
+                ref = kwargs.get(id_field, args[0])
                 try:
-                    obj : ACLXenObject = access_class(auth=info.context.user_authenticator, ref=kwargs[id_field])
+                    obj : ACLXenObject = access_class(xen=info.context.xen, ref=ref)
                     obj.check_access(info.context.user_authenticator, access_action)
                 except XenAdapterAPIError as e:
                     if e.details['error_code'] == 'UUID_INVALID':
                         kwargs[id_field] = None
                     else:
                         raise e
+                kwargs[access_class.__name__] = obj
+                return method(root, info, *args, **kwargs)
 
 
             return method(root, info, *args, **kwargs)

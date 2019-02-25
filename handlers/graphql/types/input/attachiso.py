@@ -15,13 +15,11 @@ class AttachISOMutation(graphene.Mutation):
         is_attach = graphene.Boolean(required=True, description="True if attach, False if detach")
 
     @staticmethod
-    @with_authentication(access_class=ISO, access_action='attach', id_field='iso_ref')
-    @with_authentication(access_class=VM, access_action='attach', id_field='iso_ref')
-    def mutate(root, info, iso_ref, vm_ref, is_attach):
-        ctx: ContextProtocol = info.context
-        iso = ISO(ref=iso_ref, xen=ctx.xen)
+    @with_authentication(access_class=ISO, access_action=ISO.Actions.plug, id_field='iso_ref')
+    @with_authentication(access_class=VM, access_action=VM.Actions.attach_vdi, id_field='iso_ref')
+    def mutate(root, info, iso_ref, vm_ref, is_attach, ISO, VM):
         if is_attach:
-            taskId = iso.attach(VM(ref=vm_ref, xen=ctx.xen))
+            taskId = ISO.attach(VM)
         else:
-            taskId = iso.detach(VM(ref=vm_ref, xen=ctx.xen))
+            taskId = ISO.detach(VM)
         return AttachISOMutation(taskId=taskId)

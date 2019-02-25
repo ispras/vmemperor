@@ -1,3 +1,5 @@
+from enum import auto
+
 from handlers.graphql.resolvers.sr import resolve_sr, srType
 from handlers.graphql.resolvers.vm import resolve_vms, vmType
 from xenadapter.sr import SR
@@ -6,6 +8,10 @@ from .xenobject import *
 from xenadapter.helpers import use_logger
 from exc import *
 import XenAPI
+
+
+class VDIActions(SerFlag):
+    plug = auto()
 
 
 class Attachable:
@@ -104,31 +110,44 @@ class Attachable:
         sr = SR(xen, record['SR'])
         return sr.get_content_type()
 
-class DiskImage(GXenObject):
+
+class DiskImage(GAclXenObject):
     SR = graphene.Field(srType, resolver=resolve_sr)
     VMs = graphene.List(vmType)
     virtual_size = graphene.Field(graphene.Float, required=True)
 
 class GISO(GXenObjectType):
     class Meta:
-        interfaces = (GAclXenObject, DiskImage)
+        interfaces = (DiskImage,)
 
     from handlers.graphql.resolvers.vm import resolve_vms
     VMs = graphene.Field(graphene.List(vmType), resolver=resolve_vms)
     location = graphene.Field(graphene.String, required=True)
 
 
-class ISO(XenObject, Attachable):
+class ISO(ACLXenObject, Attachable):
+    '''
+    ISO image. Contrary to VDI which sets permissions on its own, user can only access an ISO if they have 'scan' permissions on the undergoing SR.
+    '''
     api_class = 'VDI'
     db_table_name = 'isos'
     EVENT_CLASSES = ['vdi']
     GraphQLType = GISO
+    Actions = VDIActions
 
     from .vm import VM
 
     @classmethod
     def filter_record(cls, xen, record, ref):
        return cls.SR_type(xen, record, ref) == 'iso'
+
+
+    def check_access(self, auth: BasicAuthenticator,  action):
+
+
+        sr = self.get_SR(auth, action)
+        return sr.check_access(auth, SR.Actions.scan)
+
 
 
     def attach(self, vm : VM, sync=False) -> VBD:
@@ -146,7 +165,7 @@ class ISO(XenObject, Attachable):
 
 class GVDI(GXenObjectType):
     class Meta:
-        interfaces = (GAclXenObject, DiskImage)
+        interfaces = (DiskImage,)
     VMs = graphene.Field(graphene.List(vmType), resolver=resolve_vms)
 
 
@@ -156,6 +175,8 @@ class VDI(ACLXenObject, Attachable):
     db_table_name = 'vdis'
     EVENT_CLASSES = ['vdi']
     GraphQLType = GVDI
+    Actions = VDIActions
+
 
     @classmethod
     def create(cls, xen, sr_ref, size, access = None, name_label=None):

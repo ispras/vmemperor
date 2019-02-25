@@ -6,11 +6,11 @@ def resolve_vms(*args, **kwargs):
         del kwargs['field_name']
     return VM.resolve_many(field_name=field_name)(*args, **kwargs)
 
-def resolve_vm():
+def resolve_vm(*args, **kwargs):
     from xenadapter.vm import VM
-    return VM.resolve_one()()
+    return VM.resolve_one()(*args, **kwargs)
 
 
 def vmType():
-    from xenadapter.vm import GVM
+    from handlers.graphql.types.vm import GVM
     return GVM

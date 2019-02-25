@@ -16,7 +16,7 @@ from handlers.graphql.types.tasks.createvm import CreateVMTask, CreateVMTaskList
 from xenadapter.template import Template
 import tornado.ioloop
 
-from xenadapter.vm import SetDisksEntry
+from handlers.graphql.types.vm import SetDisksEntry
 
 
 class NetworkConfiguration(graphene.InputObjectType):

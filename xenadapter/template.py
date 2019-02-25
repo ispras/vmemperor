@@ -22,7 +22,7 @@ class GTemplate(GXenObjectType):
 
 class Template(AbstractVM):
     EVENT_CLASSES = ['vm']
-    ALLOW_EMPTY_XENSTORE = True
+    ALLOW_EMPTY_OTHERCONFIG = True
     VMEMPEROR_TEMPLATE_PREFIX = 'vm/data/vmemperor/template'
     db_table_name = 'tmpls'
     GraphQLType = GTemplate

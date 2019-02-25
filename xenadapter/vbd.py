@@ -3,6 +3,7 @@ from xenadapter.xenobject import XenObject
 from rethinkdb import RethinkDB
 r = RethinkDB()
 
+
 class VBD(XenObject):
     api_class = 'VBD'
     EVENT_CLASSES = ['vbd']

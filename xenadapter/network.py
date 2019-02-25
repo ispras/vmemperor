@@ -1,3 +1,5 @@
+from enum import auto
+
 from handlers.graphql.resolvers.vm import resolve_vms, vmType
 from xenadapter.vif import VIF, GVIF
 from .xenobject import *
@@ -11,6 +13,8 @@ class GNetwork(GXenObjectType):
     VIFs = graphene.List(GVIF, resolver=VIF.resolve_many())
     other_config = graphene.JSONString()
 
+
+
 class Network(ACLXenObject):
     from .vm import VM
     api_class = "network"
@@ -18,8 +22,11 @@ class Network(ACLXenObject):
     EVENT_CLASSES = ['network']
     GraphQLType = GNetwork
 
-    def __init__(self, auth, uuid=None, ref=None):
-        super().__init__(auth, uuid=uuid, ref=ref)
+    class Actions(SerFlag):
+        Attaching = auto()
+
+    def __init__(self, xen, ref):
+        super().__init__(xen, ref)
 
     @use_logger
     def attach(self, vm: VM, sync=False) -> VIF:

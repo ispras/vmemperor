@@ -1,8 +1,14 @@
-import graphene
+from enum import auto
 
+import graphene
+from serflag import SerFlag
+
+from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.diskimage import resolve_vdis, vdiType
+from handlers.graphql.types.accessentry import GAccessEntry
+from handlers.graphql.types.objecttype import ObjectType
 from xenadapter.pbd import GPBD, PBD
-from xenadapter.xenobject import XenObject, GXenObject
+from xenadapter.xenobject import XenObject, GXenObject, ACLXenObject, GAclXenObject
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 class SRType(graphene.Enum):
     '''
@@ -27,12 +33,27 @@ class SRContentType(graphene.Enum):
     Disk = 'disk' # Revomable storage
     ISO = 'iso'  # ISO drives
 
+class SRActions(SerFlag):
+    scan = auto()
+    destroy = auto()
+    vdi_create = auto()
+    vdi_introduce = auto()
+    vdi_clone = auto()
 
+
+class GSRAccessEntry(ObjectType):
+    class Meta:
+        interfaces = (GAccessEntry, )
+
+    actions = graphene.Field(graphene.Enum.from_enum(SRActions), required=True)
 
 
 class GSR(GXenObjectType):
     class Meta:
-        interfaces = (GXenObject,)
+        interfaces = (GAclXenObject,)
+
+    access = graphene.Field(graphene.List(GSRAccessEntry), required=True,
+                            resolver=resolve_accessentries(SRActions, GSRAccessEntry))
     PBDs = graphene.Field(graphene.List(GPBD),
                                  required=True, resolver=PBD.resolve_many(),
                                  description="Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI")
@@ -47,7 +68,7 @@ class GSR(GXenObjectType):
     space_available = graphene.Field(graphene.Float, required=True, description="Available space in bytes")
 
 
-class SR(XenObject):
+class SR(ACLXenObject):
     '''
     https://docs.citrix.com/en-us/xenserver/current-release/storage/manage.html
     '''
@@ -55,12 +76,13 @@ class SR(XenObject):
     db_table_name = "srs"
     EVENT_CLASSES=["sr"]
     GraphQLType = GSR
+    Actions = SRActions
 
     @classmethod
-    def process_record(cls, auth, ref, record):
+    def process_record(cls, xen, ref, record):
 
         record['space_available'] = int(record['physical_size']) - int(record['physical_utilisation'])
-        return super().process_record(auth, ref, record)
+        return super().process_record(xen, ref, record)
 
 
 

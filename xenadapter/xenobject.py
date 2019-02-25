@@ -1,9 +1,7 @@
 import collections
 import json
 from collections import Mapping
-from enum import Flag
 
-from sentry_sdk import capture_exception
 from serflag import SerFlag
 
 import XenAPI
@@ -12,15 +10,16 @@ from datetime import datetime
 import pytz
 
 import constants.re as re
-from constants.auth import auth_name
+import constants.auth as auth
 from exc import *
-from authentication import AdministratorAuthenticator, NotAuthenticatedException, \
+from authentication import NotAuthenticatedException, \
     with_default_authentication, BasicAuthenticator
+from handlers.graphql.types.accessentry import GAccessEntry
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
 from handlers.graphql.utils.paging import do_paging
-from xenadapter import XenAdapter, XenAdapterPool
+from xenadapter import XenAdapter
 import logging
 from typing import Optional, Type, Collection, Dict
 from xenadapter.helpers import use_logger
@@ -169,7 +168,7 @@ class XenObject(metaclass=XenObjectMeta):
         '''
 
         if not field_name:
-            field_name = cls.__name__
+            field_name = cls.api_class
 
 
         from handlers.graphql.resolvers import with_connection
@@ -216,7 +215,7 @@ class XenObject(metaclass=XenObjectMeta):
            '''
 
         if not field_name:
-            field_name = f'{cls.__name__}s'
+            field_name = f'{cls.api_class}s'
         from handlers.graphql.resolvers import with_connection
 
         @with_connection
@@ -454,16 +453,20 @@ class XenObject(metaclass=XenObjectMeta):
         return method
 
 
-class GAccessEntry(graphene.ObjectType):
-    access = graphene.List(graphene.String, required=True)
-    userid = graphene.String(required=True)
-
 class GAclXenObject(GXenObject):
     access = graphene.List(GAccessEntry, required=True)
 
 
 class ACLXenObject(XenObject):
-    ALLOW_EMPTY_XENSTORE = False # Empty xenstore for some objects might treat them as for-all-by-default
+    '''
+    Abstract class for objects that store ACL information in their other_config
+    Attributes:
+        ALLOW_EMPTY_OTHERCONFIG : boolean - don't throw an exception if other_config is empty.
+        That is, an object is available to everyone by default and if you set access rights for an user,
+        it becomes available to that user exclusively
+    '''
+    ALLOW_EMPTY_OTHERCONFIG = False
+
 
     @classmethod
     def resolve_all(cls):
@@ -532,6 +535,7 @@ class ACLXenObject(XenObject):
         Implementation details:
         looks for self.db_table_name and then in db to table $(self.db_table_name)_access
         :raise XenAdapterUnauthorizedActionException - user is not authorized to perform action
+        with empty=True if XenStore is empty and ALLOW_EMPTY_OTHERCONFIG set to false
 
         '''
         if not action:
@@ -550,10 +554,10 @@ class ACLXenObject(XenObject):
             
         access_info = access_info['access'] if access_info else None
         if not access_info:
-            if self.ALLOW_EMPTY_XENSTORE:
+            if self.ALLOW_EMPTY_OTHERCONFIG:
                     return True
-            raise XenAdapterUnauthorizedActionException(self.log,
-                                                        f"Unauthorized attempt "
+            raise XenAdapterUnauthorizedActionException(self.log, empty=True,
+                                                        message=f"Unauthorized attempt "
                                                         f"on object {self} (no info on access rights) by {auth.get_id()} : {action}")
 
 
@@ -573,8 +577,8 @@ class ACLXenObject(XenObject):
 
 
 
-        raise XenAdapterUnauthorizedActionException(self.log,
-            f"Unauthorized attempt on object"
+        raise XenAdapterUnauthorizedActionException(self.log, empty=False,
+            message=f"Unauthorized attempt on object"
             f" {self} by {auth.get_id()}{': requested action {action}' if action else ''}")
 
     @classmethod
@@ -596,12 +600,13 @@ class ACLXenObject(XenObject):
                     emperor = {}
 
                 if 'access' in emperor:
-                    if auth_name in emperor['access']:
-                        auth_dict = emperor['access'][auth_name]
-                        return deserialize_auth_dict(cls, auth_dict)
+                    if auth.name in emperor['access']:
+                        auth_dict = emperor['access'][auth.name]
+                        deserialize_auth_dict(cls, auth_dict) # Will raise KeyError if something is wrong
+                        return auth_dict
                     else:
-                        if cls.ALLOW_EMPTY_XENSTORE:
-                            return {'any':  cls.Actions.ALL}
+                        if cls.ALLOW_EMPTY_OTHERCONFIG:
+                            return {'any':  cls.Actions.ALL.serialize()}
 
         return read_other_config_access_rights(other_config)
 
@@ -614,30 +619,30 @@ class ACLXenObject(XenObject):
         :param group:
         '''
         if not isinstance(action, self.Actions):
-            raise ValueError()
+            raise TypeError(f"Unsupported type for 'action': {type(action)}. Expected: {self.Actions}")
 
 
         from json import JSONDecodeError
-        if not user.startswith('users/') or not user.startswith('groups/'):
-            raise XenAdapterArgumentError(self.log, f'Specify user OR group for {self.__class__.__name__}::manage_actions')
+        if not (user.startswith('users/') or user.startswith('groups/')):
+            raise XenAdapterArgumentError(self.log, f'Specify user OR group for {self.__class__.__name__}::manage_actions. Specified: {user}')
 
 
         other_config = self.get_other_config()
 
         if 'vmemperor' not in other_config:
-            emperor = {'access': {auth_name : {}}}
+            emperor = {'access': {auth.name : {}}}
         else:
 
             try:
                 emperor = json.loads(other_config['vmemperor'])
             except JSONDecodeError:
-                emperor = {'access': {auth_name: {}}}
+                emperor = {'access': {auth.name: {}}}
 
-        if auth_name in emperor['access'] and not clear:
-            previous_actions = deserialize_auth_dict(self, emperor['access'][auth_name])
+        if auth.name in emperor['access'] and not clear:
+            previous_actions = deserialize_auth_dict(self, emperor['access'][auth.name])
         else:
             previous_actions = {}
-            emperor['access'][auth_name] = {}
+            emperor['access'][auth.name] = {}
 
         user_actions: SerFlag = previous_actions.get(user, self.Actions.NONE)
 
@@ -646,12 +651,12 @@ class ACLXenObject(XenObject):
         else:
             user_actions = user_actions | action
         if user_actions:
-            emperor['access'][auth_name][user] = user_actions.serialize()
+            emperor['access'][auth.name][user] = user_actions.serialize()
         else:
-            del emperor['access'][auth_name][user]
+            del emperor['access'][auth.name][user]
 
-        if not emperor['access'][auth_name]:
-            del emperor['access'][auth_name]
+        if not emperor['access'][auth.name]:
+            del emperor['access'][auth.name]
 
         other_config['vmemperor'] = json.dumps(emperor)
         self.set_other_config(other_config)

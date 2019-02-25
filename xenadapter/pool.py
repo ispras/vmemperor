@@ -7,7 +7,7 @@ from rethinkdb_tools.helper import CHECK_ER
 from .xenobject import XenObject, GXenObject
 import json
 from json import JSONDecodeError
-from constants.auth import auth_name
+import constants.auth as auth
 
 class GPool(GXenObjectType):
     class Meta:
@@ -48,20 +48,19 @@ class Pool (XenObject):
     def process_event(cls, xen, event):
         '''
         Calls parent implementation and then inserts JSON documents from Pool's
-        other_config field named vmemperor_quotas_auth_name
+        other_config field named vmemperor_quotas_auth.name
         Reads fields with JSON.reads
 
         :param xen:
         :param event:
         :param db:
-        :param xenenticator_name:
         :return:
         '''
         super().process_event(xen, event)
 
         if 'snapshot' not in event:
             return
-        field_name = f'vmemperor_quotas_{auth_name}'
+        field_name = f'vmemperor_quotas_{auth.name}'
         record =  event['snapshot']
         if field_name not in record['other_config']:
             return
@@ -70,7 +69,7 @@ class Pool (XenObject):
         try:
             json_doc = json.loads(json_string)
         except JSONDecodeError as e:
-            xen.log.error(f"Error while loading JSON quota info for {auth_name}: {e}")
+            xen.log.error(f"Error while loading JSON quota info for {auth.name}: {e}")
             return
         for doc in json_doc:
             if 'userid' not in doc:

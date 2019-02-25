@@ -10,8 +10,8 @@ from rethinkdb import RethinkDB
 r = RethinkDB()
 
 
-@with_authentication(access_class=VM, access_action='vnc', id_field='vm_ref')
 @with_connection
+@with_authentication(access_class=VM, access_action=VM.Actions.VNC, id_field='vm_ref')
 def resolve_console(root, info, vm_ref):
     db = r.db(options.database)
     console = db.table(Console.db_table_name).get_all(vm_ref, index='VM')\
