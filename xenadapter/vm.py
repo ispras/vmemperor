@@ -164,6 +164,7 @@ class VM (AbstractVM):
     EVENT_CLASSES = ['vm', 'vm_metrics', 'vm_guest_metrics']
     db_table_name = 'vms'
     GraphQLType = GVM
+    Actions = Actions
     def __init__(self, xen, ref):
         super().__init__(xen, ref)
 

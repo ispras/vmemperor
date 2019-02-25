@@ -197,8 +197,6 @@ class XenObject(metaclass=XenObjectMeta):
 
             if not record or not len(record):
                 return None
-            else:
-                record = record[0]
 
             return cls.GraphQLType(**record)
 

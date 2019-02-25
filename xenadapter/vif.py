@@ -6,9 +6,8 @@ from xenadapter.xenobject import XenObject, GXenObject
 
 
 class GVIF(GXenObjectType):
-    class Meta:
-        interfaces = (GXenObject,)
-
+    ref = graphene.Field(graphene.ID, required=True,
+                         description="Unique constant identifier/object reference (primary)")
     MAC = graphene.Field(graphene.ID, required=True, description="MAC address")
     VM = graphene.Field(vmType, required=True, resolver=resolve_vm)
     device = graphene.Field(graphene.ID, required=True, description="Device ID")
