@@ -7,9 +7,9 @@ from serflag import SerFlag
 
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.types.access import create_access_type
-from handlers.graphql.types.accessentry import GAccessEntry
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
-from handlers.graphql.types.objecttype import ObjectType
+from xenadapter.vbd import VBD
+from handlers.graphql.types.vbd import GVBD
 from xenadapter.vif import GVIF, VIF
 from xenadapter.xenobject import XenObject, GAclXenObject
 
@@ -22,36 +22,6 @@ class SetDisksEntry:
 
     SR : XenObject # Storage repository
     size: int # disk size in megabytes
-
-
-class XenEnum(graphene.Enum):
-    def __str__(self):
-        return self.name
-
-
-class VBDMode(XenEnum):
-    RO = auto()
-    RW = auto()
-
-    def __repr__(self):
-        if self.name == 'RO':
-            return 'Read-only device'
-        elif self.name == 'RW':
-            return 'Read-write device'
-
-
-class VBDType(XenEnum):
-    CD = auto()
-    Disk = auto()
-    Floppy = auto()
-
-    def __repr__(self):
-        if self.name == 'CD':
-            return 'Optical disc device'
-        elif self.name == 'Disk':
-            return 'Hard disk device'
-        elif self.name == 'Floppy':
-            return 'Floppy device'
 
 
 class PvDriversVersion(graphene.ObjectType):
@@ -156,3 +126,4 @@ class GVM(GXenObjectType):
     power_state = graphene.Field(PowerState, required=True)
     start_time = graphene.Field(graphene.DateTime, required=True)
     VIFs = graphene.Field(graphene.List(GVIF), required=True, resolver=VIF.resolve_many())
+    VBDs = graphene.Field(graphene.List(GVBD), description="Virtual block devices", required=True, resolver=VBD.resolve_many())

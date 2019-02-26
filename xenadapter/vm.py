@@ -4,7 +4,8 @@ from rethinkdb.errors import ReqlTimeoutError, ReqlDriverError
 from sentry_sdk import capture_exception
 import constants.re as re
 
-from handlers.graphql.types.vm import SetDisksEntry, VBDMode, VBDType, VMActions, GVM
+from handlers.graphql.types.vm import SetDisksEntry, VMActions, GVM
+from handlers.graphql.types.vbd import VBDMode, VBDType
 from xenadapter.vif import VIF
 from xenadapter.abstractvm import AbstractVM
 from xenadapter.helpers import use_logger

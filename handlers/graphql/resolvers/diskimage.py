@@ -29,5 +29,5 @@ def resolve_vdis(root, info, **args):
 
 
 def vdiType():
-    from xenadapter.disk import DiskImage
-    return DiskImage
+    from xenadapter.disk import GVDI
+    return GVDI

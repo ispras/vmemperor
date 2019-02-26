@@ -1,9 +1,12 @@
 from enum import auto
+from typing import Union
 
 from handlers.graphql.resolvers.sr import resolve_sr, srType
 from handlers.graphql.resolvers.vm import resolve_vms, vmType
+from handlers.graphql.types.access import create_access_type
 from xenadapter.sr import SR
-from xenadapter.vbd import VBD, GVBD
+from xenadapter.vbd import VBD
+from handlers.graphql.types.vbd import GVBD
 from .xenobject import *
 from xenadapter.helpers import use_logger
 from exc import *
@@ -17,13 +20,13 @@ class VDIActions(SerFlag):
 class Attachable:
     import xenadapter.vm
     @use_logger
-    def _attach(self : XenObject, vm: xenadapter.vm.VM, type : str, mode: str, empty=False, sync=False) -> str:
+    def _attach(self : XenObject, vm: xenadapter.vm.VM, type : str, mode: str, empty=False, sync=False) -> Optional[Union[VBD, str]]:
         '''
         Attach self (XenObject - either ISO or Disk) to vm VM with disk type type
         :param vm:VM to attach to
         :param mode: 'RO'/'RW'
         :param type: 'CD'/'Disk'/'Floppy'
-        :return VBD
+        :return VBD if in sync mode. In async mode return task ID for plugging if VM state is Running, and None otherwise
         '''
         #vm.check_access('attach') #done by vmemperor
 
@@ -35,7 +38,10 @@ class Attachable:
             for vdi_vbd in my_vbds:
                 if vm_vbd == vdi_vbd:
                     self.log.warning (f"Disk is already attached to {vm} using VBD '{vm_vbd}'")
-                    return VBD(vm_vbd)
+                    if sync:
+                        return VBD(self.xen, vm_vbd)
+                    else:
+                        return None
             try:
                 userdevice = int(VBD(self.xen, vm_vbd).get_userdevice())
             except ValueError:
@@ -85,7 +91,7 @@ class Attachable:
         vbds = vm.get_VBDs()
         for vbd_ref in vbds:
             vbd = VBD(xen=self.xen, ref=vbd_ref)
-            vdi = VBD.get_VDI()
+            vdi = vbd.get_VDI()
             if vdi == self.ref:
                 break
         else:
@@ -111,10 +117,20 @@ class Attachable:
         return sr.get_content_type()
 
 
-class DiskImage(GXenObjectType):
+
+
+GVDIActions = graphene.Enum.from_enum(VDIActions)
+GVDIAccessEntry = create_access_type("GVDIAccessEntry", GVDIActions)
+
+
+class GVDI(GXenObjectType):
+    class Meta:
+        interfaces = (GAclXenObject,)
+
     SR = graphene.Field(srType, resolver=resolve_sr)
     virtual_size = graphene.Field(graphene.Float, required=True)
     VBDs = graphene.List(GVBD, required=True, resolver=VBD.resolve_one())
+
 
 
 class ISO(ACLXenObject, Attachable):
@@ -124,7 +140,7 @@ class ISO(ACLXenObject, Attachable):
     api_class = 'VDI'
     db_table_name = 'isos'
     EVENT_CLASSES = ['vdi']
-    GraphQLType = DiskImage
+    GraphQLType = GVDI
     Actions = VDIActions
 
     from .vm import VM
@@ -151,7 +167,7 @@ class VDI(ACLXenObject, Attachable):
     api_class = 'VDI'
     db_table_name = 'vdis'
     EVENT_CLASSES = ['vdi']
-    GraphQLType = DiskImage
+    GraphQLType = GVDI
     Actions = VDIActions
 
 

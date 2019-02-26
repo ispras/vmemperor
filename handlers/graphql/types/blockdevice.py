@@ -5,8 +5,8 @@ import graphene
 from handlers.graphql.resolvers.diskimage import resolve_vdi
 
 def diskImageType():
-    from xenadapter.disk import DiskImage
-    return DiskImage
+    from xenadapter.disk import GVDI
+    return GVDI
 
 
 class BlockDevice(graphene.ObjectType):
