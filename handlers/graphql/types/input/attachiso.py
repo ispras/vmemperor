@@ -16,7 +16,7 @@ class AttachISOMutation(graphene.Mutation):
 
     @staticmethod
     @with_authentication(access_class=ISO, access_action=ISO.Actions.plug, id_field='iso_ref')
-    @with_authentication(access_class=VM, access_action=VM.Actions.attach_vdi, id_field='iso_ref')
+    @with_authentication(access_class=VM, access_action=VM.Actions.attach_vdi, id_field='vm_ref')
     def mutate(root, info, iso_ref, vm_ref, is_attach, ISO, VM):
         if is_attach:
             taskId = ISO.attach(VM)

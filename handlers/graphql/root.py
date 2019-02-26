@@ -17,7 +17,7 @@ from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolv
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
 from playbookloader import PlaybookLoader
-from xenadapter.disk import GISO, GVDI, ISO, VDI
+from xenadapter.disk import ISO, VDI, DiskImage
 from xenadapter.host import Host, GHost
 from xenadapter.pool import GPool, Pool
 from xenadapter.task import GTask
@@ -54,11 +54,11 @@ class Query(ObjectType):
     sr = graphene.Field(GSR,  ref=graphene.ID(), resolver=SR.resolve_one(), description="Information about a single storage repository")
 
 
-    vdis = graphene.List(GVDI, required=True, resolver=VDI.resolve_all(), description="All Virtual Disk Images (hard disks), available for user")
-    vdi = graphene.Field(GVDI,  ref=graphene.ID(), resolver=VDI.resolve_one(), description="Information about a single virtual disk image (hard disk)")
+    vdis = graphene.List(DiskImage, required=True, resolver=VDI.resolve_all(), description="All Virtual Disk Images (hard disks), available for user")
+    vdi = graphene.Field(DiskImage,  ref=graphene.ID(), resolver=VDI.resolve_one(), description="Information about a single virtual disk image (hard disk)")
 
-    isos = graphene.List(GISO, required=True, resolver=ISO.resolve_all(), description="All ISO images available for user")
-    iso = graphene.Field(GVDI, ref=graphene.ID(), resolver=ISO.resolve_one(),
+    isos = graphene.List(DiskImage, required=True, resolver=ISO.resolve_all(), description="All ISO images available for user")
+    iso = graphene.Field(DiskImage, ref=graphene.ID(), resolver=ISO.resolve_one(),
                          description="Information about a single ISO image")
 
     playbooks = graphene.List(GPlaybook,  required=True, resolver=resolve_playbooks, description="List of Ansible-powered playbooks")
@@ -92,7 +92,7 @@ class Mutation(ObjectType):
 
 
     net_attach = AttachNetworkMutation.Field(description="Attach VM to a Network by creating a new Interface")
-    iso_attach = AttachISOMutation.Field(description="Attach ISO to a VM by creating a new virtual block device")
+    #iso_attach = AttachISOMutation.Field(description="Attach ISO to a VM by creating a new virtual block device")
     vdi_attach = AttachVDIMutation.Field(description="Attach VDI to a VM by creating a new virtual block device")
 
 
@@ -151,4 +151,4 @@ class Subscription(ObjectType):
         return resolve_all_items_changes(PlaybookTask, 'tasks_playbooks')(*args, **kwargs)
 
 
-schema = SchemaWithFlags(query=Query, mutation=Mutation, types=[GISO, GVDI], subscription=Subscription)
+schema = SchemaWithFlags(query=Query, mutation=Mutation, subscription=Subscription)

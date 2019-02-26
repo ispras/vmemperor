@@ -198,15 +198,17 @@ def with_authentication(access_class : type = None, access_action : SerFlag = No
                 raise NotAuthenticatedException()
 
             if access_class:
-                ref = kwargs.get(id_field)
-                if not ref:
+                if id_field in kwargs:
+                    ref = kwargs.get(id_field)
+                else:
                     ref = args[0]
+
                 try:
                     obj : ACLXenObject = access_class(xen=info.context.xen, ref=ref)
                     obj.check_access(info.context.user_authenticator, access_action)
                 except XenAdapterAPIError as e:
                     if e.details['error_code'] == 'HANDLE_INVALID':
-                        kwargs[id_field] = None
+                        raise ValueError(f"Invalid {id_field}: {ref}")
                     else:
                         raise e
                 else:

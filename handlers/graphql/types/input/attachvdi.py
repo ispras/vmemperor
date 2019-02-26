@@ -17,11 +17,9 @@ class AttachVDIMutation(graphene.Mutation):
     @staticmethod
     @with_authentication(access_class=VDIorISO, access_action=VDI.Actions.plug, id_field='vdi_ref')
     @with_authentication(access_class=VM, access_action=VM.Actions.attach_vdi, id_field='vm_ref')
-    def mutate(root, info, vdi_ref, vm_ref, is_attach):
-        ctx: ContextProtocol = info.context
-        vdi = VDIorISO(ref=vdi_ref, xen=ctx.xen)
+    def mutate(root, info, vdi_ref, vm_ref, is_attach, VDIorISO, VM):
         if is_attach:
-            taskId = vdi.attach(VM(ref=vm_ref, xen=ctx.xen))
+            taskId = VDIorISO.attach(VM)
         else:
-            taskId = vdi.detach(VM(ref=vm_ref,xen=ctx.xen))
+            taskId = VDIorISO.detach(VM)
         return AttachVDIMutation(taskId=taskId)
