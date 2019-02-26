@@ -8,7 +8,6 @@ from serflag import SerFlag
 import threading
 
 import constants.re as re
-import queue
 from xenadapter import singleton
 from loggable import Loggable
 import asyncio
@@ -17,8 +16,7 @@ local = threading.local()
 
 class ReDBConnection(Loggable, metaclass=singleton.Singleton):
     def __init__(self):
-
-        self.conn_queue : queue.Queue
+        self.conn_queue_async = asyncio.Queue()
         self.host : str = None
         self.port : int = None
         self.db = re.db
@@ -35,6 +33,7 @@ class ReDBConnection(Loggable, metaclass=singleton.Singleton):
 
         self.log.info(f"Options set: {repr(self)}")
 
+
     def __repr__(self):
         return f"ReDBConnection <host {self.host}, port {self.port}, db '{self.db}', user '{self.user}', password '{self.password}'>"
 
@@ -46,7 +45,7 @@ class ReDBConnection(Loggable, metaclass=singleton.Singleton):
                 if not hasattr(myself, 'conn') or not myself.conn or not myself.conn.is_open():
 
                     myself.conn = await r.connect(self.host, self.port, self.db, user=self.user, password=self.password)
-                    self.log.debug(f"Connecting using connection: {myself} (AsyncIO)")
+                    self.log.debug(f"Connecting using connection: {id(myself)} (AsyncIO)")
 
                 if not myself.conn.is_open():
                     raise Exception("Cannot open a new rethinkdb connection...")
@@ -58,23 +57,23 @@ class ReDBConnection(Loggable, metaclass=singleton.Singleton):
                     if not myself.conn or not myself.conn.is_open():
                         return
                     self.conn_queue_async.put_nowait(myself)
-                    self.log.debug("Releasing connection into async queue: {0}".format(myself))
+                    self.log.debug(f"Releasing connection into async queue: {id(myself)}")
                 except Exception as e:
-                    self.log.error(f"Exception while releasing connection into async queue: {e}")
+                    self.log.error(f"Exception {e} while releasing connection {id(myself)} into async queue")
+                    capture_exception(e)
 
         return AsyncConnection()
 
 
-    def _get_new_connection(self, loop_type = None):
+    def _get_new_connection(self):
         class Connection:
-            def __init__(myself, loop_type = None):
-                myself.loop_type = loop_type
+            def __init__(myself):
                 r = RethinkDB()
-                r.set_loop_type(myself.loop_type)
+
                 if not hasattr(myself, 'conn') or not myself.conn  or not myself.conn.is_open():
                     myself.conn = r.connect(self.host, self.port, self.db, user=self.user, password=self.password,)
                     self.log.debug(f"Connecting"
-                                   f" using '{myself.loop_type if myself.loop_type else 'synchronous'}' connection:"
+                                   f" using synchronous connection:"
                                    f" {id(myself)}")
                 if not myself.conn.is_open():
                     raise Exception("Cannot open a new rethinkdb connection...")
@@ -90,10 +89,8 @@ class ReDBConnection(Loggable, metaclass=singleton.Singleton):
             def __del__ (myself):
                 if hasattr(myself, 'conn'):
                     myself.conn.close()
+        return Connection()
 
-
-
-        return Connection(loop_type=loop_type)
 
 
 
@@ -106,22 +103,35 @@ class ReDBConnection(Loggable, metaclass=singleton.Singleton):
         conn = getattr(local, connection_name, None)
         if not conn:
             conn = new_connection_factory()
-            setattr(local, connection_name, conn)
+        else:
+            self.log.debug(f"Getting connection from thread-local storage: {id(conn)}")
+            try:
+                if not conn.conn.is_open():
+                    self.log.debug("Connection from queue is not opened, skipping")
+                    conn = new_connection_factory()
+            except Exception as e:
+                self.log.error(f"Error while trying to obtain a Connection: {e}, returning new Connection")
+                capture_exception(e)
+                conn =  new_connection_factory()
 
-        self.log.debug(f"Getting connection from thread-local storage: {id(conn)}")
-        try:
-            if not conn.conn.is_open():
-                self.log.debug("Connection from queue is not opened, skipping")
-                return new_connection_factory()
-        except Exception as e:
-            self.log.error(f"Error while trying to obtain a Connection: {e}, returning new Connection")
-            capture_exception(e)
-            return new_connection_factory()
-
+        setattr(local, connection_name, conn)
         return conn
 
     def get_async_connection(self):
-        return self._get_connection_base("async_connection", lambda: self._get_new_connection("asyncio"))
+        if not self.conn_queue_async.empty():
+            conn = self.conn_queue_async.get_nowait()
+            self.log.debug(f"Getting connection from Queue: {id(conn)}")
+            try:
+                if not conn.conn.is_open():
+                    self.log.debug("Connection from queue is not opened, skipping")
+                    return self._get_new_connection_async()
+            except Exception as e:
+                self.log.error(f"Error while trying to obtain a Connection {id(conn)}:"
+                               f" {e}, returning new Connection")
+                capture_exception(e)
+                return self._get_new_connection_async()
 
-
-
+            return conn
+        else:
+            self.log.debug("No connections in Queue, creating a new one...")
+            return self._get_new_connection_async()
