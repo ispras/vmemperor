@@ -6,6 +6,7 @@ from graphene.types.resolver import dict_resolver
 from serflag import SerFlag
 
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
+from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.accessentry import GAccessEntry
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.objecttype import ObjectType
@@ -127,11 +128,7 @@ class VMActions(SerFlag):
 GVMActions = graphene.Enum.from_enum(VMActions)
 
 
-class GVMAccessEntry(ObjectType):
-    class Meta:
-        interfaces = (GAccessEntry, )
-
-    actions = graphene.Field(GVMActions, required=True)
+GVMAccessEntry = create_access_type("GVMAccessEntry", GVMActions)
 
 
 class GVM(GXenObjectType):

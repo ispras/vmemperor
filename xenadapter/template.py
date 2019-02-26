@@ -1,7 +1,11 @@
 import json
+from enum import auto
 
 import graphene
+from serflag import SerFlag
 
+from handlers.graphql.resolvers.accessentry import resolve_accessentries
+from handlers.graphql.types.access import create_access_type
 from xenadapter.xenobject import GAclXenObject
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from .abstractvm import AbstractVM
@@ -10,10 +14,19 @@ import XenAPI
 from .vm import VM
 from xenadapter.helpers import use_logger
 
-class GTemplate(GXenObjectType):
+class TemplateActions(SerFlag):
+    clone = auto()
 
+GTemplateActions = graphene.Enum.from_enum(TemplateActions)
+
+GTemplateAccessEntry = create_access_type("GTemplateAccessEntry", GTemplateActions)
+
+class GTemplate(GXenObjectType):
     class Meta:
         interfaces = (GAclXenObject,)
+
+    access = graphene.Field(graphene.List(GTemplateAccessEntry), required=True,
+                            resolver=resolve_accessentries(TemplateActions, GTemplateAccessEntry))
 
     os_kind = graphene.Field(graphene.String, description="If a template supports auto-installation, here a distro name is provided")
     hvm = graphene.Field(graphene.Boolean, required=True, description="True if this template works with hardware assisted virtualization")
@@ -26,6 +39,7 @@ class Template(AbstractVM):
     VMEMPEROR_TEMPLATE_PREFIX = 'vm/data/vmemperor/template'
     db_table_name = 'tmpls'
     GraphQLType = GTemplate
+    Actions = TemplateActions
 
     @classmethod
     def filter_record(cls, xen, record, ref):

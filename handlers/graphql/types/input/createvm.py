@@ -34,8 +34,10 @@ class AutoInstall(graphene.InputObjectType):
     password = graphene.InputField(graphene.String, required=True, description="User and root password")
     fullname = graphene.InputField(graphene.String, description="User's full name")
     partition = graphene.InputField(graphene.String, required=True, description="Partition scheme (TODO)")
-    static_ip_config  = graphene.InputField(NetworkConfiguration, description="Static IP configuration, if needed")
+    static_ip_config = graphene.InputField(NetworkConfiguration, description="Static IP configuration, if needed")
 
+
+@with_authentication(access_class=Template, access_action=Template.Actions.clone)
 def createvm(ctx : ContextProtocol, task_id : str, user: str, template: str, VCPUs : int, disks : Sequence[NewVDI], ram : int, name_label : str, name_description : str, network : str, iso : str =None, install_params : AutoInstall=None):
     from xenadapter.network import Network
     from xenadapter.disk import ISO
