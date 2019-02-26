@@ -15,7 +15,7 @@ interface Props {
 
 
 const VNCView = ({vm: {ref, nameLabel, powerState}}: Props) => {
-  const {data} = useQuery<Console.Query, Console.Variables>(Console.Document, {
+  const {data, refetch} = useQuery<Console.Query, Console.Variables>(Console.Document, {
     variables: {
       id: ref,
     }
@@ -31,7 +31,7 @@ const VNCView = ({vm: {ref, nameLabel, powerState}}: Props) => {
       <h2>{
         nameLabel
       }</h2>}
-      <VncDisplay url={url}/>
+      <VncDisplay url={url} onDisconnect={() => refetch()}/>
     </Fragment>
   );
 };

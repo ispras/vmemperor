@@ -619,6 +619,9 @@ class ACLXenObject(XenObject):
         :param user: User ID  in form "users/USER_ID" or "groups/GROUP_ID"
         :param group:
         '''
+        if user is None:  # It's root so do nothing
+            return
+
         if not isinstance(action, self.Actions):
             raise TypeError(f"Unsupported type for 'action': {type(action)}. Expected: {self.Actions}")
 

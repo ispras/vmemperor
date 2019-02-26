@@ -294,7 +294,10 @@ class EventLoop(Loggable):
                     if record['new_val']:  # edit
                         ref = record['new_val']['ref']
                         table = record['new_val']['table']
-                        access = record['new_val'].get('access', {}) # key - user, value - access data
+                        access = record['new_val'].get('access')
+                        if not access:
+                            access = {}
+
                         table_user = table + '_user'
 
 
@@ -304,7 +307,10 @@ class EventLoop(Loggable):
                                 CHECK_ER(re.db.table(table_user).insert({'ref': ref, 'userid': k, 'actions': v}, conflict='replace').run())
 
                         if 'old_val' in record and record['old_val']: # Delete values in old_val but not in new_val
-                            old_access_list = record['old_val'].get('access', {}).keys()
+                            old_access_list = record['old_val'].get('access')
+                            if not old_access_list:
+                                old_access_list = {}
+
                             access_to_delete = set(old_access_list).difference(access.keys())
                             items = [[ref, item] for item in access_to_delete]
                             log.info(f"Deleting access rights for {ref} (table {table}): {items}")

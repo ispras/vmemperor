@@ -40,7 +40,7 @@ class TaskList(ABC, Loggable):
             task_data = XenObjectDict(task_data)
         self.log.debug(f"Upserting task: {task_data['id']}")
         if user:  # replace
-            query = self.db.table(self.table_name()).insert({**task_data, **{'userid': user}}, conflict='replace').run()
+            query = re.db.table(self.table_name()).insert({**task_data, **{'userid': user}}, conflict='replace').run()
         else:  # update
             CHECK_ER(self.table().insert({**task_data}, conflict='update').run())
         self.log.debug(f"Task upserted: {task_data['id']}")

@@ -5,17 +5,18 @@ import graphene
 from rethinkdb import RethinkDB
 
 from connman import ReDBConnection
-
-r = RethinkDB()
+from xenadapter.disk import ISO
+from xenadapter.network import Network
 
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.resolvers import with_connection
 from authentication import with_authentication, with_default_authentication
 from handlers.graphql.types.input.createvdi import NewVDI
 from handlers.graphql.types.tasks.createvm import CreateVMTask, CreateVMTaskList
+from xenadapter.sr import SR
 from xenadapter.template import Template
 import tornado.ioloop
-
+from xenadapter import XenAdapterPool
 from handlers.graphql.types.vm import SetDisksEntry
 
 
@@ -37,37 +38,39 @@ class AutoInstall(graphene.InputObjectType):
     static_ip_config = graphene.InputField(NetworkConfiguration, description="Static IP configuration, if needed")
 
 
-@with_authentication(access_class=Template, access_action=Template.Actions.clone)
-def createvm(ctx : ContextProtocol, task_id : str, user: str, template: str, VCPUs : int, disks : Sequence[NewVDI], ram : int, name_label : str, name_description : str, network : str, iso : str =None, install_params : AutoInstall=None):
-    from xenadapter.network import Network
-    from xenadapter.disk import ISO
-    from xenadapter.sr import SR
-    from rethinkdb import RethinkDB
-    from xenadapter import XenAdapterPool
-    r = RethinkDB()
+
+def createvm(ctx : ContextProtocol, task_id : str, user: str,
+             template: str, VCPUs : int, disks : Sequence[NewVDI], ram : int, name_label : str, name_description : str, network : str, iso : str =None, install_params : AutoInstall=None,
+             Template: Template = None, ISO: ISO = None ):
+
     with ReDBConnection().get_connection():
         xen = XenAdapterPool().get()
         task_list = CreateVMTaskList()
         try:
+
+            def disk_entries():
+                for entry in disks:
+                    sr = SR(xen, entry.SR)
+                    if sr.check_access(ctx.user_authenticator, SR.Actions.vdi_create):
+                        yield SetDisksEntry(SR=sr, size=entry.size)
+
+
             task_list.upsert_task(user, CreateVMTask(id=task_id, ref=template, state='cloning',
                                                      message=f'cloning template'))
-            tmpl = Template(xen, template)
             net = Network(xen, network)
-            iso = ISO(xen, iso) if iso else None
             # TODO: Check quotas here as well as in create vdi method
-            provision_config = [SetDisksEntry(SR=SR(xen, ref=entry.SR), size=entry.size)
-                                for entry in disks]
+            provision_config = list(disk_entries())
 
-            vm = tmpl.clone(name_label)
-            task_list.upsert_task(user, CreateVMTask(id=task_id, ref=vm.ref, state='cloned', message=f'cloned from {tmpl.uuid}'))
+            vm = Template.clone(name_label)
+            task_list.upsert_task(user, CreateVMTask(id=task_id, ref=vm.ref, state='cloned', message=f'cloned from {Template}'))
             vm.set_name_description(name_description)
             vm.create(
                 insert_log_entry=lambda ref, state, message: task_list.upsert_task(user, CreateVMTask(id=task_id, ref=ref, state=state, message=message)),
                 provision_config=provision_config,
                 ram_size=ram,
                 net=net,
-                template=tmpl,
-                iso=iso,
+                template=Template,
+                iso=ISO,
                 hostname=install_params.hostname if install_params else None,
                 ip=install_params.static_ip_config if install_params else None,
                 install_url=install_params.mirror_url if install_params else None,
@@ -76,15 +79,10 @@ def createvm(ctx : ContextProtocol, task_id : str, user: str, template: str, VCP
                 partition=install_params.partition if install_params else None,
                 fullname=install_params.fullname if install_params else None,
                 vcpus = VCPUs,
-                user = user,
+                user = user if not user == "root" else None,
         )
         finally:
-            XenAdapterPool.unget(xen)
-
-
-
-
-
+            XenAdapterPool().unget(xen)
 
 
 class CreateVM(graphene.Mutation):
@@ -103,8 +101,10 @@ class CreateVM(graphene.Mutation):
 
 
     @staticmethod
-    @with_default_authentication
     @with_connection
+    @with_authentication(access_class=Template, access_action=Template.Actions.clone, id_field="template")
+    @with_authentication(access_class=ISO, access_action=ISO.Actions.plug, id_field="iso")
+    #@with_authentication(access_class=Network, access_action=Network.Actions.)
     def mutate(root, info, *args, **kwargs):
         task_id  = str(uuid.uuid4())
         ctx :ContextProtocol = info.context

@@ -20,7 +20,7 @@ def print_event(event):
     return ordered
 
 class EventQueue(queue.Queue, Loggable):
-    def __init__(self,  num_workers=4):
+    def __init__(self,  num_workers=2):
         super().__init__()
         super().init_log()
         self.log.debug(f"Processing Xen events using {num_workers} workers")

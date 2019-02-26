@@ -1,6 +1,6 @@
 import React from 'react';
-import { arrayOf, string, bool, func, number, object } from 'prop-types';
-import  RFB  from '@novnc/novnc/core/rfb';
+import {arrayOf, string, bool, func, number, object} from 'prop-types';
+import RFB from '@novnc/novnc/core/rfb';
 import {init_logging} from '@novnc/novnc/core/util/logging';
 import omit from 'object.omit';
 
@@ -19,7 +19,8 @@ export default class VncDisplay extends React.PureComponent {
     onDesktopName: func,
     connectTimeout: number,
     disconnectTimeout: number,
-    shared: bool
+    shared: bool,
+    onDisconnect: func,
   };
 
   static defaultProps = {
@@ -29,7 +30,7 @@ export default class VncDisplay extends React.PureComponent {
     trueColor: true,
     localCursor: true,
     debug: true,
-    reloadOnError: true,
+    onDisconnect: null,
     connectTimeout: 5,
     disconnectTimeout: 5,
     width: 1280,
@@ -38,28 +39,29 @@ export default class VncDisplay extends React.PureComponent {
 
 
   componentDidMount() {
-  /*  if (process.env.NODE_ENV && process.env.NODE_ENV !== 'production')
-      init_logging('debug');
-   */
+    /*  if (process.env.NODE_ENV && process.env.NODE_ENV !== 'production')
+        init_logging('debug');
+     */
     this.connect();
   }
 
   componentWillUnmount() {
     this.disconnect();
   }
-/*
-  componentWillReceiveProps(nextProps) {
-    if (!this.rfb) {
-      return;
-    }
 
-    if (nextProps.scale !== this.props.scale) {
-      this.rfb.get_display().set_scale(nextProps.scale || 1);
-      this.get_mouse().set_scale(nextProps.scale || 1);
-    }
+  /*
+    componentWillReceiveProps(nextProps) {
+      if (!this.rfb) {
+        return;
+      }
 
-  }
-  */
+      if (nextProps.scale !== this.props.scale) {
+        this.rfb.get_display().set_scale(nextProps.scale || 1);
+        this.get_mouse().set_scale(nextProps.scale || 1);
+      }
+
+    }
+    */
 
   disconnect = () => {
     if (!this.rfb) {
@@ -71,8 +73,10 @@ export default class VncDisplay extends React.PureComponent {
   };
 
   onDisconnected = (e) => {
-    if (this.props.reloadOnError)
-      window.location.reload();
+    if (this.props.onDisconnect) {
+      this.props.onDisconnect();
+      this.connect();
+    }
   };
   connect = () => {
     this.disconnect();
@@ -82,8 +86,6 @@ export default class VncDisplay extends React.PureComponent {
     }
 
 
-
-
     const options = Object.assign(omit(this.props, [
       'name',
       'connectTimeout',
@@ -91,13 +93,12 @@ export default class VncDisplay extends React.PureComponent {
       'width',
       'height',
       'debug',
-      'reloadOnError'
     ]), {
       encrypt: this.props.url.startsWith('wss:') || this.props.encrypt,
       shared: true,
     });
 
-    this.rfb = new RFB(this.canvas,this.props.url, {...options});
+    this.rfb = new RFB(this.canvas, this.props.url, {...options});
     this.rfb.focusOnClick = true;
     this.rfb.addEventListener("disconnect", this.onDisconnected);
   };
@@ -110,7 +111,7 @@ export default class VncDisplay extends React.PureComponent {
         style={this.props.style}
         ref={this.registerChild}
         onMouseEnter={this.handleMouseEnter}
-        onMouseLeave={this.handleMouseLeave} />
+        onMouseLeave={this.handleMouseLeave}/>
     )
   }
 }

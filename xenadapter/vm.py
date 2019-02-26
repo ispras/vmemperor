@@ -6,6 +6,7 @@ import constants.re as re
 
 from handlers.graphql.types.vm import SetDisksEntry, VMActions, GVM
 from handlers.graphql.types.vbd import VBDMode, VBDType
+from rethinkdb_tools.helper import CHECK_ER
 from xenadapter.vif import VIF
 from xenadapter.abstractvm import AbstractVM
 from xenadapter.helpers import use_logger
@@ -120,7 +121,7 @@ class VM (AbstractVM):
                 vif_data[vif_ref][key] = v
 
             documents = [{'ref': key, **value} for key, value in vif_data.items()]
-            re.db.table(VIF.db_table_name).insert(documents).run()
+            CHECK_ER(re.db.table(VIF.db_table_name).insert(documents).run())
         except ValueError as e:
             xen.log.warning(f"Can't get network information for VM {vm_ref}")
             capture_exception(e)
@@ -150,6 +151,7 @@ class VM (AbstractVM):
         :param iso: ISO Image object. If specified, will be mounted
 
         '''
+        self.user = user
         self.insert_log_entry = lambda *args, **kwargs: insert_log_entry(self.ref, *args, **kwargs)
         self.install = True
         self.remove_tags('vmemperor')
@@ -158,7 +160,7 @@ class VM (AbstractVM):
         self.set_VCPUs_max(vcpus)
         self.set_VCPUs_at_startup(vcpus)
         self.set_disks(provision_config)
-        self.user = user
+
         if iso:
             try:
                 iso.attach(self, sync=True)
@@ -201,7 +203,7 @@ class VM (AbstractVM):
 
         from constants import need_exit
 
-        state = self.db.table(VM.db_table_name).get(self.ref).pluck('power_state').run()['power_state']
+        state = re.db.table(VM.db_table_name).get(self.ref).pluck('power_state').run()['power_state']
         if state != 'Running':
             self.insert_log_entry('failed',
                                   f"failed to start VM for installation (low resources?). State: {state}")
@@ -283,7 +285,7 @@ class VM (AbstractVM):
             specs.disks.append(provision.Disk(f'{i}', size, entry.SR.uuid, True))
             i += 1
         try:
-            provision.setProvisionSpec(self.xen.xen.session, self.ref, specs)
+            provision.setProvisionSpec(self.xen.session, self.ref, specs)
         except Exception as e:
             try:
                 raise e
@@ -319,7 +321,7 @@ class VM (AbstractVM):
 
                     vdi.set_name_description(f"Created by VMEmperor for VM with UUID {self.get_uuid()}")
                     # After provision. manage disks actions
-                    vdi.manage_actions(self.Actions.ALL, user=self.user)
+                    vdi.manage_actions(VDI.Actions.ALL, user=self.user)
 
 
 

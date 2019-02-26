@@ -35,17 +35,17 @@ class Network(ACLXenObject):
                 'qos_algorithm_type': '', 'qos_algorithm_params': {}}
         try:
             if sync:
-                return VIF.create(self.auth, args)
+                return VIF.create(self.xen, args)
             else:
-                return VIF.async_create(self.auth, args)
+                return VIF.async_create(self.xen, args)
         except XenAPI.Failure as f:
-            raise XenAdapterAPIError(self.auth.xen.log, "Network::attach: Failed to create VIF",f.details)
+            raise XenAdapterAPIError(self.log, "Network::attach: Failed to create VIF",f.details)
 
 
     @use_logger
     def detach(self, vm: VM):
         for ref in vm.get_VIFs():
-            vif = VIF(self.auth, ref=ref)
+            vif = VIF(self.xen, ref)
             if vif.get_network() == self.ref:
                 try:
                     return vif.async_destroy()

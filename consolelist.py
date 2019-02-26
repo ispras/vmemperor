@@ -28,10 +28,11 @@ class ConsoleList(metaclass=DBCreator):
         :param secret:
         :return:
         '''
-        query = re.db.table(self.TABLE_NAME).get(secret)
-        data = await query.run(connection)
         if not secret:
             return None
-
+        query = re.db.table(self.TABLE_NAME).get(secret)
+        data = await query.run(connection)
+        if not data:
+            return None
         await query.delete().run(connection)
         return data['url']
