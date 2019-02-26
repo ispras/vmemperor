@@ -142,6 +142,7 @@ class XenObject(metaclass=XenObjectMeta):
 
         if isinstance(ref, str):
             self.ref = ref
+            self.uuid = self.get_uuid()
         else:
             raise ValueError(
                              f"XenObject:Failed to initialize object of type {self.__class__.__name__}"

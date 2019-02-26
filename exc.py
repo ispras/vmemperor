@@ -53,6 +53,12 @@ class XenAdapterAPIError(XenAdapterException):
                 "object_type": details[1],
                 "uuid": details[2],
             }
+        elif details[0] == 'HANDLE_INVALID':
+            return {
+                "error_code": details[0],
+                "object_type": details[1],
+                "ref": details[2]
+            }
         else:
             return details
 

@@ -7,6 +7,8 @@ import pathlib
 import signal
 import atexit
 
+from sentry_sdk import capture_exception
+
 import constants.re as re
 import constants
 import constants.auth
@@ -156,137 +158,6 @@ class PoolListPublic(RESTHandler):
         self.write(json.dumps([{'id': 1}]))
 
 
-class SetAccessHandler(RESTHandler):
-    @auth_required
-    def post(self):
-        with self.conn:
-            uuid = self.get_argument('uuid')
-            _type = self.get_argument('type')
-            action = self.get_argument('action')
-            revoke = self.get_argument('revoke', False)
-            if type(revoke) == str and revoke.lower() == 'false':
-                revoke = False
-
-            if revoke:
-                revoke = True
-            user = self.get_argument('user', default=None)
-
-            if not user:
-                group = self.get_argument('group')
-                try:
-                    group = int(group)
-                except:
-                    pass
-            else:
-                try:
-                    user = int(user)
-                except:
-                    pass
-                group = None
-
-            #check if user or group do exist
-            db = r.db(opts.database)
-            if user:
-                id = db.table('users').get(user).run()
-                if not id:
-                    self.set_status(400)
-                    self.write({'status': 'bad request', 'message': f"no such user: '{user}'"})
-                    return
-
-            else:
-                id = db.table('groups').get(group).run()
-                if not id:
-                    self.set_status(400)
-                    self.write({'status': 'bad request', 'message': f"no such group: '{group}'"})
-                    return
-
-            type_obj = None
-            for obj in db_classes.CREATE_DB_FOR_CLASSES_WITH_ACL:
-                if obj.__name__ == _type:
-                    type_obj = obj
-                    break
-            else:
-                self.set_status(400)
-                self.write({'status': 'bad request', 'message': 'unsupported type: %s' % _type})
-                return
-
-            try:
-                self.target = type_obj(self.user_authenticator, uuid=uuid)
-                self.log.info(f"Checking object {_type} access for action {action}, revoke: {revoke}")
-                self.target.check_access(action)
-                self.log.debug("Access granted, performing changes")
-                self.target.manage_actions(action, revoke, user, group)
-                self.log.debug("Changes successful")
-            except XenAdapterAPIError as e:
-                self.set_status(400)
-                self.write({'status': 'bad request', 'message': e.message})
-                return
-            except XenAdapterUnauthorizedActionException as e:
-                self.set_status(403)
-                self.write({'status': 'access denied', 'message': e.message})
-                return
-
-
-class UserInfo(RESTHandler):
-    @auth_required
-    def get(self):
-        auth = self.user_authenticator
-        self.write(
-            {
-                'id': auth.get_id(),
-                'name': auth.get_name(),
-                'groups': auth.get_user_groups(),
-                'is_admin': isinstance(auth, AdministratorAuthenticator)
-            }
-        )
-
-
-class UserList(RESTHandler):
-    @auth_required
-    def get(self):
-        with self.conn:
-            self.write(json.dumps(r.db(opts.database).table('users').coerce_to('array').run()))
-
-
-class GroupList(RESTHandler):
-    @auth_required
-    def get(self):
-        with self.conn:
-            self.write(json.dumps(r.db(opts.database).table('groups').coerce_to('array').run()))
-
-
-class GetAccessHandler(RESTHandler):
-    @auth_required
-    def post(self):
-        with self.conn:
-
-            uuid = self.get_argument('uuid')
-            type = self.get_argument('type')
-            type_obj = None
-            for obj in db_classes.CREATE_DB_FOR_CLASSES_WITH_ACL:
-                if obj.__name__ == type:
-                    type_obj = obj
-                    break
-            else:
-                self.set_status(400)
-                self.write({'status': 'bad request', 'message': 'invalid type: %s' % type})
-                return
-            try:
-                type_obj(self.user_authenticator, uuid=uuid).check_access(None)
-            except XenAdapterAPIError as e:
-                self.set_status(400)
-                self.write({'status': 'bad request', 'message': e.message})
-                return
-
-            except XenAdapterUnauthorizedActionException as e:
-                self.set_status(403)
-                self.write({'status': 'access denied', 'message': e.message})
-                return
-
-            db = r.db(opts.database)
-            self.write(db.table(type_obj.db_table_name).get(uuid).pluck('access').run())
-
-
 class EventLoop(Loggable):
     """every n seconds asks all vms about their status and updates collections (dbs, tables)
     of corresponding user, if they are logged in (have open connection to dbms notifications)
@@ -359,6 +230,7 @@ class EventLoop(Loggable):
     def do_access_monitor(self):
         try:
             conn = ReDBConnection().get_connection()
+
             # log = self.create_additional_log('AccessMonitor')
             log = self.log
             with conn:
@@ -445,9 +317,8 @@ class EventLoop(Loggable):
                         log.info(f"Deleting access rights for {ref} (table {table})")
                         CHECK_ER(re.db.table(table_user).get_all(ref, index='ref').delete())
         except Exception as e:
-            self.log.error("Exception in access_monitor: {0}"
-                           .format(e))
-            traceback.print_exc()
+            self.log.error(f"Exception in access_monitor: {e}")
+            capture_exception(e)
             # tornado.ioloop.IOLoop.current().run_in_executor(self.executor, self.do_access_monitor)
             raise e
 
@@ -687,12 +558,6 @@ def make_app(executor, auth_class=None, debug=False):
 
         (r'/list_pools', PoolListPublic, dict(pool_executor=executor)),
         (r'/adminauth', AdminAuth, dict(pool_executor=executor, authenticator=auth_class)),
-        (r'/setaccess', SetAccessHandler, dict(pool_executor=executor)),
-        (r'/getaccess', GetAccessHandler, dict(pool_executor=executor)),
-        (r'/userinfo', UserInfo, dict(pool_executor=executor)),
-        (r'/userlist', UserList, dict(pool_executor=executor)),
-        (r'/grouplist', GroupList, dict(pool_executor=executor)),
-
         (r'/graphql', gql_handler.GraphQLHandler, dict(pool_executor=executor, graphiql=False, schema=schema)),
         (r'/graphiql', gql_handler.GraphQLHandler, dict(pool_executor=executor, graphiql=True, schema=schema)),
         (r'/subscriptions', gql_handler.GraphQLSubscriptionHandler, dict(pool_executor=executor, schema=schema))

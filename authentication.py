@@ -198,16 +198,19 @@ def with_authentication(access_class : type = None, access_action : SerFlag = No
                 raise NotAuthenticatedException()
 
             if access_class:
-                ref = kwargs.get(id_field, args[0])
+                ref = kwargs.get(id_field)
+                if not ref:
+                    ref = args[0]
                 try:
                     obj : ACLXenObject = access_class(xen=info.context.xen, ref=ref)
                     obj.check_access(info.context.user_authenticator, access_action)
                 except XenAdapterAPIError as e:
-                    if e.details['error_code'] == 'UUID_INVALID':
+                    if e.details['error_code'] == 'HANDLE_INVALID':
                         kwargs[id_field] = None
                     else:
                         raise e
-                kwargs[access_class.__name__] = obj
+                else:
+                    kwargs[access_class.__name__] = obj
                 return method(root, info, *args, **kwargs)
 
 

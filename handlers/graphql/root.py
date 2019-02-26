@@ -2,6 +2,7 @@ import graphene
 
 from graphene import ObjectType, Schema
 
+from handlers.graphql.graphene_with_flags.schema import SchemaWithFlags
 from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.resolvers.subscription_utils import MakeSubscription, resolve_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_items_changes
@@ -150,4 +151,4 @@ class Subscription(ObjectType):
         return resolve_all_items_changes(PlaybookTask, 'tasks_playbooks')(*args, **kwargs)
 
 
-schema = Schema(query=Query, mutation=Mutation, types=[GISO, GVDI], subscription=Subscription)
+schema = SchemaWithFlags(query=Query, mutation=Mutation, types=[GISO, GVDI], subscription=Subscription)
