@@ -1,5 +1,5 @@
 fragment StorageListFragment on GSR {
-  uuid
+  ref
   nameLabel
   spaceAvailable
   contentType

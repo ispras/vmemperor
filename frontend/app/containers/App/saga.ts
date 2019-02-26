@@ -1,43 +1,13 @@
 import {take, call, put, select, all, takeEvery, takeLatest, apply, race} from 'redux-saga/effects';
-import {eventChannel, END} from 'redux-saga';
 import {AUTH, LOGOUT, AUTHENTICATED, LOGGED_OUT, VMLIST_URL, VMLIST_MESSAGE, REMOVE_FROM_WAIT_LIST} from './constants';
 import {push, LOCATION_CHANGE} from 'react-router-redux';
 import {makeSelectLocation} from './selectors';
 import {authAgent} from "../PrivateRoute";
-import {addToWaitList, msgVmlist, removeFromWaitList, vm_delete_error} from "./actions";
+
 import {Server} from 'mock-socket';
-import uuid from 'uuid';
-
-import {startStopVm, destroyVm, reboot} from 'api/vm';
-import {VM_DELETE, VM_HALT, VM_RUN, VM_RUN_ERROR, VM_REBOOT} from "./constants";
-import {vm_run_error, vmNotificationDecrease, vmNotificationIncrease, vm_deselect} from "./actions";
-
-import {Map} from 'immutable';
 
 
 import {actions} from 'react-redux-toastr';
-
-
-function* showNotification(title, uuids) {
-  //Show a toastr notification. Return its notifyId
-  //Select vm names from store by uuids
-  const selector = (state) => state.get('app').get('vm_data');
-  const vm_data_map = yield select(selector);
-  const names = uuids.map(uuid => vm_data_map.get(uuid).name_label);
-  //Set up notification options
-  const options = {
-    id: uuid(),
-    type: 'info',
-    timeOut: 0,
-    title,
-    message: names.join('\n'),
-    options: {
-      showCloseButton: true,
-    }
-  };
-  yield put(actions.add(options));
-  return options.id;
-}
 
 
 function* handleRemoveFromWaitList(action) {

@@ -1,12 +1,8 @@
 subscription Tasks{
   tasks {
     value{
-      uuid
+      ref
       status
-      access {
-        access
-        userid
-      }
       created
       nameLabel
       nameDescription

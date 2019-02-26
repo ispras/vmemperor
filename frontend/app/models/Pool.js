@@ -4,7 +4,7 @@ const Pool = Record({ // eslint-disable-line new-cap
   description: '',
   hdd_available: null,
   host_list: [],
-  uuid: '',
+  ref: '',
   networks: [],
   storage_resources: [],
   templates_enabled: [],

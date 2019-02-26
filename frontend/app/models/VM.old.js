@@ -1,4 +1,4 @@
-import { Record } from 'immutable';
+import {Record} from 'immutable';
 
 const VM = Record({ // eslint-disable-line new-cap
   VCPUs_at_startup: 0,
@@ -15,12 +15,12 @@ const VM = Record({ // eslint-disable-line new-cap
   name_label: '',
   networks: {},
   power_state: '',
-  uuid: null,
+  ref: null,
   changing: false,
 });
 
 VM.prototype.key = function key() {
-  return this.uuid;
+  return this.ref;
 };
 
 VM.prototype.name = function name() {
@@ -48,7 +48,7 @@ VM.prototype.state = function state() {
 
 VM.prototype.toApi = function toApi() {
   return {
-    vm_uuid: this.uuid,
+    vm_ref: this.ref,
     endpoint_url: this.endpoint.url,
     endpoint_description: this.endpoint.description,
   };

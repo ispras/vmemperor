@@ -136,7 +136,7 @@ export default class TableWithPagination extends PureComponent
     const selectRow = {
       mode: 'checkbox',
       clickToSelect: true,
-      selected: this.state.selected.map(row => row.uuid),
+      selected: this.state.selected.map(row => row.ref),
       onSelect: this.handleOnSelect,
       onSelectAll: this.handleOnSelectAll
     };
@@ -153,7 +153,7 @@ export default class TableWithPagination extends PureComponent
       <div>
       <NextTable
         remote
-        keyField="uuid"
+        keyField="ref"
         data={this.state.items}
         columns={this.props.columns}
         pagination={paginationFactory(page, sizePerPage, totalSize)}

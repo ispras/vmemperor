@@ -8,18 +8,18 @@ const Network = Record({
   name_label: '',
   name_description: '',
   ref: '',
-  uuid: '',
+  ref: '',
   other_config: {},
   access: [],
   PIFs: [],
   VIFs: [],
 });
 
-Network.prototype.key = () => { return this.uuid; };
+Network.prototype.key = () => { return this.ref; };
 
 export const NetworkShape = T.shape(
   {
-    uuid: T.string.isRequired,
+    ref: T.string.isRequired,
     name_label: T.string.isRequired,
     name_description: T.string.isRequired,
     access: Access,

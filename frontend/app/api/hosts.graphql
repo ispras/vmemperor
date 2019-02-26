@@ -11,6 +11,7 @@ fragment HostListFragment on GHost {
     socketCount
     modelname
   }
+  ref
   uuid
   nameLabel
   nameDescription
@@ -20,7 +21,7 @@ fragment HostListFragment on GHost {
   liveUpdated
   memoryOverhead
   residentVms{
-    uuid
+    ref
   }
 }
 

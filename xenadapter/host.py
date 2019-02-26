@@ -118,10 +118,10 @@ class GHost(GXenObjectType):
     resident_VMs = graphene.Field(graphene.List(vmType), required=True, description="VMs currently resident on host",
                                   resolver=lambda *args, **kwargs: resolve_vms(*args, field_name="resident_VMs", **kwargs))
     metrics = graphene.Field(graphene.ID, required=True)
-    memory_total = graphene.Field(graphene.Int, description="Total memory in kilobytes")
-    memory_free = graphene.Field(graphene.Int, description="Free memory in kilobytes")
-    memory_available = graphene.Field(graphene.Int, description="Available memory as measured by the host in kilobytes")
-    memory_overhead = graphene.Field(graphene.Int, description="Virtualization overhead in kilobytes")
+    memory_total = graphene.Field(graphene.Float, description="Total memory in kilobytes")
+    memory_free = graphene.Field(graphene.Float, description="Free memory in kilobytes")
+    memory_available = graphene.Field(graphene.Float, description="Available memory as measured by the host in kilobytes")
+    memory_overhead = graphene.Field(graphene.Float, description="Virtualization overhead in kilobytes")
     live = graphene.Field(graphene.Boolean, description="True if host is up. May be null if no data")
     live_updated = graphene.Field(graphene.DateTime, description="When live status was last updated")
 

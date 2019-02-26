@@ -7,7 +7,7 @@ const ISO = Record({
   name_description: '',
   name_label: '',
   ref: '',
-  uuid: ''
+  ref: ''
 });
 
 export default ISO;

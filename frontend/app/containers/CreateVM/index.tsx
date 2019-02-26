@@ -14,7 +14,7 @@ import PoolInfo from '../../components/PoolInfo';
 import {useQuery} from "react-apollo-hooks";
 import {Change, PoolList, PoolListUpdate} from "../../generated-models";
 import {useSubscription} from "../../hooks/subscription";
-import {handleAddOfValue, handleAddRemove, handleRemoveOfValueByUuid} from "../../utils/cacheUtils";
+import {handleAddOfValue, handleAddRemove, handleRemoveOfValueByRef} from "../../utils/cacheUtils";
 import VMFormContainer from "../../components/VMForm";
 
 
@@ -44,7 +44,7 @@ const CreateVM = () => {
       <div className={styles.poolsContainer}>
         {
           pools.length > 0 ?
-            pools.map(pool => <PoolInfo key={pool.uuid} pool={pool}/>)
+            pools.map(pool => <PoolInfo key={pool.ref} pool={pool}/>)
             : <h1>No pools available</h1>
 
         }

@@ -3,18 +3,14 @@ import {DocumentNode} from "graphql";
 import {DataProxy} from "apollo-cache";
 import {Change} from "../generated-models";
 
-export const  dataIdFromObject = (object) => {
+export const dataIdFromObject = (object) => {
   // @ts-ignore
-  if (object.uuid)
-  {
+  if (object.ref) {
     // @ts-ignore
-    return `${object.__typename}:${object.uuid}`
-  }
-  else if (object.__typename === 'Interface')
-  {
+    return `${object.__typename}:${object.ref}`
+  } else if (object.__typename === 'Interface') {
     return null; //Interfaces do not have unique ID's, we'd rather link them with their VMs
-  }
-  else {
+  } else {
     return defaultDataIdFromObject(object);
   }
 };
@@ -30,21 +26,21 @@ interface ValueChange {
 }
 
 interface Value {
-  uuid: string
+  ref: string
 }
 
 
-export function handleRemoveOfValueByUuid<QueryType>(client: DataProxy,
-                                        listQueryDocument : DocumentNode,
-                                        listFieldName : string,
-                                        value: Value) {
-  console.log("Removal of value: ", value.uuid);
+export function handleRemoveOfValueByRef<QueryType>(client: DataProxy,
+                                                    listQueryDocument: DocumentNode,
+                                                    listFieldName: string,
+                                                    value: Value) {
+  console.log("Removal of value: ", value.ref);
   const query = client.readQuery<QueryType>({
     query: listQueryDocument
   });
   const newQuery: typeof query = {
     ...query,
-    [listFieldName]: query[listFieldName].filter(item => item.uuid !== value.uuid)
+    [listFieldName]: query[listFieldName].filter(item => item.ref !== value.ref)
   };
   client.writeQuery<QueryType>({
     query: listQueryDocument,
@@ -54,10 +50,10 @@ export function handleRemoveOfValueByUuid<QueryType>(client: DataProxy,
 
 
 export function handleAddOfValue<QueryType>(client: DataProxy,
-                                                     listQueryDocument : DocumentNode,
-                                                     listFieldName : string,
-                                                     value: Value) {
-  console.log("Removal of value: ", value.uuid);
+                                            listQueryDocument: DocumentNode,
+                                            listFieldName: string,
+                                            value: Value) {
+  console.log("Removal of value: ", value.ref);
   const query = client.readQuery<QueryType>({
     query: listQueryDocument
   });
@@ -73,14 +69,14 @@ export function handleAddOfValue<QueryType>(client: DataProxy,
 
 export function handleAddRemove(client: DataProxy,
                                 listQueryDocument: DocumentNode,
-                                listFieldName : string,
+                                listFieldName: string,
                                 change: ValueChange) {
   switch (change.changeType) {
     case Change.Add:
       handleAddOfValue(client, listQueryDocument, listFieldName, change.value);
       break;
     case Change.Remove:
-      handleRemoveOfValueByUuid(client, listQueryDocument, listFieldName, change.value);
+      handleRemoveOfValueByRef(client, listQueryDocument, listFieldName, change.value);
       break;
     default:
       break;

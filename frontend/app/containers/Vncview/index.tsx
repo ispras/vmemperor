@@ -14,17 +14,17 @@ interface Props {
 }
 
 
-const VNCView = ({vm: {uuid, nameLabel, powerState}}: Props) => {
+const VNCView = ({vm: {ref, nameLabel, powerState}}: Props) => {
   const {data} = useQuery<Console.Query, Console.Variables>(Console.Document, {
     variables: {
-      id: uuid,
+      id: ref,
     }
   });
   if (!data.console) {
     return (<h1>Turn VM on</h1>)
   }
   const url = `ws://${window.location.hostname}:${window.location.port}/api${data.console}`;
-  
+
   return (
     <Fragment>
       {nameLabel &&

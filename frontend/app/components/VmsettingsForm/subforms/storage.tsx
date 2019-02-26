@@ -19,31 +19,29 @@ import StatefulTable, {ColumnType} from '../../../containers/StatefulTable';
 import {
   DiskAttachTableSelect, DiskAttachTableSelectAll,
   DiskAttachTableSelection,
-  IsoAttach, StorageAttachList,
+  StorageAttachList,
   VdiDetach,
-  VmDiskFragment,
+  VmvbdFragment,
   VmInfo
 } from "../../../generated-models";
 import Vm = VmInfo.Vm;
 import {useMutation, useQuery} from "react-apollo-hooks";
-import Variables = IsoAttach.Variables;
 
 interface DataType {
-  device: string;
+  userdevice: number;
   nameLabel: string;
   virtualSize: number;
-  attached: boolean;
+  currentlyAttached: boolean;
   bootable: boolean;
   type: string;
-  id: string;
-  vdiUuid: string;
+  ref: string;
+  vdiRef: string;
 }
 
 const columns: ColumnType<DataType>[] = [
   {
-    dataField: 'device',
+    dataField: 'userdevice',
     text: 'Name'
-
   },
   {
     dataField: 'type',
@@ -62,7 +60,7 @@ const columns: ColumnType<DataType>[] = [
     formatter: sizeFormatter,
   },
   {
-    dataField: 'attached',
+    dataField: 'currentlyAttached',
     text: 'Attached',
     formatter: checkBoxFormatter,
   },
@@ -86,32 +84,32 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
   const [isoAttach, setIsoAttach] = useState(false);
 
   const tableData: DataType[] = useMemo(() => {
-    return vm.disks.map(({id, device, type, attached, bootable, VDI: {nameLabel, virtualSize, uuid}}: VmDiskFragment.Fragment): DataType => {
+    return vm.VBDs.map(({ref, userdevice, type, currentlyAttached, bootable, VDI: {nameLabel, virtualSize, ref: vdiRef}}: VmvbdFragment.Fragment): DataType => {
       return {
-        id,
-        device,
+        ref,
+        userdevice,
         type,
-        attached,
+        currentlyAttached,
         bootable,
         nameLabel,
         virtualSize,
-        vdiUuid: uuid,
+        vdiRef,
       }
     })
-  }, [vm.disks]);
+  }, [vm.VBDs]);
   const onDetach = useMutation<VdiDetach.Mutation, VdiDetach.Variables>(VdiDetach.Document);
   const tableSelection = useQuery<DiskAttachTableSelection.Query, DiskAttachTableSelection.Variables>(DiskAttachTableSelection.Document);
-  const selectedData = useMemo(() => tableData.filter(item => tableSelection.data.selectedItems.includes(item.id)), [tableData, tableSelection]);
+  const selectedData = useMemo(() => tableData.filter(item => tableSelection.data.selectedItems.includes(item.ref)), [tableData, tableSelection]);
 
   const onDetachDoubleClick = useCallback(async () => {
     for (const row of selectedData)
       await onDetach({
         variables: {
-          vmUuid: vm.uuid,
-          vdiUuid: row.vdiUuid,
+          vmRef: vm.ref,
+          vdiRef: row.vdiRef,
         }
       })
-  }, [selectedData, vm.uuid, tableData]);
+  }, [selectedData, vm.ref, tableData]);
 
   const {data: {isos, vdis}} = useQuery<StorageAttachList.Query, StorageAttachList.Variables>(StorageAttachList.Document);
 
@@ -128,7 +126,7 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
                 <StatefulTable
                   columns={columns}
                   data={tableData}
-                  keyField="id"
+                  keyField="ref"
                   tableSelectMany={DiskAttachTableSelectAll.Document}
                   tableSelectOne={DiskAttachTableSelect.Document}
                   tableSelectionQuery={DiskAttachTableSelection.Document}

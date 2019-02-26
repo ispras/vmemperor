@@ -1,9 +1,10 @@
 fragment PoolListFragment on GPool {
   master{
-    uuid
+    ref
   }
   nameLabel
   nameDescription
+  ref
   uuid
 }
 

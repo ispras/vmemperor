@@ -11,7 +11,7 @@ const VM = Record(
     domain_type: '',
     access: [],
     disks: {},
-    uuid: '',
+    ref: '',
     ref: '',
     memory_actual: '',
     PV_drivers_up_to_date: false,

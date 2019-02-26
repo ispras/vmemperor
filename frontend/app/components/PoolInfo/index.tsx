@@ -1,12 +1,12 @@
 /**
-*
-* PoolInfo
-*
-*/
+ *
+ * PoolInfo
+ *
+ */
 
 import React from 'react';
 import T from 'prop-types';
-import { FormattedMessage, FormattedNumber } from 'react-intl';
+import {FormattedMessage, FormattedNumber} from 'react-intl';
 import messages from './messages';
 import HostInfo from '../../components/HostInfo';
 import {HostList, HostListUpdate, PoolList, PoolListFragment} from "../../generated-models";
@@ -24,35 +24,37 @@ import Button from "reactstrap/lib/Button";
 import CardColumns from "reactstrap/lib/CardColumns";
 import CardFooter from "reactstrap/lib/CardFooter";
 import {UncontrolledCollapse} from "reactstrap";
+
 interface Props {
-  pool : PoolListFragment.Fragment,
-  key : string,
+  pool: PoolListFragment.Fragment,
+  key: string,
 }
 
-function PoolInfo({ pool : {
-  master : {uuid: masterId},
-  uuid,
-  nameLabel,
-  nameDescription,
-} } : Props) {
-/*  return (
-    <div className="panel panel-default">
-      <div className="panel-heading">
-        <h3 className="panel-title">{ description }</h3>
-      </div>
-      <div className="panel-body">
-        <div className="row">
-          { hosts.map((host, idx) => <HostInfo key={idx} host={host} />) }
+function PoolInfo({
+                    pool: {
+                      master: {ref: masterId},
+                      ref,
+                      nameLabel,
+                      nameDescription,
+                    }
+                  }: Props) {
+  /*  return (
+      <div className="panel panel-default">
+        <div className="panel-heading">
+          <h3 className="panel-title">{ description }</h3>
         </div>
-        <dl className="dl-horizontal">
-          <dt><FormattedMessage {...messages.hddPromt} /></dt>
-          <dd><FormattedNumber value={hdd} /> GB</dd>
-        </dl>
+        <div className="panel-body">
+          <div className="row">
+            { hosts.map((host, idx) => <HostInfo key={idx} host={host} />) }
+          </div>
+          <dl className="dl-horizontal">
+            <dt><FormattedMessage {...messages.hddPromt} /></dt>
+            <dd><FormattedNumber value={hdd} /> GB</dd>
+          </dl>
+        </div>
       </div>
-    </div>
-  ); */
-    const { data: { hosts } } = useQuery<HostList.Query>(HostList.Document);
-
+    ); */
+  const {data: {hosts}} = useQuery<HostList.Query>(HostList.Document);
 
 
   useSubscription<HostListUpdate.Subscription>(HostListUpdate.Document, {
@@ -65,14 +67,14 @@ function PoolInfo({ pool : {
   return (
     <Card>
       <CardHeader>
-        <h3><CardTitle>{ nameLabel || "Unnamed pool" }</CardTitle></h3>
-        <h4><CardSubtitle>{nameDescription}</CardSubtitle> </h4>
+        <h3><CardTitle>{nameLabel || "Unnamed pool"}</CardTitle></h3>
+        <h4><CardSubtitle>{nameDescription}</CardSubtitle></h4>
 
-    </CardHeader>
+      </CardHeader>
 
-        <Row>
-          { hosts.map(host => <HostInfo key={host.uuid} host={host}/> ) }
-        </Row>
+      <Row>
+        {hosts.map(host => <HostInfo key={host.ref} host={host}/>)}
+      </Row>
 
       <CardFooter>
       </CardFooter>

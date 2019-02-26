@@ -40,14 +40,14 @@ const Power = ({vm}: Props) => {
 
   const onReboot = useMutation<RebootVm.Mutation, RebootVm.Variables>(RebootVm.Document, {
     variables: {
-      uuid: vm.uuid,
+      ref: vm.ref,
       /*force*/ force: ShutdownForce.Hard,
     }
   });
 
   const onShutdown = useMutation<ShutdownVm.Mutation, ShutdownVm.Variables>(ShutdownVm.Document, {
     variables: {
-      uuid: vm.uuid,
+      ref: vm.ref,
       force: ShutdownForce.Hard,
     }
   });
@@ -55,7 +55,7 @@ const Power = ({vm}: Props) => {
   const onChangeDomainType = useMutation<VmEditOptions.Mutation, VmEditOptions.Variables>(VmEditOptions.Document, {
     variables: {
       vm: {
-        uuid: vm.uuid,
+        ref: vm.ref,
         domainType: vm.domainType === DomainType.Hvm ? DomainType.Pv : DomainType.Hvm,
       }
     }
@@ -68,7 +68,7 @@ const Power = ({vm}: Props) => {
 
   const onStart = useMutation<StartVm.Mutation, StartVm.Variables>(StartVm.Document, {
     variables: {
-      uuid: vm.uuid,
+      ref: vm.ref,
     }
   });
 
@@ -108,15 +108,15 @@ const Power = ({vm}: Props) => {
           </FullHeightCard>
         </Col>
         <Col sm={6}>
-          {vm.interfaces.length > 0 && (
+          {vm.VIFs.length > 0 && (
             <React.Fragment>
               {
-                vm.interfaces.map((value, index) => {
+                vm.VIFs.map((value, index) => {
                   const ip = value.ip;
                   const ipv6 = value.ipv6;
                   return (<Card key={index}>
                     <CardBody>
-                      <CardTitle>Network{" " + index}</CardTitle>
+                      <CardTitle>Network{` "${value.network.nameLabel}"`}</CardTitle>
                       <CardText>
                         {ip && (<React.Fragment>
                           <Label> <b>IP</b>: {ip}</Label><br/>
@@ -174,7 +174,7 @@ const Power = ({vm}: Props) => {
       <Row>
         <Col>
           <Playbooks
-            vms={[vm.uuid]}/>
+            vms={[vm.ref]}/>
         </Col>
       </Row>
     </React.Fragment>

@@ -1,4 +1,4 @@
-import { createSelector } from 'reselect';
+import {createSelector} from 'reselect';
 
 /**
  * Direct selector to the vncview state domain
@@ -18,9 +18,9 @@ const makeSelectUrl = () => createSelector(
   selectVncviewDomain,
   (substate) => substate.get('url'),
 );
-const makeSelectUuid = () => createSelector(
+const makeSelectRef = () => createSelector(
   selectVncviewDomain,
-  (substate) => substate.get('uuid')
+  (substate) => substate.get('ref')
 );
 
 const makeSelectError = () => createSelector(
@@ -31,5 +31,5 @@ const makeSelectError = () => createSelector(
 export {
   makeSelectUrl,
   makeSelectError,
-  makeSelectUuid,
+  makeSelectRef,
 };

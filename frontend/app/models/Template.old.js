@@ -1,8 +1,8 @@
-import { Record } from 'immutable';
+import {Record} from 'immutable';
 
 const Template = Record({ // eslint-disable-line new-cap
   endpoint: {},
-  uuid: null,
+  ref: null,
   tags: [],
   other_config: {},
   name_label: '',
@@ -17,7 +17,7 @@ const Template = Record({ // eslint-disable-line new-cap
 });
 
 Template.prototype.key = function key() {
-  return this.uuid;
+  return this.ref;
 };
 
 Template.prototype.name = function name() {
@@ -42,7 +42,7 @@ Template.prototype.mirror = function mirror() {
 
 Template.prototype.toApi = function toApi() {
   return {
-    vm_uuid: this.uuid,
+    vm_ref: this.ref,
     endpoint_url: this.endpoint.url,
     endpoint_description: this.endpoint.description,
     default_mirror: this.default_mirror,

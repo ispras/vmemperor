@@ -1,5 +1,5 @@
-mutation RebootVm ($uuid : ID!, $force: ShutdownForce) {
-  vmReboot(uuid: $uuid, force: $force) {
+mutation RebootVm ($ref : ID!, $force: ShutdownForce) {
+  vmReboot(ref: $ref, force: $force) {
     taskId
   }
 }

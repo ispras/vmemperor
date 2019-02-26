@@ -8,8 +8,8 @@ import { vnc } from 'api/vm';
 function* onVncRequested(action)
 {
   try {
-    const url = yield call(vnc, action.uuid);
-    yield put(vncAcquire(url.data, action.uuid));
+    const url = yield call(vnc, action.ref);
+    yield put(vncAcquire(url.data, action.ref));
   }
   catch (e)
   {

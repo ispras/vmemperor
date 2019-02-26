@@ -44,8 +44,8 @@ class VMSettings extends React.PureComponent { // eslint-disable-line react/pref
   {
     if (props.vm_data) {
       return {
-        uuid: props.match.params.uuid,
-        data: props.vm_data.get(props.match.params.uuid),
+        ref: props.match.params.ref,
+        data: props.vm_data.get(props.match.params.ref),
         loading: false,
       }
     }
@@ -55,63 +55,63 @@ class VMSettings extends React.PureComponent { // eslint-disable-line react/pref
   } */
   onHalt()
   {
-    const data  = this.props.vm_data.get(this.props.match.params.uuid);
+    const data  = this.props.vm_data.get(this.props.match.params.ref);
     if (data.power_state === 'Halted')
     {
-      this.props.run([data.uuid]);
+      this.props.run([data.ref]);
     }
     else
     {
-      this.props.halt([data.uuid]);
+      this.props.halt([data.ref]);
     }
   }
 
   onReboot()
   {
 
-    const data  = this.props.vm_data.get(this.props.match.params.uuid);
+    const data  = this.props.vm_data.get(this.props.match.params.ref);
     if (data.power_state === 'Running')
     {
       console.log("Rebooting");
-      this.props.reboot([data.uuid]);
+      this.props.reboot([data.ref]);
     }
   }
 
   onConvertVm()
   {
-    const data  = this.props.vm_data.get(this.props.match.params.uuid);
+    const data  = this.props.vm_data.get(this.props.match.params.ref);
     if (data.power_state === 'Halted')
     {
 
       const mode = data.domain_type === 'hvm' ? 'pv' : 'hvm';
       console.log("Converting to " + mode);
-      this.props.vm_convert(data.uuid, mode);
+      this.props.vm_convert(data.ref, mode);
     }
   }
 
   onDetachVdi(vdi)
   {
-    this.props.vdi_detach(this.props.match.params.uuid, vdi);
+    this.props.vdi_detach(this.props.match.params.ref, vdi);
   }
 
   onAttachVdi(vdi)
   {
-    this.props.vdi_attach(this.props.match.params.uuid, vdi);
+    this.props.vdi_attach(this.props.match.params.ref, vdi);
   }
 
   onAttachIso(iso)
   {
-    this.props.iso_attach(this.props.match.params.uuid, iso);
+    this.props.iso_attach(this.props.match.params.ref, iso);
   }
 
   onAttachNet(net)
   {
-    this.props.net_action(this.props.match.params.uuid, net, 'attach');
+    this.props.net_action(this.props.match.params.ref, net, 'attach');
   }
 
   onDetachNet(net)
   {
-    this.props.net_action(this.props.match.params.uuid, net, 'detach');
+    this.props.net_action(this.props.match.params.ref, net, 'detach');
   }
 
   requestIso(page, pageSize)
@@ -135,15 +135,15 @@ class VMSettings extends React.PureComponent { // eslint-disable-line react/pref
     if (props.match) {
       if (props.vmWatch)
       {
-        props.vmWatch(props.match.params.uuid);
+        props.vmWatch(props.match.params.ref);
       }
       if (!props.diskInfo.size) {
-        props.requestInfo('disk',props.match.params.uuid);
+        props.requestInfo('disk',props.match.params.ref);
 
       }
       if (!props.netInfo.size)
       {
-        props.requestInfo('net', props.match.params.uuid);
+        props.requestInfo('net', props.match.params.ref);
       }
     }
   }
@@ -158,7 +158,7 @@ class VMSettings extends React.PureComponent { // eslint-disable-line react/pref
         </h1>
       );
     }
-    const data  = this.props.vm_data.get(this.props.match.params.uuid);
+    const data  = this.props.vm_data.get(this.props.match.params.ref);
     if (!data) {
       return (
         <div>
@@ -202,7 +202,7 @@ VMSettings.propTypes = {
   vm_data: IPT.map.isRequired,
   match: T.shape({
     params: T.shape({
-      uuid: T.string.isRequired,
+      ref: T.string.isRequired,
     }),
   }).isRequired,
   halt: T.func.isRequired,

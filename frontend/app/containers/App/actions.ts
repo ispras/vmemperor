@@ -13,62 +13,61 @@ function timestamp() {
 }
 
 
-export function run(uuids : string[])
-{
+export function run(refs: string[]) {
   return {
     type: VM_RUN,
-    uuids,
+    refs,
 
   }
 }
 
-export function halt(uuids : string[]) {
+export function halt(refs: string[]) {
   return {
     type: VM_HALT,
-    uuids,
+    refs,
   }
 
 }
-export function reboot(uuids) {
+
+export function reboot(refs) {
   return {
     type: VM_REBOOT,
-    uuids,
+    refs,
   }
 }
 
-export function vm_delete(uuids: string[]) {
+export function vm_delete(refs: string[]) {
   return {
     type: VM_DELETE,
-    uuids
+    refs
   }
 }
+
 /*
-export function vm_convert(uuids) {
+export function vm_convert(refs) {
   return {
     type: VM_CONVERT,
-    uuids
+    refs
   }
 }
 */
-export function addToWaitList(uuid, action, notifyId) {
+export function addToWaitList(ref, action, notifyId) {
   return {
     type: ADD_TO_WAIT_LIST,
-    uuid, action, notifyId
+    ref, action, notifyId
   }
 }
 
-export function removeFromWaitList (uuid, action, notifyId) {
+export function removeFromWaitList(ref, action, notifyId) {
   return {
     type: REMOVE_FROM_WAIT_LIST,
-    uuid, action, notifyId
+    ref, action, notifyId
   }
 }
-
 
 
 //TODO May we use it for another types of errors in the future?
-export function vm_run_error(payload, date)
-{
+export function vm_run_error(payload, date) {
   const {message, details} = JSON.parse(payload);
   console.log("Error payload", payload);
   console.log("Error details: ", details);
@@ -83,8 +82,7 @@ export function vm_run_error(payload, date)
   }
 }
 
-export function vm_delete_error(payload, date)
-{
+export function vm_delete_error(payload, date) {
   const {message, details} = JSON.parse(payload);
   console.log("Error payload", payload);
   console.log("Error details: ", details);
@@ -108,7 +106,7 @@ export function auth(login, password) {
   };
 }
 
-export function msgVmlist(message){
+export function msgVmlist(message) {
   return {
     type: VMLIST_MESSAGE,
     message

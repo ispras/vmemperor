@@ -8,10 +8,10 @@ import {
   REQUEST_VMINFO, SET_VMINFO,
 } from './constants';
 
-export function requestVMInfo(uuid) {
+export function requestVMInfo(ref) {
   return {
     type: REQUEST_VMINFO,
-    uuid
+    ref
   };
 }
 

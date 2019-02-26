@@ -16,11 +16,11 @@ export function setPlaybooks(data) {
   };
 }
 
-export function executePlaybook(playbook, uuids, form){
+export function executePlaybook(playbook, refs, form){
   return {
     type: EXECUTE_PLAYBOOK,
     playbook,
-    uuids,
+    refs,
     form,
   }
 }

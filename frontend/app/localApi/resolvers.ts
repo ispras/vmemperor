@@ -10,7 +10,7 @@ import {
 } from "../generated-models";
 
 import {ApolloCache} from 'apollo-cache';
-import { Set } from 'immutable';
+import {Set} from 'immutable';
 import SelectedItemsResolver = MutationResolvers.SelectedItemsResolver;
 import VmSelectedReadyForResolver = QueryResolvers.VmSelectedReadyForResolver;
 
@@ -28,25 +28,24 @@ type StringIndexed<T> = T & StringIndexSignatureInterface;
 type LocalResolvers = StringIndexed<IResolvers>
 
 
-
-const selectedItems : SelectedItemsResolver<string[], {}, Context> =
+const selectedItems: SelectedItemsResolver<string[], {}, Context> =
   (parent1, args, context, info) => {
     const previous = context.cache.readQuery<SelectedItemsQuery.Query, SelectedItemsQuery.Variables>(
-      {query: SelectedItemsQuery.Document,
+      {
+        query: SelectedItemsQuery.Document,
         variables: {
           tableId: args.tableId
         }
       }
     );
 
-    const getData = () : typeof previous => {
+    const getData = (): typeof previous => {
       const dataSet = Set.of(...previous.selectedItems);
       if (!args.isSelect) {
         return {
           selectedItems: dataSet.subtract(args.items).toArray()
         }
-      }
-      else {
+      } else {
         return {
           selectedItems: dataSet.union(args.items).toArray()
         }
@@ -59,13 +58,12 @@ const selectedItems : SelectedItemsResolver<string[], {}, Context> =
       query: SelectedItemsQuery.Document,
       variables: {tableId: args.tableId},
       data,
-      });
-      return data.selectedItems;
+    });
+    return data.selectedItems;
   };
 
 
-
-const vmSelectedReadyFor : //This resolver is broken
+const vmSelectedReadyFor: //This resolver is broken
   VmSelectedReadyForResolver<VmStateForButtonToolbar.VmSelectedReadyFor, {}, Context> =
   (parent1, args, context, info) => {
 
@@ -78,25 +76,25 @@ const vmSelectedReadyFor : //This resolver is broken
 
     const tableSelectionSet = Set.of(...tableSelection.selectedItems);
 
-    const start = tableSelectionSet.subtract(powerStates.vms.filter(vm => vm.powerState == PowerState.Running).map(vm => vm.uuid)).toArray();
-    const stop = tableSelectionSet.subtract(powerStates.vms.filter(vm => vm.powerState == PowerState.Halted).map(vm => vm.uuid)).toArray();
+    const start = tableSelectionSet.subtract(powerStates.vms.filter(vm => vm.powerState == PowerState.Running).map(vm => vm.ref)).toArray();
+    const stop = tableSelectionSet.subtract(powerStates.vms.filter(vm => vm.powerState == PowerState.Halted).map(vm => vm.ref)).toArray();
     const trash = tableSelectionSet.subtract(stop).toArray();
 
     const ret = {
       start: start.length == 0 ? null : start,
-      stop : stop.length == 0 ? null : stop,
-      trash : trash.length == 0 ? null : trash,
+      stop: stop.length == 0 ? null : stop,
+      trash: trash.length == 0 ? null : trash,
       __typename: "VMSelectedIDLists"
     };
 
     return ret;
   };
 
-export const resolvers : LocalResolvers = {
+export const resolvers: LocalResolvers = {
   Mutation: {
     selectedItems
   },
-  Query : {
+  Query: {
     vmSelectedReadyFor
   }
 };

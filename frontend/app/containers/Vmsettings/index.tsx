@@ -25,22 +25,22 @@ import {useQuery} from "react-apollo-hooks";
 import {useSubscription} from "../../hooks/subscription";
 
 interface RouterProps { //These props refer to page argument: see router.
-  uuid: string //VM UUID
+  ref: string //VM REF
 }
 
 type Props = RouteComponentProps<RouterProps>;
 
-const VmSettings = ({match: {params: {uuid}}}: Props) => {
+const VmSettings = ({match: {params: {ref}}}: Props) => {
   const {data: {vm}} = useQuery<VmInfo.Query, VmInfo.Variables>(VmInfo.Document,
     {
       variables: {
-        uuid,
+        ref,
       }
     });
   useSubscription<VmInfoUpdate.Subscription>(VmInfoUpdate.Document,
     {
       variables: {
-        uuid,
+        ref,
       }
     }); //Memoization inside
   return <VmsettingsForm vm={vm}/>;
@@ -51,7 +51,7 @@ export class VmSettings extends React.PureComponent<RouteComponentProps<RouterPr
   render()
   {
     return (
-      <VmInfo.Component variables={{uuid: this.props.match.params.uuid }}>
+      <VmInfo.Component variables={{ref: this.props.match.params.ref }}>
         {({ data, error, loading, subscribeToMore }) => {
 
         if (error)
@@ -71,7 +71,7 @@ export class VmSettings extends React.PureComponent<RouteComponentProps<RouterPr
             update={() =>
               subscribeToMore({
                 document: VmInfoUpdate.Document,
-                variables: { uuid: this.props.match.params.uuid },
+                variables: { ref: this.props.match.params.ref },
                 updateQuery: (prev, { subscriptionData }) =>
                 {
                   if (subscriptionData.data.vm)

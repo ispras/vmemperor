@@ -1,5 +1,3 @@
-
-
 query VmTableSelection {
   selectedItems(tableId: VMS ) @client
 }
@@ -14,7 +12,7 @@ mutation VmTableSelectAll ($items: [ID!]!, $isSelect: Boolean! ){
 
 query VmPowerState {
   vms {
-    uuid
+    ref
     powerState
   }
 }

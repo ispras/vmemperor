@@ -201,7 +201,10 @@ def with_authentication(access_class : type = None, access_action : SerFlag = No
                 if id_field in kwargs:
                     ref = kwargs.get(id_field)
                 else:
-                    ref = args[0]
+                    try:
+                        ref = args[0]
+                    except:  # Optional argument -> proceed to call method
+                        return method(root, info, *args, **kwargs)
 
                 try:
                     obj : ACLXenObject = access_class(xen=info.context.xen, ref=ref)

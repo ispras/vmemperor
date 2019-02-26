@@ -1,5 +1,5 @@
 fragment TemplateListFragment on GTemplate {
-  uuid
+  ref
   nameLabel
   osKind
 }

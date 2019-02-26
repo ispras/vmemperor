@@ -10,18 +10,18 @@ import {
   VNC_URL_ACQUIRED,
 } from './constants';
 
-export function vncRequest(uuid) {
+export function vncRequest(ref) {
   return {
     type: VNC_REQUESTED,
-    uuid
+    ref
   };
 }
 
-export function vncAcquire(url, uuid) {
+export function vncAcquire(url, ref) {
   return {
     type: VNC_URL_ACQUIRED,
     url,
-    uuid
+    ref
   }
 }
 

@@ -4,7 +4,7 @@
  import {setVMInfo} from "./actions";
 
  function* requestVmInfo(action) {
-  const response = yield call(vminfo, action.uuid);
+  const response = yield call(vminfo, action.ref);
     if (response.data) {
       yield put(setVMInfo(response.data));
     }

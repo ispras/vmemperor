@@ -13,8 +13,8 @@ class XenEnum(graphene.Enum):
 
 
 class VBDMode(XenEnum):
-    RO = auto()
-    RW = auto()
+    RO = "RO"
+    RW = "RW"
 
     def __repr__(self):
         if self.name == 'RO':
@@ -24,9 +24,9 @@ class VBDMode(XenEnum):
 
 
 class VBDType(XenEnum):
-    CD = auto()
-    Disk = auto()
-    Floppy = auto()
+    CD = "CD"
+    Disk = "Disk"
+    Floppy = "Floppy"
 
     def __repr__(self):
         if self.name == 'CD':
@@ -44,7 +44,8 @@ class GVBD(GXenObjectType):
 
     VM = graphene.Field(vmType, resolver=resolve_vm)
     VDI = graphene.Field(vdiType, resolver=resolve_vdi)
-    type = graphene.Field(VBDType,required=True)
+    type = graphene.Field(VBDType, required=True)
     mode = graphene.Field(VBDMode, required=True)
-    attached = graphene.Field(graphene.Boolean, required=True)
+    currently_attached = graphene.Field(graphene.Boolean, required=True)
     bootable = graphene.Field(graphene.Boolean, required=True)
+    userdevice = graphene.Field(graphene.Int, required=True)

@@ -1,5 +1,5 @@
-fragment DiskFragment on DiskImage {
-  uuid
+fragment DiskFragment on GVDI {
+  ref
   nameLabel
   nameDescription
   virtualSize

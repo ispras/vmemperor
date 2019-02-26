@@ -51,11 +51,11 @@ const genericList = (resource) => (state = fromJS([]), action) =>
 
 };
 
-const uuid = (state = "", action) =>
+const ref = (state = "", action) =>
 {
   switch (action.type) {
     case VM_WATCH:
-      return action.uuid;
+      return action.ref;
     default:
       return state;
   }
@@ -81,6 +81,6 @@ export default combineReducers(
     vdiList: genericList('vdi'),
     netList: genericList('net'),
     pages: pages,
-    uuid,
+    ref,
   }
 );

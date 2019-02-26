@@ -38,14 +38,14 @@ export interface NetworkConfiguration {
 
 export interface TemplateInput {
   /** Template ID */
-  uuid: string;
+  ref: string;
   /** Should this template be enabled, i.e. used in VMEmperor by users */
   enabled?: Maybe<boolean>;
 }
 
 export interface VmInput {
-  /** VM ID */
-  uuid: string;
+  /** VM ref */
+  ref: string;
   /** VM human-readable name */
   nameLabel?: Maybe<string>;
   /** VM human-readable description */
@@ -59,6 +59,62 @@ export interface VmStartInput {
   paused?: Maybe<boolean>;
   /** Should this VM be started forcibly */
   force?: Maybe<boolean>;
+}
+/** An enumeration. */
+export enum VmActions {
+  AttachVdi = "attach_vdi",
+  Rename = "rename",
+  ChangeDomainType = "change_domain_type",
+  Vnc = "VNC",
+  Snapshot = "snapshot",
+  Clone = "clone",
+  Copy = "copy",
+  CreateTemplate = "create_template",
+  Revert = "revert",
+  Checkpoint = "checkpoint",
+  SnapshotWithQuiesce = "snapshot_with_quiesce",
+  Start = "start",
+  StartOn = "start_on",
+  Pause = "pause",
+  Unpause = "unpause",
+  CleanShutdown = "clean_shutdown",
+  CleanReboot = "clean_reboot",
+  HardShutdown = "hard_shutdown",
+  PowerStateReset = "power_state_reset",
+  HardReboot = "hard_reboot",
+  Suspend = "suspend",
+  Csvm = "csvm",
+  Resume = "resume",
+  ResumeOn = "resume_on",
+  PoolMigrate = "pool_migrate",
+  MigrateSend = "migrate_send",
+  Shutdown = "shutdown",
+  Destroy = "destroy",
+  None = "NONE",
+  All = "ALL"
+}
+
+export enum DomainType {
+  Hvm = "HVM",
+  Pv = "PV",
+  PvInPvh = "PV_in_PVH"
+}
+
+export enum PowerState {
+  Halted = "Halted",
+  Paused = "Paused",
+  Running = "Running",
+  Suspended = "Suspended"
+}
+/** An enumeration. */
+export enum SrActions {
+  Scan = "scan",
+  Destroy = "destroy",
+  VdiCreate = "vdi_create",
+  VdiIntroduce = "vdi_introduce",
+  VdiClone = "vdi_clone",
+  None = "NONE",
+  All = "ALL"
 }
 
 export enum HostAllowedOperations {
@@ -85,17 +141,21 @@ export enum SrContentType {
   Iso = "ISO"
 }
 
-export enum DomainType {
-  Hvm = "HVM",
-  Pv = "PV",
-  PvInPvh = "PV_in_PVH"
+export enum VbdType {
+  Cd = "CD",
+  Disk = "Disk",
+  Floppy = "Floppy"
 }
 
-export enum PowerState {
-  Halted = "Halted",
-  Paused = "Paused",
-  Running = "Running",
-  Suspended = "Suspended"
+export enum VbdMode {
+  Ro = "RO",
+  Rw = "RW"
+}
+/** An enumeration. */
+export enum TemplateActions {
+  Clone = "clone",
+  None = "NONE",
+  All = "ALL"
 }
 
 export enum PlaybookTaskState {
@@ -125,58 +185,20 @@ export enum Change {
   Change = "Change"
 }
 
-/** JSON String */
-export type JsonString = any;
-
 /** The `DateTime` scalar type represents a DateTime value as specified by [iso8601](https://en.wikipedia.org/wiki/ISO_8601). */
 export type DateTime = any;
+
+/** JSON String */
+export type JsonString = any;
 
 // ====================================================
 // Documents
 // ====================================================
 
-export namespace IsoAttach {
-  export type Variables = {
-    vmUuid: string;
-    isoUuid: string;
-  };
-
-  export type Mutation = {
-    __typename?: "Mutation";
-
-    isoAttach: Maybe<IsoAttach>;
-  };
-
-  export type IsoAttach = {
-    __typename?: "AttachISOMutation";
-
-    taskId: Maybe<string>;
-  };
-}
-
-export namespace IsoDetach {
-  export type Variables = {
-    vmUuid: string;
-    isoUuid: string;
-  };
-
-  export type Mutation = {
-    __typename?: "Mutation";
-
-    isoAttach: Maybe<IsoAttach>;
-  };
-
-  export type IsoAttach = {
-    __typename?: "AttachISOMutation";
-
-    taskId: Maybe<string>;
-  };
-}
-
 export namespace VdiAttach {
   export type Variables = {
-    vmUuid: string;
-    vdiUuid: string;
+    vmRef: string;
+    vdiRef: string;
   };
 
   export type Mutation = {
@@ -194,8 +216,8 @@ export namespace VdiAttach {
 
 export namespace VdiDetach {
   export type Variables = {
-    vmUuid: string;
-    vdiUuid: string;
+    vmRef: string;
+    vdiRef: string;
   };
 
   export type Mutation = {
@@ -213,8 +235,8 @@ export namespace VdiDetach {
 
 export namespace NetAttach {
   export type Variables = {
-    vmUuid: string;
-    netUuid: string;
+    vmRef: string;
+    netRef: string;
   };
 
   export type Mutation = {
@@ -232,8 +254,8 @@ export namespace NetAttach {
 
 export namespace NetDetach {
   export type Variables = {
-    vmUuid: string;
-    netUuid: string;
+    vmRef: string;
+    netRef: string;
   };
 
   export type Mutation = {
@@ -289,7 +311,7 @@ export namespace CreateVm {
 
 export namespace DeleteVm {
   export type Variables = {
-    uuid: string;
+    ref: string;
   };
 
   export type Mutation = {
@@ -499,7 +521,7 @@ export namespace VmPowerState {
   export type Vms = {
     __typename?: "GVM";
 
-    uuid: string;
+    ref: string;
 
     powerState: PowerState;
   };
@@ -681,7 +703,7 @@ export namespace PoolListUpdate {
 
 export namespace RebootVm {
   export type Variables = {
-    uuid: string;
+    ref: string;
     force?: Maybe<ShutdownForce>;
   };
 
@@ -700,7 +722,7 @@ export namespace RebootVm {
 
 export namespace ShutdownVm {
   export type Variables = {
-    uuid: string;
+    ref: string;
     force?: Maybe<ShutdownForce>;
   };
 
@@ -719,7 +741,7 @@ export namespace ShutdownVm {
 
 export namespace StartVm {
   export type Variables = {
-    uuid: string;
+    ref: string;
   };
 
   export type Mutation = {
@@ -783,11 +805,9 @@ export namespace Tasks {
   export type Value = {
     __typename?: "GTask";
 
-    uuid: string;
+    ref: string;
 
     status: Maybe<string>;
-
-    access: (Maybe<Access>)[];
 
     created: DateTime;
 
@@ -802,14 +822,6 @@ export namespace Tasks {
     result: Maybe<string>;
 
     residentOn: Maybe<string>;
-  };
-
-  export type Access = {
-    __typename?: "GAccessEntry";
-
-    access: (Maybe<string>)[];
-
-    userid: string;
   };
 }
 
@@ -827,7 +839,7 @@ export namespace TemplateList {
 
 export namespace VmInfo {
   export type Variables = {
-    uuid: string;
+    ref: string;
   };
 
   export type Query = {
@@ -841,7 +853,7 @@ export namespace VmInfo {
 
 export namespace VmInfoUpdate {
   export type Variables = {
-    uuid: string;
+    ref: string;
   };
 
   export type Subscription = {
@@ -893,6 +905,8 @@ export namespace HostListFragment {
 
     cpuInfo: CpuInfo;
 
+    ref: string;
+
     uuid: string;
 
     nameLabel: string;
@@ -939,15 +953,15 @@ export namespace HostListFragment {
   export type ResidentVms = {
     __typename?: "GVM";
 
-    uuid: string;
+    ref: string;
   };
 }
 
 export namespace IsoListFragment {
   export type Fragment = {
-    __typename?: "GISO";
+    __typename?: "GVDI";
 
-    uuid: string;
+    ref: string;
 
     nameLabel: string;
 
@@ -973,7 +987,7 @@ export namespace NetworkListFragment {
   export type Fragment = {
     __typename?: "GNetwork";
 
-    uuid: string;
+    ref: string;
 
     nameLabel: string;
 
@@ -991,21 +1005,23 @@ export namespace PoolListFragment {
 
     nameDescription: string;
 
+    ref: string;
+
     uuid: string;
   };
 
   export type Master = {
     __typename?: "GHost";
 
-    uuid: string;
+    ref: string;
   };
 }
 
 export namespace DiskFragment {
   export type Fragment = {
-    __typename?: "DiskImage";
+    __typename?: "GVDI";
 
-    uuid: string;
+    ref: string;
 
     nameLabel: string;
 
@@ -1019,7 +1035,7 @@ export namespace StorageListFragment {
   export type Fragment = {
     __typename?: "GSR";
 
-    uuid: string;
+    ref: string;
 
     nameLabel: string;
 
@@ -1041,7 +1057,7 @@ export namespace TemplateListFragment {
   export type Fragment = {
     __typename?: "GTemplate";
 
-    uuid: string;
+    ref: string;
 
     nameLabel: string;
 
@@ -1049,9 +1065,9 @@ export namespace TemplateListFragment {
   };
 }
 
-export namespace VmInterfaceFragment {
+export namespace VmvifFragment {
   export type Fragment = {
-    __typename?: "Interface";
+    __typename?: "GVIF";
 
     network: Network;
 
@@ -1059,35 +1075,35 @@ export namespace VmInterfaceFragment {
 
     ipv6: Maybe<string>;
 
-    id: string;
+    ref: string;
 
     MAC: string;
 
-    attached: boolean;
+    currentlyAttached: boolean;
   };
 
   export type Network = {
     __typename?: "GNetwork";
 
-    uuid: string;
+    ref: string;
 
     nameLabel: string;
   };
 }
 
-export namespace VmDiskFragment {
+export namespace VmvbdFragment {
   export type Fragment = {
-    __typename?: "BlockDevice";
+    __typename?: "GVBD";
 
-    id: string;
+    ref: string;
 
-    mode: string;
+    mode: VbdMode;
 
-    type: string;
+    type: VbdType;
 
-    device: string;
+    userdevice: number;
 
-    attached: boolean;
+    currentlyAttached: boolean;
 
     bootable: boolean;
 
@@ -1095,9 +1111,9 @@ export namespace VmDiskFragment {
   };
 
   export type Vdi = {
-    __typename?: "DiskImage";
+    __typename?: "GVDI";
 
-    uuid: string;
+    ref: string;
 
     nameDescription: string;
 
@@ -1111,15 +1127,15 @@ export namespace VmInfoFragment {
   export type Fragment = {
     __typename?: "GVM";
 
-    uuid: string;
+    ref: string;
 
     nameLabel: string;
 
     nameDescription: string;
 
-    interfaces: Maybe<(Maybe<Interfaces>)[]>;
+    VIFs: (Maybe<ViFs>)[];
 
-    disks: Maybe<(Maybe<Disks>)[]>;
+    VBDs: (Maybe<VbDs>)[];
 
     powerState: PowerState;
 
@@ -1130,9 +1146,9 @@ export namespace VmInfoFragment {
     domainType: DomainType;
   };
 
-  export type Interfaces = VmInterfaceFragment.Fragment;
+  export type ViFs = VmvifFragment.Fragment;
 
-  export type Disks = VmDiskFragment.Fragment;
+  export type VbDs = VmvbdFragment.Fragment;
 
   export type OsVersion = {
     __typename?: "OSVersion";
@@ -1145,7 +1161,7 @@ export namespace VmListFragment {
   export type Fragment = {
     __typename?: "GVM";
 
-    uuid: string;
+    ref: string;
 
     nameLabel: string;
 
@@ -1177,6 +1193,7 @@ export namespace HostListFragment {
         socketCount
         modelname
       }
+      ref
       uuid
       nameLabel
       nameDescription
@@ -1186,7 +1203,7 @@ export namespace HostListFragment {
       liveUpdated
       memoryOverhead
       residentVms {
-        uuid
+        ref
       }
     }
   `;
@@ -1194,8 +1211,8 @@ export namespace HostListFragment {
 
 export namespace IsoListFragment {
   export const FragmentDoc = gql`
-    fragment ISOListFragment on GISO {
-      uuid
+    fragment ISOListFragment on GVDI {
+      ref
       nameLabel
       SR {
         isToolsSr
@@ -1210,7 +1227,7 @@ export namespace IsoListFragment {
 export namespace NetworkListFragment {
   export const FragmentDoc = gql`
     fragment NetworkListFragment on GNetwork {
-      uuid
+      ref
       nameLabel
       nameDescription
     }
@@ -1221,10 +1238,11 @@ export namespace PoolListFragment {
   export const FragmentDoc = gql`
     fragment PoolListFragment on GPool {
       master {
-        uuid
+        ref
       }
       nameLabel
       nameDescription
+      ref
       uuid
     }
   `;
@@ -1232,8 +1250,8 @@ export namespace PoolListFragment {
 
 export namespace DiskFragment {
   export const FragmentDoc = gql`
-    fragment DiskFragment on DiskImage {
-      uuid
+    fragment DiskFragment on GVDI {
+      ref
       nameLabel
       nameDescription
       virtualSize
@@ -1244,7 +1262,7 @@ export namespace DiskFragment {
 export namespace StorageListFragment {
   export const FragmentDoc = gql`
     fragment StorageListFragment on GSR {
-      uuid
+      ref
       nameLabel
       spaceAvailable
       contentType
@@ -1258,40 +1276,40 @@ export namespace StorageListFragment {
 export namespace TemplateListFragment {
   export const FragmentDoc = gql`
     fragment TemplateListFragment on GTemplate {
-      uuid
+      ref
       nameLabel
       osKind
     }
   `;
 }
 
-export namespace VmInterfaceFragment {
+export namespace VmvifFragment {
   export const FragmentDoc = gql`
-    fragment VMInterfaceFragment on Interface {
+    fragment VMVIFFragment on GVIF {
       network {
-        uuid
+        ref
         nameLabel
       }
       ip
       ipv6
-      id
+      ref
       MAC
-      attached
+      currentlyAttached
     }
   `;
 }
 
-export namespace VmDiskFragment {
+export namespace VmvbdFragment {
   export const FragmentDoc = gql`
-    fragment VMDiskFragment on BlockDevice {
-      id
+    fragment VMVBDFragment on GVBD {
+      ref
       mode
       type
-      device
-      attached
+      userdevice
+      currentlyAttached
       bootable
       VDI {
-        uuid
+        ref
         nameDescription
         nameLabel
         virtualSize
@@ -1303,14 +1321,14 @@ export namespace VmDiskFragment {
 export namespace VmInfoFragment {
   export const FragmentDoc = gql`
     fragment VMInfoFragment on GVM {
-      uuid
+      ref
       nameLabel
       nameDescription
-      interfaces {
-        ...VMInterfaceFragment
+      VIFs {
+        ...VMVIFFragment
       }
-      disks {
-        ...VMDiskFragment
+      VBDs {
+        ...VMVBDFragment
       }
       powerState
       osVersion {
@@ -1320,15 +1338,15 @@ export namespace VmInfoFragment {
       domainType
     }
 
-    ${VmInterfaceFragment.FragmentDoc}
-    ${VmDiskFragment.FragmentDoc}
+    ${VmvifFragment.FragmentDoc}
+    ${VmvbdFragment.FragmentDoc}
   `;
 }
 
 export namespace VmListFragment {
   export const FragmentDoc = gql`
     fragment VMListFragment on GVM {
-      uuid
+      ref
       nameLabel
       powerState
     }
@@ -1339,92 +1357,10 @@ export namespace VmListFragment {
 // Components
 // ====================================================
 
-export namespace IsoAttach {
-  export const Document = gql`
-    mutation ISOAttach($vmUuid: ID!, $isoUuid: ID!) {
-      isoAttach(vmUuid: $vmUuid, isoUuid: $isoUuid, isAttach: true) {
-        taskId
-      }
-    }
-  `;
-  export class Component extends React.Component<
-    Partial<ReactApollo.MutationProps<Mutation, Variables>>
-  > {
-    render() {
-      return (
-        <ReactApollo.Mutation<Mutation, Variables>
-          mutation={Document}
-          {...(this as any)["props"] as any}
-        />
-      );
-    }
-  }
-  export type Props<TChildProps = any> = Partial<
-    ReactApollo.MutateProps<Mutation, Variables>
-  > &
-    TChildProps;
-  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-  export function HOC<TProps, TChildProps = any>(
-    operationOptions:
-      | ReactApollo.OperationOption<
-          TProps,
-          Mutation,
-          Variables,
-          Props<TChildProps>
-        >
-      | undefined
-  ) {
-    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
-      Document,
-      operationOptions
-    );
-  }
-}
-export namespace IsoDetach {
-  export const Document = gql`
-    mutation ISODetach($vmUuid: ID!, $isoUuid: ID!) {
-      isoAttach(vmUuid: $vmUuid, isoUuid: $isoUuid, isAttach: false) {
-        taskId
-      }
-    }
-  `;
-  export class Component extends React.Component<
-    Partial<ReactApollo.MutationProps<Mutation, Variables>>
-  > {
-    render() {
-      return (
-        <ReactApollo.Mutation<Mutation, Variables>
-          mutation={Document}
-          {...(this as any)["props"] as any}
-        />
-      );
-    }
-  }
-  export type Props<TChildProps = any> = Partial<
-    ReactApollo.MutateProps<Mutation, Variables>
-  > &
-    TChildProps;
-  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-  export function HOC<TProps, TChildProps = any>(
-    operationOptions:
-      | ReactApollo.OperationOption<
-          TProps,
-          Mutation,
-          Variables,
-          Props<TChildProps>
-        >
-      | undefined
-  ) {
-    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
-      Document,
-      operationOptions
-    );
-  }
-}
 export namespace VdiAttach {
   export const Document = gql`
-    mutation VDIAttach($vmUuid: ID!, $vdiUuid: ID!) {
-      vdiAttach(vmUuid: $vmUuid, vdiUuid: $vdiUuid, isAttach: true) {
+    mutation VDIAttach($vmRef: ID!, $vdiRef: ID!) {
+      vdiAttach(vmRef: $vmRef, vdiRef: $vdiRef, isAttach: true) {
         taskId
       }
     }
@@ -1464,8 +1400,8 @@ export namespace VdiAttach {
 }
 export namespace VdiDetach {
   export const Document = gql`
-    mutation VDIDetach($vmUuid: ID!, $vdiUuid: ID!) {
-      vdiAttach(vmUuid: $vmUuid, vdiUuid: $vdiUuid, isAttach: false) {
+    mutation VDIDetach($vmRef: ID!, $vdiRef: ID!) {
+      vdiAttach(vmRef: $vmRef, vdiRef: $vdiRef, isAttach: false) {
         taskId
       }
     }
@@ -1505,8 +1441,8 @@ export namespace VdiDetach {
 }
 export namespace NetAttach {
   export const Document = gql`
-    mutation NetAttach($vmUuid: ID!, $netUuid: ID!) {
-      netAttach(vmUuid: $vmUuid, netUuid: $netUuid, isAttach: true) {
+    mutation NetAttach($vmRef: ID!, $netRef: ID!) {
+      netAttach(vmRef: $vmRef, netRef: $netRef, isAttach: true) {
         taskId
       }
     }
@@ -1546,8 +1482,8 @@ export namespace NetAttach {
 }
 export namespace NetDetach {
   export const Document = gql`
-    mutation NetDetach($vmUuid: ID!, $netUuid: ID!) {
-      netAttach(vmUuid: $vmUuid, netUuid: $netUuid, isAttach: false) {
+    mutation NetDetach($vmRef: ID!, $netRef: ID!) {
+      netAttach(vmRef: $vmRef, netRef: $netRef, isAttach: false) {
         taskId
       }
     }
@@ -1588,7 +1524,7 @@ export namespace NetDetach {
 export namespace Console {
   export const Document = gql`
     query Console($id: ID!) {
-      console(vmUuid: $id)
+      console(vmRef: $id)
     }
   `;
   export class Component extends React.Component<
@@ -1686,8 +1622,8 @@ export namespace CreateVm {
 }
 export namespace DeleteVm {
   export const Document = gql`
-    mutation DeleteVM($uuid: ID!) {
-      vmDelete(uuid: $uuid) {
+    mutation DeleteVM($ref: ID!) {
+      vmDelete(ref: $ref) {
         taskId
       }
     }
@@ -2294,7 +2230,7 @@ export namespace VmPowerState {
   export const Document = gql`
     query VmPowerState {
       vms {
-        uuid
+        ref
         powerState
       }
     }
@@ -2686,8 +2622,8 @@ export namespace PoolListUpdate {
 }
 export namespace RebootVm {
   export const Document = gql`
-    mutation RebootVm($uuid: ID!, $force: ShutdownForce) {
-      vmReboot(uuid: $uuid, force: $force) {
+    mutation RebootVm($ref: ID!, $force: ShutdownForce) {
+      vmReboot(ref: $ref, force: $force) {
         taskId
       }
     }
@@ -2727,8 +2663,8 @@ export namespace RebootVm {
 }
 export namespace ShutdownVm {
   export const Document = gql`
-    mutation ShutdownVM($uuid: ID!, $force: ShutdownForce) {
-      vmShutdown(uuid: $uuid, force: $force) {
+    mutation ShutdownVM($ref: ID!, $force: ShutdownForce) {
+      vmShutdown(ref: $ref, force: $force) {
         taskId
       }
     }
@@ -2768,8 +2704,8 @@ export namespace ShutdownVm {
 }
 export namespace StartVm {
   export const Document = gql`
-    mutation StartVM($uuid: ID!) {
-      vmStart(uuid: $uuid) {
+    mutation StartVM($ref: ID!) {
+      vmStart(ref: $ref) {
         taskId
       }
     }
@@ -2899,12 +2835,8 @@ export namespace Tasks {
     subscription Tasks {
       tasks {
         value {
-          uuid
+          ref
           status
-          access {
-            access
-            userid
-          }
           created
           nameLabel
           nameDescription
@@ -2995,8 +2927,8 @@ export namespace TemplateList {
 }
 export namespace VmInfo {
   export const Document = gql`
-    query VMInfo($uuid: ID!) {
-      vm(uuid: $uuid) {
+    query VMInfo($ref: ID!) {
+      vm(ref: $ref) {
         ...VMInfoFragment
       }
     }
@@ -3037,8 +2969,8 @@ export namespace VmInfo {
 }
 export namespace VmInfoUpdate {
   export const Document = gql`
-    subscription VMInfoUpdate($uuid: ID!) {
-      vm(uuid: $uuid) {
+    subscription VMInfoUpdate($ref: ID!) {
+      vm(ref: $ref) {
         ...VMInfoFragment
       }
     }
@@ -3254,7 +3186,7 @@ export namespace QueryResolvers {
     /** Information about a single virtual disk image (hard disk) */
     vdi?: VdiResolver<Maybe<Gvdi>, TypeParent, Context>;
     /** All ISO images available for user */
-    isos?: IsosResolver<(Maybe<Giso>)[], TypeParent, Context>;
+    isos?: IsosResolver<(Maybe<Gvdi>)[], TypeParent, Context>;
     /** Information about a single ISO image */
     iso?: IsoResolver<Maybe<Gvdi>, TypeParent, Context>;
     /** List of Ansible-powered playbooks */
@@ -3297,7 +3229,7 @@ export namespace QueryResolvers {
     VmArgs
   >;
   export interface VmArgs {
-    uuid?: Maybe<string>;
+    ref?: Maybe<string>;
   }
 
   export type TemplatesResolver<
@@ -3311,7 +3243,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, TemplateArgs>;
   export interface TemplateArgs {
-    uuid?: Maybe<string>;
+    ref?: Maybe<string>;
   }
 
   export type HostsResolver<
@@ -3325,7 +3257,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, HostArgs>;
   export interface HostArgs {
-    uuid?: Maybe<string>;
+    ref?: Maybe<string>;
   }
 
   export type PoolsResolver<
@@ -3339,7 +3271,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, PoolArgs>;
   export interface PoolArgs {
-    uuid?: Maybe<string>;
+    ref?: Maybe<string>;
   }
 
   export type NetworksResolver<
@@ -3353,7 +3285,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, NetworkArgs>;
   export interface NetworkArgs {
-    uuid?: Maybe<string>;
+    ref?: Maybe<string>;
   }
 
   export type SrsResolver<
@@ -3368,7 +3300,7 @@ export namespace QueryResolvers {
     SrArgs
   >;
   export interface SrArgs {
-    uuid?: Maybe<string>;
+    ref?: Maybe<string>;
   }
 
   export type VdisResolver<
@@ -3382,11 +3314,11 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, VdiArgs>;
   export interface VdiArgs {
-    uuid?: Maybe<string>;
+    ref?: Maybe<string>;
   }
 
   export type IsosResolver<
-    R = (Maybe<Giso>)[],
+    R = (Maybe<Gvdi>)[],
     Parent = {},
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -3396,7 +3328,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, IsoArgs>;
   export interface IsoArgs {
-    uuid?: Maybe<string>;
+    ref?: Maybe<string>;
   }
 
   export type PlaybooksResolver<
@@ -3433,7 +3365,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, ConsoleArgs>;
   export interface ConsoleArgs {
-    vmUuid: string;
+    vmRef: string;
   }
 
   export type SelectedItemsResolver<
@@ -3458,18 +3390,12 @@ export namespace GvmResolvers {
     nameLabel?: NameLabelResolver<string, TypeParent, Context>;
     /** a human-readable description */
     nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
-    /** Unique constant identifier/object reference */
+    /** Unique constant identifier/object reference (primary) */
     ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
+    /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, Context>;
 
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
-    /** Network adapters connected to a VM */
-    interfaces?: InterfacesResolver<
-      Maybe<(Maybe<Interface>)[]>,
-      TypeParent,
-      Context
-    >;
+    access?: AccessResolver<(Maybe<GvmAccessEntry>)[], TypeParent, Context>;
     /** True if PV drivers are up to date, reported if Guest Additions are installed */
     PVDriversUpToDate?: PvDriversUpToDateResolver<
       Maybe<boolean>,
@@ -3482,8 +3408,6 @@ export namespace GvmResolvers {
       TypeParent,
       Context
     >;
-
-    disks?: DisksResolver<Maybe<(Maybe<BlockDevice>)[]>, TypeParent, Context>;
 
     VCPUsAtStartup?: VcpUsAtStartupResolver<number, TypeParent, Context>;
 
@@ -3512,6 +3436,10 @@ export namespace GvmResolvers {
     powerState?: PowerStateResolver<PowerState, TypeParent, Context>;
 
     startTime?: StartTimeResolver<DateTime, TypeParent, Context>;
+
+    VIFs?: ViFsResolver<(Maybe<Gvif>)[], TypeParent, Context>;
+    /** Virtual block devices */
+    VBDs?: VbDsResolver<(Maybe<Gvbd>)[], TypeParent, Context>;
   }
 
   export type NameLabelResolver<
@@ -3535,12 +3463,7 @@ export namespace GvmResolvers {
     Context
   >;
   export type AccessResolver<
-    R = (Maybe<GAccessEntry>)[],
-    Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type InterfacesResolver<
-    R = Maybe<(Maybe<Interface>)[]>,
+    R = (Maybe<GvmAccessEntry>)[],
     Parent = Gvm,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -3551,11 +3474,6 @@ export namespace GvmResolvers {
   > = Resolver<R, Parent, Context>;
   export type PvDriversVersionResolver<
     R = Maybe<PvDriversVersion>,
-    Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type DisksResolver<
-    R = Maybe<(Maybe<BlockDevice>)[]>,
     Parent = Gvm,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -3629,139 +3547,33 @@ export namespace GvmResolvers {
     Parent = Gvm,
     Context = {}
   > = Resolver<R, Parent, Context>;
-}
-
-export namespace GAccessEntryResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GAccessEntry> {
-    access?: AccessResolver<(Maybe<string>)[], TypeParent, Context>;
-
-    userid?: UseridResolver<string, TypeParent, Context>;
-  }
-
-  export type AccessResolver<
-    R = (Maybe<string>)[],
-    Parent = GAccessEntry,
+  export type ViFsResolver<
+    R = (Maybe<Gvif>)[],
+    Parent = Gvm,
     Context = {}
   > = Resolver<R, Parent, Context>;
-  export type UseridResolver<
-    R = string,
-    Parent = GAccessEntry,
+  export type VbDsResolver<
+    R = (Maybe<Gvbd>)[],
+    Parent = Gvm,
     Context = {}
   > = Resolver<R, Parent, Context>;
 }
 
-export namespace InterfaceResolvers {
-  export interface Resolvers<Context = {}, TypeParent = Interface> {
-    id?: IdResolver<string, TypeParent, Context>;
+export namespace GvmAccessEntryResolvers {
+  export interface Resolvers<Context = {}, TypeParent = GvmAccessEntry> {
+    userId?: UserIdResolver<string, TypeParent, Context>;
 
-    MAC?: MacResolver<string, TypeParent, Context>;
-
-    VIF?: VifResolver<string, TypeParent, Context>;
-
-    ip?: IpResolver<Maybe<string>, TypeParent, Context>;
-
-    ipv6?: Ipv6Resolver<Maybe<string>, TypeParent, Context>;
-
-    network?: NetworkResolver<GNetwork, TypeParent, Context>;
-
-    status?: StatusResolver<Maybe<string>, TypeParent, Context>;
-
-    attached?: AttachedResolver<boolean, TypeParent, Context>;
+    actions?: ActionsResolver<VmActions, TypeParent, Context>;
   }
 
-  export type IdResolver<
+  export type UserIdResolver<
     R = string,
-    Parent = Interface,
+    Parent = GvmAccessEntry,
     Context = {}
   > = Resolver<R, Parent, Context>;
-  export type MacResolver<
-    R = string,
-    Parent = Interface,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type VifResolver<
-    R = string,
-    Parent = Interface,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type IpResolver<
-    R = Maybe<string>,
-    Parent = Interface,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type Ipv6Resolver<
-    R = Maybe<string>,
-    Parent = Interface,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type NetworkResolver<
-    R = GNetwork,
-    Parent = Interface,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type StatusResolver<
-    R = Maybe<string>,
-    Parent = Interface,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type AttachedResolver<
-    R = boolean,
-    Parent = Interface,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-}
-
-export namespace GNetworkResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GNetwork> {
-    /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
-    /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
-    /** Unique constant identifier/object reference */
-    ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
-    uuid?: UuidResolver<string, TypeParent, Context>;
-
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
-
-    VMs?: VMsResolver<Maybe<(Maybe<Gvm>)[]>, TypeParent, Context>;
-
-    otherConfig?: OtherConfigResolver<Maybe<JsonString>, TypeParent, Context>;
-  }
-
-  export type NameLabelResolver<
-    R = string,
-    Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type NameDescriptionResolver<
-    R = string,
-    Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type RefResolver<
-    R = string,
-    Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type UuidResolver<
-    R = string,
-    Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type AccessResolver<
-    R = (Maybe<GAccessEntry>)[],
-    Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type VMsResolver<
-    R = Maybe<(Maybe<Gvm>)[]>,
-    Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type OtherConfigResolver<
-    R = Maybe<JsonString>,
-    Parent = GNetwork,
+  export type ActionsResolver<
+    R = VmActions,
+    Parent = GvmAccessEntry,
     Context = {}
   > = Resolver<R, Parent, Context>;
 }
@@ -3798,57 +3610,298 @@ export namespace PvDriversVersionResolvers {
     Context = {}
   > = Resolver<R, Parent, Context>;
 }
+/** OS version reported by Xen tools */
+export namespace OsVersionResolvers {
+  export interface Resolvers<Context = {}, TypeParent = OsVersion> {
+    name?: NameResolver<Maybe<string>, TypeParent, Context>;
 
-export namespace BlockDeviceResolvers {
-  export interface Resolvers<Context = {}, TypeParent = BlockDevice> {
-    id?: IdResolver<string, TypeParent, Context>;
+    uname?: UnameResolver<Maybe<string>, TypeParent, Context>;
 
-    attached?: AttachedResolver<boolean, TypeParent, Context>;
+    distro?: DistroResolver<Maybe<string>, TypeParent, Context>;
+
+    major?: MajorResolver<Maybe<number>, TypeParent, Context>;
+
+    minor?: MinorResolver<Maybe<number>, TypeParent, Context>;
+  }
+
+  export type NameResolver<
+    R = Maybe<string>,
+    Parent = OsVersion,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type UnameResolver<
+    R = Maybe<string>,
+    Parent = OsVersion,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type DistroResolver<
+    R = Maybe<string>,
+    Parent = OsVersion,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type MajorResolver<
+    R = Maybe<number>,
+    Parent = OsVersion,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type MinorResolver<
+    R = Maybe<number>,
+    Parent = OsVersion,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
+
+export namespace GvifResolvers {
+  export interface Resolvers<Context = {}, TypeParent = Gvif> {
+    /** Unique constant identifier/object reference (primary) */
+    ref?: RefResolver<string, TypeParent, Context>;
+    /** MAC address */
+    MAC?: MacResolver<string, TypeParent, Context>;
+
+    VM?: VmResolver<Gvm, TypeParent, Context>;
+    /** Device ID */
+    device?: DeviceResolver<string, TypeParent, Context>;
+
+    currentlyAttached?: CurrentlyAttachedResolver<boolean, TypeParent, Context>;
+
+    ip?: IpResolver<Maybe<string>, TypeParent, Context>;
+
+    ipv4?: Ipv4Resolver<Maybe<string>, TypeParent, Context>;
+
+    ipv6?: Ipv6Resolver<Maybe<string>, TypeParent, Context>;
+
+    network?: NetworkResolver<GNetwork, TypeParent, Context>;
+  }
+
+  export type RefResolver<R = string, Parent = Gvif, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type MacResolver<R = string, Parent = Gvif, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type VmResolver<R = Gvm, Parent = Gvif, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type DeviceResolver<
+    R = string,
+    Parent = Gvif,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type CurrentlyAttachedResolver<
+    R = boolean,
+    Parent = Gvif,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type IpResolver<
+    R = Maybe<string>,
+    Parent = Gvif,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type Ipv4Resolver<
+    R = Maybe<string>,
+    Parent = Gvif,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type Ipv6Resolver<
+    R = Maybe<string>,
+    Parent = Gvif,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type NetworkResolver<
+    R = GNetwork,
+    Parent = Gvif,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
+
+export namespace GNetworkResolvers {
+  export interface Resolvers<Context = {}, TypeParent = GNetwork> {
+    /** a human-readable name */
+    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    /** a human-readable description */
+    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    /** Unique constant identifier/object reference (primary) */
+    ref?: RefResolver<string, TypeParent, Context>;
+    /** Unique constant identifier/object reference (used in XenCenter) */
+    uuid?: UuidResolver<string, TypeParent, Context>;
+
+    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
+
+    VIFs?: ViFsResolver<Maybe<(Maybe<Gvif>)[]>, TypeParent, Context>;
+
+    otherConfig?: OtherConfigResolver<Maybe<JsonString>, TypeParent, Context>;
+  }
+
+  export type NameLabelResolver<
+    R = string,
+    Parent = GNetwork,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type NameDescriptionResolver<
+    R = string,
+    Parent = GNetwork,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type RefResolver<
+    R = string,
+    Parent = GNetwork,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type UuidResolver<
+    R = string,
+    Parent = GNetwork,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type AccessResolver<
+    R = (Maybe<GAccessEntry>)[],
+    Parent = GNetwork,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type ViFsResolver<
+    R = Maybe<(Maybe<Gvif>)[]>,
+    Parent = GNetwork,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type OtherConfigResolver<
+    R = Maybe<JsonString>,
+    Parent = GNetwork,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
+
+export namespace GvbdResolvers {
+  export interface Resolvers<Context = {}, TypeParent = Gvbd> {
+    /** Unique constant identifier/object reference */
+    ref?: RefResolver<string, TypeParent, Context>;
+    /** Unique non-primary identifier/object reference */
+    uuid?: UuidResolver<string, TypeParent, Context>;
+
+    VM?: VmResolver<Maybe<Gvm>, TypeParent, Context>;
+
+    VDI?: VdiResolver<Maybe<Gvdi>, TypeParent, Context>;
+
+    type?: TypeResolver<VbdType, TypeParent, Context>;
+
+    mode?: ModeResolver<VbdMode, TypeParent, Context>;
+
+    currentlyAttached?: CurrentlyAttachedResolver<boolean, TypeParent, Context>;
 
     bootable?: BootableResolver<boolean, TypeParent, Context>;
 
-    device?: DeviceResolver<string, TypeParent, Context>;
-
-    mode?: ModeResolver<string, TypeParent, Context>;
-
-    type?: TypeResolver<string, TypeParent, Context>;
-
-    VDI?: VdiResolver<Maybe<DiskImage>, TypeParent, Context>;
+    userdevice?: UserdeviceResolver<number, TypeParent, Context>;
   }
 
-  export type IdResolver<
-    R = string,
-    Parent = BlockDevice,
+  export type RefResolver<R = string, Parent = Gvbd, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type UuidResolver<R = string, Parent = Gvbd, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type VmResolver<
+    R = Maybe<Gvm>,
+    Parent = Gvbd,
     Context = {}
   > = Resolver<R, Parent, Context>;
-  export type AttachedResolver<
+  export type VdiResolver<
+    R = Maybe<Gvdi>,
+    Parent = Gvbd,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type TypeResolver<R = VbdType, Parent = Gvbd, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type ModeResolver<R = VbdMode, Parent = Gvbd, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type CurrentlyAttachedResolver<
     R = boolean,
-    Parent = BlockDevice,
+    Parent = Gvbd,
     Context = {}
   > = Resolver<R, Parent, Context>;
   export type BootableResolver<
     R = boolean,
-    Parent = BlockDevice,
+    Parent = Gvbd,
     Context = {}
   > = Resolver<R, Parent, Context>;
-  export type DeviceResolver<
+  export type UserdeviceResolver<
+    R = number,
+    Parent = Gvbd,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
+
+export namespace GvdiResolvers {
+  export interface Resolvers<Context = {}, TypeParent = Gvdi> {
+    /** a human-readable name */
+    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    /** a human-readable description */
+    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    /** Unique constant identifier/object reference (primary) */
+    ref?: RefResolver<string, TypeParent, Context>;
+    /** Unique constant identifier/object reference (used in XenCenter) */
+    uuid?: UuidResolver<string, TypeParent, Context>;
+
+    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
+
+    SR?: SrResolver<Maybe<Gsr>, TypeParent, Context>;
+
+    virtualSize?: VirtualSizeResolver<number, TypeParent, Context>;
+
+    VBDs?: VbDsResolver<(Maybe<Gvbd>)[], TypeParent, Context>;
+  }
+
+  export type NameLabelResolver<
     R = string,
-    Parent = BlockDevice,
+    Parent = Gvdi,
     Context = {}
   > = Resolver<R, Parent, Context>;
-  export type ModeResolver<
+  export type NameDescriptionResolver<
     R = string,
-    Parent = BlockDevice,
+    Parent = Gvdi,
     Context = {}
   > = Resolver<R, Parent, Context>;
-  export type TypeResolver<
-    R = string,
-    Parent = BlockDevice,
+  export type RefResolver<R = string, Parent = Gvdi, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type UuidResolver<R = string, Parent = Gvdi, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type AccessResolver<
+    R = (Maybe<GAccessEntry>)[],
+    Parent = Gvdi,
     Context = {}
   > = Resolver<R, Parent, Context>;
-  export type VdiResolver<
-    R = Maybe<DiskImage>,
-    Parent = BlockDevice,
+  export type SrResolver<
+    R = Maybe<Gsr>,
+    Parent = Gvdi,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type VirtualSizeResolver<
+    R = number,
+    Parent = Gvdi,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type VbDsResolver<
+    R = (Maybe<Gvbd>)[],
+    Parent = Gvdi,
     Context = {}
   > = Resolver<R, Parent, Context>;
 }
@@ -3859,14 +3912,16 @@ export namespace GsrResolvers {
     nameLabel?: NameLabelResolver<string, TypeParent, Context>;
     /** a human-readable description */
     nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
-    /** Unique constant identifier/object reference */
+    /** Unique constant identifier/object reference (primary) */
     ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
+    /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, Context>;
+
+    access?: AccessResolver<(Maybe<GsrAccessEntry>)[], TypeParent, Context>;
     /** Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI */
     PBDs?: PbDsResolver<(Maybe<Gpbd>)[], TypeParent, Context>;
 
-    VDIs?: VdIsResolver<Maybe<(Maybe<DiskImage>)[]>, TypeParent, Context>;
+    VDIs?: VdIsResolver<Maybe<(Maybe<Gvdi>)[]>, TypeParent, Context>;
 
     contentType?: ContentTypeResolver<SrContentType, TypeParent, Context>;
 
@@ -3907,13 +3962,18 @@ export namespace GsrResolvers {
     Parent,
     Context
   >;
+  export type AccessResolver<
+    R = (Maybe<GsrAccessEntry>)[],
+    Parent = Gsr,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
   export type PbDsResolver<
     R = (Maybe<Gpbd>)[],
     Parent = Gsr,
     Context = {}
   > = Resolver<R, Parent, Context>;
   export type VdIsResolver<
-    R = Maybe<(Maybe<DiskImage>)[]>,
+    R = Maybe<(Maybe<Gvdi>)[]>,
     Parent = Gsr,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -3953,12 +4013,31 @@ export namespace GsrResolvers {
     Context = {}
   > = Resolver<R, Parent, Context>;
 }
+
+export namespace GsrAccessEntryResolvers {
+  export interface Resolvers<Context = {}, TypeParent = GsrAccessEntry> {
+    userId?: UserIdResolver<string, TypeParent, Context>;
+
+    actions?: ActionsResolver<SrActions, TypeParent, Context>;
+  }
+
+  export type UserIdResolver<
+    R = string,
+    Parent = GsrAccessEntry,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type ActionsResolver<
+    R = SrActions,
+    Parent = GsrAccessEntry,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
 /** Fancy name for a PBD. Not a real Xen object, though a connection between a host and a SR */
 export namespace GpbdResolvers {
   export interface Resolvers<Context = {}, TypeParent = Gpbd> {
     /** Unique constant identifier/object reference */
     ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
+    /** Unique non-primary identifier/object reference */
     uuid?: UuidResolver<string, TypeParent, Context>;
     /** Host to which the SR is supposed to be connected to */
     host?: HostResolver<GHost, TypeParent, Context>;
@@ -4008,9 +4087,9 @@ export namespace GHostResolvers {
     nameLabel?: NameLabelResolver<string, TypeParent, Context>;
     /** a human-readable description */
     nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
-    /** Unique constant identifier/object reference */
+    /** Unique constant identifier/object reference (primary) */
     ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
+    /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, Context>;
     /** Major XenAPI version number */
     APIVersionMajor?: ApiVersionMajorResolver<
@@ -4406,46 +4485,6 @@ export namespace SoftwareVersionResolvers {
     Context = {}
   > = Resolver<R, Parent, Context>;
 }
-/** OS version reported by Xen tools */
-export namespace OsVersionResolvers {
-  export interface Resolvers<Context = {}, TypeParent = OsVersion> {
-    name?: NameResolver<Maybe<string>, TypeParent, Context>;
-
-    uname?: UnameResolver<Maybe<string>, TypeParent, Context>;
-
-    distro?: DistroResolver<Maybe<string>, TypeParent, Context>;
-
-    major?: MajorResolver<Maybe<number>, TypeParent, Context>;
-
-    minor?: MinorResolver<Maybe<number>, TypeParent, Context>;
-  }
-
-  export type NameResolver<
-    R = Maybe<string>,
-    Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type UnameResolver<
-    R = Maybe<string>,
-    Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type DistroResolver<
-    R = Maybe<string>,
-    Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type MajorResolver<
-    R = Maybe<number>,
-    Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type MinorResolver<
-    R = Maybe<number>,
-    Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-}
 
 export namespace GTemplateResolvers {
   export interface Resolvers<Context = {}, TypeParent = GTemplate> {
@@ -4453,12 +4492,16 @@ export namespace GTemplateResolvers {
     nameLabel?: NameLabelResolver<string, TypeParent, Context>;
     /** a human-readable description */
     nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
-    /** Unique constant identifier/object reference */
+    /** Unique constant identifier/object reference (primary) */
     ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
+    /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, Context>;
 
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
+    access?: AccessResolver<
+      (Maybe<GTemplateAccessEntry>)[],
+      TypeParent,
+      Context
+    >;
     /** If a template supports auto-installation, here a distro name is provided */
     osKind?: OsKindResolver<Maybe<string>, TypeParent, Context>;
     /** True if this template works with hardware assisted virtualization */
@@ -4488,7 +4531,7 @@ export namespace GTemplateResolvers {
     Context = {}
   > = Resolver<R, Parent, Context>;
   export type AccessResolver<
-    R = (Maybe<GAccessEntry>)[],
+    R = (Maybe<GTemplateAccessEntry>)[],
     Parent = GTemplate,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -4509,15 +4552,34 @@ export namespace GTemplateResolvers {
   > = Resolver<R, Parent, Context>;
 }
 
+export namespace GTemplateAccessEntryResolvers {
+  export interface Resolvers<Context = {}, TypeParent = GTemplateAccessEntry> {
+    userId?: UserIdResolver<string, TypeParent, Context>;
+
+    actions?: ActionsResolver<TemplateActions, TypeParent, Context>;
+  }
+
+  export type UserIdResolver<
+    R = string,
+    Parent = GTemplateAccessEntry,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type ActionsResolver<
+    R = TemplateActions,
+    Parent = GTemplateAccessEntry,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
+
 export namespace GPoolResolvers {
   export interface Resolvers<Context = {}, TypeParent = GPool> {
     /** a human-readable name */
     nameLabel?: NameLabelResolver<string, TypeParent, Context>;
     /** a human-readable description */
     nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
-    /** Unique constant identifier/object reference */
+    /** Unique constant identifier/object reference (primary) */
     ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
+    /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, Context>;
     /** Pool master */
     master?: MasterResolver<GHost, TypeParent, Context>;
@@ -4553,137 +4615,6 @@ export namespace GPoolResolvers {
   export type DefaultSrResolver<
     R = Maybe<Gsr>,
     Parent = GPool,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-}
-
-export namespace GvdiResolvers {
-  export interface Resolvers<Context = {}, TypeParent = Gvdi> {
-    /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
-    /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
-    /** Unique constant identifier/object reference */
-    ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
-    uuid?: UuidResolver<string, TypeParent, Context>;
-
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
-
-    SR?: SrResolver<Maybe<Gsr>, TypeParent, Context>;
-
-    VMs?: VMsResolver<Maybe<(Maybe<Gvm>)[]>, TypeParent, Context>;
-
-    virtualSize?: VirtualSizeResolver<number, TypeParent, Context>;
-  }
-
-  export type NameLabelResolver<
-    R = string,
-    Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type NameDescriptionResolver<
-    R = string,
-    Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type RefResolver<R = string, Parent = Gvdi, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
-  export type UuidResolver<R = string, Parent = Gvdi, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
-  export type AccessResolver<
-    R = (Maybe<GAccessEntry>)[],
-    Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type SrResolver<
-    R = Maybe<Gsr>,
-    Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type VMsResolver<
-    R = Maybe<(Maybe<Gvm>)[]>,
-    Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type VirtualSizeResolver<
-    R = number,
-    Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-}
-
-export namespace GisoResolvers {
-  export interface Resolvers<Context = {}, TypeParent = Giso> {
-    /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
-    /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
-    /** Unique constant identifier/object reference */
-    ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
-    uuid?: UuidResolver<string, TypeParent, Context>;
-
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
-
-    SR?: SrResolver<Maybe<Gsr>, TypeParent, Context>;
-
-    VMs?: VMsResolver<Maybe<(Maybe<Gvm>)[]>, TypeParent, Context>;
-
-    virtualSize?: VirtualSizeResolver<number, TypeParent, Context>;
-
-    location?: LocationResolver<string, TypeParent, Context>;
-  }
-
-  export type NameLabelResolver<
-    R = string,
-    Parent = Giso,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type NameDescriptionResolver<
-    R = string,
-    Parent = Giso,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type RefResolver<R = string, Parent = Giso, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
-  export type UuidResolver<R = string, Parent = Giso, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
-  export type AccessResolver<
-    R = (Maybe<GAccessEntry>)[],
-    Parent = Giso,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type SrResolver<
-    R = Maybe<Gsr>,
-    Parent = Giso,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type VMsResolver<
-    R = Maybe<(Maybe<Gvm>)[]>,
-    Parent = Giso,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type VirtualSizeResolver<
-    R = number,
-    Parent = Giso,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type LocationResolver<
-    R = string,
-    Parent = Giso,
     Context = {}
   > = Resolver<R, Parent, Context>;
 }
@@ -4833,23 +4764,19 @@ export namespace MutationResolvers {
     vmReboot?: VmRebootResolver<Maybe<VmRebootMutation>, TypeParent, Context>;
     /** If VM is Running, pause VM. If Paused, unpause VM */
     vmPause?: VmPauseResolver<Maybe<VmPauseMutation>, TypeParent, Context>;
+    /** Delete a Halted VM */
+    vmDelete?: VmDeleteResolver<Maybe<VmDeleteMutation>, TypeParent, Context>;
+    /** Set VM access rights */
+    vmAccessSet?: VmAccessSetResolver<Maybe<VmAccessSet>, TypeParent, Context>;
     /** Launch an Ansible Playbook on specified VMs */
     playbookLaunch?: PlaybookLaunchResolver<
       Maybe<PlaybookLaunchMutation>,
       TypeParent,
       Context
     >;
-    /** Delete a Halted VM */
-    vmDelete?: VmDeleteResolver<Maybe<VmDeleteMutation>, TypeParent, Context>;
     /** Attach VM to a Network by creating a new Interface */
     netAttach?: NetAttachResolver<
       Maybe<AttachNetworkMutation>,
-      TypeParent,
-      Context
-    >;
-    /** Attach ISO to a VM by creating a new virtual block device */
-    isoAttach?: IsoAttachResolver<
-      Maybe<AttachIsoMutation>,
       TypeParent,
       Context
     >;
@@ -4917,7 +4844,7 @@ export namespace MutationResolvers {
   export interface VmStartArgs {
     options?: Maybe<VmStartInput>;
 
-    uuid: string;
+    ref: string;
   }
 
   export type VmShutdownResolver<
@@ -4929,7 +4856,7 @@ export namespace MutationResolvers {
     /** Force shutdown in a hard or clean way */
     force?: Maybe<ShutdownForce>;
 
-    uuid: string;
+    ref: string;
   }
 
   export type VmRebootResolver<
@@ -4941,7 +4868,7 @@ export namespace MutationResolvers {
     /** Force reboot in a hard or clean way. Default: clean */
     force?: Maybe<ShutdownForce>;
 
-    uuid: string;
+    ref: string;
   }
 
   export type VmPauseResolver<
@@ -4950,7 +4877,31 @@ export namespace MutationResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, VmPauseArgs>;
   export interface VmPauseArgs {
-    uuid: string;
+    ref: string;
+  }
+
+  export type VmDeleteResolver<
+    R = Maybe<VmDeleteMutation>,
+    Parent = {},
+    Context = {}
+  > = Resolver<R, Parent, Context, VmDeleteArgs>;
+  export interface VmDeleteArgs {
+    ref: string;
+  }
+
+  export type VmAccessSetResolver<
+    R = Maybe<VmAccessSet>,
+    Parent = {},
+    Context = {}
+  > = Resolver<R, Parent, Context, VmAccessSetArgs>;
+  export interface VmAccessSetArgs {
+    actions: (Maybe<VmActions>)[];
+
+    ref: string;
+
+    revoke?: Maybe<boolean>;
+
+    user: string;
   }
 
   export type PlaybookLaunchResolver<
@@ -4967,15 +4918,6 @@ export namespace MutationResolvers {
     vms?: Maybe<(Maybe<string>)[]>;
   }
 
-  export type VmDeleteResolver<
-    R = Maybe<VmDeleteMutation>,
-    Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VmDeleteArgs>;
-  export interface VmDeleteArgs {
-    uuid: string;
-  }
-
   export type NetAttachResolver<
     R = Maybe<AttachNetworkMutation>,
     Parent = {},
@@ -4985,23 +4927,9 @@ export namespace MutationResolvers {
     /** True if attach, False if detach */
     isAttach: boolean;
 
-    netUuid: string;
+    netRef: string;
 
-    vmUuid: string;
-  }
-
-  export type IsoAttachResolver<
-    R = Maybe<AttachIsoMutation>,
-    Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, IsoAttachArgs>;
-  export interface IsoAttachArgs {
-    /** True if attach, False if detach */
-    isAttach: boolean;
-
-    isoUuid: string;
-
-    vmUuid: string;
+    vmRef: string;
   }
 
   export type VdiAttachResolver<
@@ -5013,9 +4941,9 @@ export namespace MutationResolvers {
     /** True if attach, False if detach */
     isAttach: boolean;
 
-    vdiUuid: string;
+    vdiRef: string;
 
-    vmUuid: string;
+    vmRef: string;
   }
 
   export type SelectedItemsResolver<
@@ -5121,6 +5049,31 @@ export namespace VmPauseMutationResolvers {
   > = Resolver<R, Parent, Context>;
 }
 
+export namespace VmDeleteMutationResolvers {
+  export interface Resolvers<Context = {}, TypeParent = VmDeleteMutation> {
+    /** Deleting task ID */
+    taskId?: TaskIdResolver<string, TypeParent, Context>;
+  }
+
+  export type TaskIdResolver<
+    R = string,
+    Parent = VmDeleteMutation,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
+
+export namespace VmAccessSetResolvers {
+  export interface Resolvers<Context = {}, TypeParent = VmAccessSet> {
+    success?: SuccessResolver<boolean, TypeParent, Context>;
+  }
+
+  export type SuccessResolver<
+    R = boolean,
+    Parent = VmAccessSet,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
+
 export namespace PlaybookLaunchMutationResolvers {
   export interface Resolvers<
     Context = {},
@@ -5137,19 +5090,6 @@ export namespace PlaybookLaunchMutationResolvers {
   > = Resolver<R, Parent, Context>;
 }
 
-export namespace VmDeleteMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = VmDeleteMutation> {
-    /** Deleting task ID */
-    taskId?: TaskIdResolver<string, TypeParent, Context>;
-  }
-
-  export type TaskIdResolver<
-    R = string,
-    Parent = VmDeleteMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-}
-
 export namespace AttachNetworkMutationResolvers {
   export interface Resolvers<Context = {}, TypeParent = AttachNetworkMutation> {
     /** Attach/Detach task ID. If already attached/detached, returns null */
@@ -5159,19 +5099,6 @@ export namespace AttachNetworkMutationResolvers {
   export type TaskIdResolver<
     R = Maybe<string>,
     Parent = AttachNetworkMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-}
-
-export namespace AttachIsoMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = AttachIsoMutation> {
-    /** Attach/Detach task ID. If already attached/detached, returns null */
-    taskId?: TaskIdResolver<Maybe<string>, TypeParent, Context>;
-  }
-
-  export type TaskIdResolver<
-    R = Maybe<string>,
-    Parent = AttachIsoMutation,
     Context = {}
   > = Resolver<R, Parent, Context>;
 }
@@ -5232,7 +5159,7 @@ export namespace SubscriptionResolvers {
     Context = {}
   > = SubscriptionResolver<R, Parent, Context, VmArgs>;
   export interface VmArgs {
-    uuid: string;
+    ref: string;
   }
 
   export type HostsResolver<
@@ -5246,7 +5173,7 @@ export namespace SubscriptionResolvers {
     Context = {}
   > = SubscriptionResolver<R, Parent, Context, HostArgs>;
   export interface HostArgs {
-    uuid: string;
+    ref: string;
   }
 
   export type PoolsResolver<
@@ -5260,7 +5187,7 @@ export namespace SubscriptionResolvers {
     Context = {}
   > = SubscriptionResolver<R, Parent, Context, PoolArgs>;
   export interface PoolArgs {
-    uuid: string;
+    ref: string;
   }
 
   export type TasksResolver<
@@ -5274,7 +5201,7 @@ export namespace SubscriptionResolvers {
     Context = {}
   > = SubscriptionResolver<R, Parent, Context, TaskArgs>;
   export interface TaskArgs {
-    uuid: string;
+    ref: string;
   }
 
   export type PlaybookTaskResolver<
@@ -5379,9 +5306,9 @@ export namespace GTaskResolvers {
     nameLabel?: NameLabelResolver<string, TypeParent, Context>;
     /** a human-readable description */
     nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
-    /** Unique constant identifier/object reference */
+    /** Unique constant identifier/object reference (primary) */
     ref?: RefResolver<string, TypeParent, Context>;
-    /** Unique session-dependent identifier/object reference */
+    /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, Context>;
 
     access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
@@ -5502,19 +5429,19 @@ export namespace GAclXenObjectResolvers {
     __resolveType: ResolveType;
   }
   export type ResolveType<
-    R = "GVM" | "GNetwork" | "GTemplate" | "GVDI" | "GISO" | "GTask",
-    Parent = Gvm | GNetwork | GTemplate | Gvdi | Giso | GTask,
+    R = "GVM" | "GNetwork" | "GVDI" | "GSR" | "GTemplate" | "GTask",
+    Parent = Gvm | GNetwork | Gvdi | Gsr | GTemplate | GTask,
     Context = {}
   > = TypeResolveFn<R, Parent, Context>;
 }
 
-export namespace DiskImageResolvers {
+export namespace GAccessEntryResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
   export type ResolveType<
-    R = "GVDI" | "GISO",
-    Parent = Gvdi | Giso,
+    R = "GVMAccessEntry" | "GSRAccessEntry" | "GTemplateAccessEntry",
+    Parent = GvmAccessEntry | GsrAccessEntry | GTemplateAccessEntry,
     Context = {}
   > = TypeResolveFn<R, Parent, Context>;
 }
@@ -5524,8 +5451,8 @@ export namespace GXenObjectResolvers {
     __resolveType: ResolveType;
   }
   export type ResolveType<
-    R = "GSR" | "GHost" | "GPool",
-    Parent = Gsr | GHost | GPool,
+    R = "GHost" | "GPool",
+    Parent = GHost | GPool,
     Context = {}
   > = TypeResolveFn<R, Parent, Context>;
 }
@@ -5563,33 +5490,34 @@ export interface DeprecatedDirectiveArgs {
   reason?: string;
 }
 
-export interface JSONStringScalarConfig
-  extends GraphQLScalarTypeConfig<JsonString, any> {
-  name: "JSONString";
-}
 export interface DateTimeScalarConfig
   extends GraphQLScalarTypeConfig<DateTime, any> {
   name: "DateTime";
+}
+export interface JSONStringScalarConfig
+  extends GraphQLScalarTypeConfig<JsonString, any> {
+  name: "JSONString";
 }
 
 export interface IResolvers<Context = {}> {
   Query?: QueryResolvers.Resolvers<Context>;
   Gvm?: GvmResolvers.Resolvers<Context>;
-  GAccessEntry?: GAccessEntryResolvers.Resolvers<Context>;
-  Interface?: InterfaceResolvers.Resolvers<Context>;
-  GNetwork?: GNetworkResolvers.Resolvers<Context>;
+  GvmAccessEntry?: GvmAccessEntryResolvers.Resolvers<Context>;
   PvDriversVersion?: PvDriversVersionResolvers.Resolvers<Context>;
-  BlockDevice?: BlockDeviceResolvers.Resolvers<Context>;
+  OsVersion?: OsVersionResolvers.Resolvers<Context>;
+  Gvif?: GvifResolvers.Resolvers<Context>;
+  GNetwork?: GNetworkResolvers.Resolvers<Context>;
+  Gvbd?: GvbdResolvers.Resolvers<Context>;
+  Gvdi?: GvdiResolvers.Resolvers<Context>;
   Gsr?: GsrResolvers.Resolvers<Context>;
+  GsrAccessEntry?: GsrAccessEntryResolvers.Resolvers<Context>;
   Gpbd?: GpbdResolvers.Resolvers<Context>;
   GHost?: GHostResolvers.Resolvers<Context>;
   CpuInfo?: CpuInfoResolvers.Resolvers<Context>;
   SoftwareVersion?: SoftwareVersionResolvers.Resolvers<Context>;
-  OsVersion?: OsVersionResolvers.Resolvers<Context>;
   GTemplate?: GTemplateResolvers.Resolvers<Context>;
+  GTemplateAccessEntry?: GTemplateAccessEntryResolvers.Resolvers<Context>;
   GPool?: GPoolResolvers.Resolvers<Context>;
-  Gvdi?: GvdiResolvers.Resolvers<Context>;
-  Giso?: GisoResolvers.Resolvers<Context>;
   GPlaybook?: GPlaybookResolvers.Resolvers<Context>;
   PlaybookRequirements?: PlaybookRequirementsResolvers.Resolvers<Context>;
   PlaybookTask?: PlaybookTaskResolvers.Resolvers<Context>;
@@ -5602,10 +5530,10 @@ export interface IResolvers<Context = {}> {
   VmShutdownMutation?: VmShutdownMutationResolvers.Resolvers<Context>;
   VmRebootMutation?: VmRebootMutationResolvers.Resolvers<Context>;
   VmPauseMutation?: VmPauseMutationResolvers.Resolvers<Context>;
-  PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers.Resolvers<Context>;
   VmDeleteMutation?: VmDeleteMutationResolvers.Resolvers<Context>;
+  VmAccessSet?: VmAccessSetResolvers.Resolvers<Context>;
+  PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers.Resolvers<Context>;
   AttachNetworkMutation?: AttachNetworkMutationResolvers.Resolvers<Context>;
-  AttachIsoMutation?: AttachIsoMutationResolvers.Resolvers<Context>;
   AttachVdiMutation?: AttachVdiMutationResolvers.Resolvers<Context>;
   Subscription?: SubscriptionResolvers.Resolvers<Context>;
   GvMsSubscription?: GvMsSubscriptionResolvers.Resolvers<Context>;
@@ -5617,10 +5545,10 @@ export interface IResolvers<Context = {}> {
     Context
   >;
   GAclXenObject?: GAclXenObjectResolvers.Resolvers;
-  DiskImage?: DiskImageResolvers.Resolvers;
+  GAccessEntry?: GAccessEntryResolvers.Resolvers;
   GXenObject?: GXenObjectResolvers.Resolvers;
-  JsonString?: GraphQLScalarType;
   DateTime?: GraphQLScalarType;
+  JsonString?: GraphQLScalarType;
 }
 
 export interface IDirectiveResolvers<Result> {
@@ -5642,29 +5570,16 @@ export interface GAclXenObject {
   nameLabel: string;
   /** a human-readable description */
   nameDescription: string;
-  /** Unique constant identifier/object reference */
+  /** Unique constant identifier/object reference (primary) */
   ref: string;
-  /** Unique session-dependent identifier/object reference */
+  /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
 
   access: (Maybe<GAccessEntry>)[];
 }
 
-export interface DiskImage {
-  /** a human-readable name */
-  nameLabel: string;
-  /** a human-readable description */
-  nameDescription: string;
-  /** Unique constant identifier/object reference */
-  ref: string;
-  /** Unique session-dependent identifier/object reference */
-  uuid: string;
-
-  SR?: Maybe<Gsr>;
-
-  VMs?: Maybe<(Maybe<Gvm>)[]>;
-
-  virtualSize: number;
+export interface GAccessEntry {
+  userId: string;
 }
 
 export interface GXenObject {
@@ -5672,9 +5587,9 @@ export interface GXenObject {
   nameLabel: string;
   /** a human-readable description */
   nameDescription: string;
-  /** Unique constant identifier/object reference */
+  /** Unique constant identifier/object reference (primary) */
   ref: string;
-  /** Unique session-dependent identifier/object reference */
+  /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
 }
 
@@ -5712,7 +5627,7 @@ export interface Query {
   /** Information about a single virtual disk image (hard disk) */
   vdi?: Maybe<Gvdi>;
   /** All ISO images available for user */
-  isos: (Maybe<Giso>)[];
+  isos: (Maybe<Gvdi>)[];
   /** Information about a single ISO image */
   iso?: Maybe<Gvdi>;
   /** List of Ansible-powered playbooks */
@@ -5736,20 +5651,16 @@ export interface Gvm extends GAclXenObject {
   nameLabel: string;
   /** a human-readable description */
   nameDescription: string;
-  /** Unique constant identifier/object reference */
+  /** Unique constant identifier/object reference (primary) */
   ref: string;
-  /** Unique session-dependent identifier/object reference */
+  /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
 
-  access: (Maybe<GAccessEntry>)[];
-  /** Network adapters connected to a VM */
-  interfaces?: Maybe<(Maybe<Interface>)[]>;
+  access: (Maybe<GvmAccessEntry>)[];
   /** True if PV drivers are up to date, reported if Guest Additions are installed */
   PVDriversUpToDate?: Maybe<boolean>;
   /** PV drivers version, if available */
   PVDriversVersion?: Maybe<PvDriversVersion>;
-
-  disks?: Maybe<(Maybe<BlockDevice>)[]>;
 
   VCPUsAtStartup: number;
 
@@ -5778,47 +5689,16 @@ export interface Gvm extends GAclXenObject {
   powerState: PowerState;
 
   startTime: DateTime;
+
+  VIFs: (Maybe<Gvif>)[];
+  /** Virtual block devices */
+  VBDs: (Maybe<Gvbd>)[];
 }
 
-export interface GAccessEntry {
-  access: (Maybe<string>)[];
+export interface GvmAccessEntry extends GAccessEntry {
+  userId: string;
 
-  userid: string;
-}
-
-export interface Interface {
-  id: string;
-
-  MAC: string;
-
-  VIF: string;
-
-  ip?: Maybe<string>;
-
-  ipv6?: Maybe<string>;
-
-  network: GNetwork;
-
-  status?: Maybe<string>;
-
-  attached: boolean;
-}
-
-export interface GNetwork extends GAclXenObject {
-  /** a human-readable name */
-  nameLabel: string;
-  /** a human-readable description */
-  nameDescription: string;
-  /** Unique constant identifier/object reference */
-  ref: string;
-  /** Unique session-dependent identifier/object reference */
-  uuid: string;
-
-  access: (Maybe<GAccessEntry>)[];
-
-  VMs?: Maybe<(Maybe<Gvm>)[]>;
-
-  otherConfig?: Maybe<JsonString>;
+  actions: VmActions;
 }
 
 /** Drivers version. We don't want any fancy resolver except for the thing that we know that it's a dict in VM document */
@@ -5832,35 +5712,112 @@ export interface PvDriversVersion {
   build?: Maybe<number>;
 }
 
-export interface BlockDevice {
-  id: string;
+/** OS version reported by Xen tools */
+export interface OsVersion {
+  name?: Maybe<string>;
 
-  attached: boolean;
+  uname?: Maybe<string>;
 
-  bootable: boolean;
+  distro?: Maybe<string>;
 
-  device: string;
+  major?: Maybe<number>;
 
-  mode: string;
-
-  type: string;
-
-  VDI?: Maybe<DiskImage>;
+  minor?: Maybe<number>;
 }
 
-export interface Gsr extends GXenObject {
+export interface Gvif {
+  /** Unique constant identifier/object reference (primary) */
+  ref: string;
+  /** MAC address */
+  MAC: string;
+
+  VM: Gvm;
+  /** Device ID */
+  device: string;
+
+  currentlyAttached: boolean;
+
+  ip?: Maybe<string>;
+
+  ipv4?: Maybe<string>;
+
+  ipv6?: Maybe<string>;
+
+  network: GNetwork;
+}
+
+export interface GNetwork extends GAclXenObject {
   /** a human-readable name */
   nameLabel: string;
   /** a human-readable description */
   nameDescription: string;
+  /** Unique constant identifier/object reference (primary) */
+  ref: string;
+  /** Unique constant identifier/object reference (used in XenCenter) */
+  uuid: string;
+
+  access: (Maybe<GAccessEntry>)[];
+
+  VIFs?: Maybe<(Maybe<Gvif>)[]>;
+
+  otherConfig?: Maybe<JsonString>;
+}
+
+export interface Gvbd {
   /** Unique constant identifier/object reference */
   ref: string;
-  /** Unique session-dependent identifier/object reference */
+  /** Unique non-primary identifier/object reference */
   uuid: string;
+
+  VM?: Maybe<Gvm>;
+
+  VDI?: Maybe<Gvdi>;
+
+  type: VbdType;
+
+  mode: VbdMode;
+
+  currentlyAttached: boolean;
+
+  bootable: boolean;
+
+  userdevice: number;
+}
+
+export interface Gvdi extends GAclXenObject {
+  /** a human-readable name */
+  nameLabel: string;
+  /** a human-readable description */
+  nameDescription: string;
+  /** Unique constant identifier/object reference (primary) */
+  ref: string;
+  /** Unique constant identifier/object reference (used in XenCenter) */
+  uuid: string;
+
+  access: (Maybe<GAccessEntry>)[];
+
+  SR?: Maybe<Gsr>;
+
+  virtualSize: number;
+
+  VBDs: (Maybe<Gvbd>)[];
+}
+
+export interface Gsr extends GAclXenObject {
+  /** a human-readable name */
+  nameLabel: string;
+  /** a human-readable description */
+  nameDescription: string;
+  /** Unique constant identifier/object reference (primary) */
+  ref: string;
+  /** Unique constant identifier/object reference (used in XenCenter) */
+  uuid: string;
+
+  access: (Maybe<GsrAccessEntry>)[];
   /** Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI */
   PBDs: (Maybe<Gpbd>)[];
 
-  VDIs?: Maybe<(Maybe<DiskImage>)[]>;
+  VDIs?: Maybe<(Maybe<Gvdi>)[]>;
 
   contentType: SrContentType;
 
@@ -5877,11 +5834,17 @@ export interface Gsr extends GXenObject {
   spaceAvailable: number;
 }
 
+export interface GsrAccessEntry extends GAccessEntry {
+  userId: string;
+
+  actions: SrActions;
+}
+
 /** Fancy name for a PBD. Not a real Xen object, though a connection between a host and a SR */
 export interface Gpbd {
   /** Unique constant identifier/object reference */
   ref: string;
-  /** Unique session-dependent identifier/object reference */
+  /** Unique non-primary identifier/object reference */
   uuid: string;
   /** Host to which the SR is supposed to be connected to */
   host: GHost;
@@ -5898,9 +5861,9 @@ export interface GHost extends GXenObject {
   nameLabel: string;
   /** a human-readable description */
   nameDescription: string;
-  /** Unique constant identifier/object reference */
+  /** Unique constant identifier/object reference (primary) */
   ref: string;
-  /** Unique session-dependent identifier/object reference */
+  /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
   /** Major XenAPI version number */
   APIVersionMajor?: Maybe<number>;
@@ -6002,30 +5965,17 @@ export interface SoftwareVersion {
   productVersionText: string;
 }
 
-/** OS version reported by Xen tools */
-export interface OsVersion {
-  name?: Maybe<string>;
-
-  uname?: Maybe<string>;
-
-  distro?: Maybe<string>;
-
-  major?: Maybe<number>;
-
-  minor?: Maybe<number>;
-}
-
 export interface GTemplate extends GAclXenObject {
   /** a human-readable name */
   nameLabel: string;
   /** a human-readable description */
   nameDescription: string;
-  /** Unique constant identifier/object reference */
+  /** Unique constant identifier/object reference (primary) */
   ref: string;
-  /** Unique session-dependent identifier/object reference */
+  /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
 
-  access: (Maybe<GAccessEntry>)[];
+  access: (Maybe<GTemplateAccessEntry>)[];
   /** If a template supports auto-installation, here a distro name is provided */
   osKind?: Maybe<string>;
   /** True if this template works with hardware assisted virtualization */
@@ -6034,59 +5984,25 @@ export interface GTemplate extends GAclXenObject {
   enabled: boolean;
 }
 
+export interface GTemplateAccessEntry extends GAccessEntry {
+  userId: string;
+
+  actions: TemplateActions;
+}
+
 export interface GPool extends GXenObject {
   /** a human-readable name */
   nameLabel: string;
   /** a human-readable description */
   nameDescription: string;
-  /** Unique constant identifier/object reference */
+  /** Unique constant identifier/object reference (primary) */
   ref: string;
-  /** Unique session-dependent identifier/object reference */
+  /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
   /** Pool master */
   master: GHost;
   /** Default SR */
   defaultSr?: Maybe<Gsr>;
-}
-
-export interface Gvdi extends GAclXenObject, DiskImage {
-  /** a human-readable name */
-  nameLabel: string;
-  /** a human-readable description */
-  nameDescription: string;
-  /** Unique constant identifier/object reference */
-  ref: string;
-  /** Unique session-dependent identifier/object reference */
-  uuid: string;
-
-  access: (Maybe<GAccessEntry>)[];
-
-  SR?: Maybe<Gsr>;
-
-  VMs?: Maybe<(Maybe<Gvm>)[]>;
-
-  virtualSize: number;
-}
-
-export interface Giso extends GAclXenObject, DiskImage {
-  /** a human-readable name */
-  nameLabel: string;
-  /** a human-readable description */
-  nameDescription: string;
-  /** Unique constant identifier/object reference */
-  ref: string;
-  /** Unique session-dependent identifier/object reference */
-  uuid: string;
-
-  access: (Maybe<GAccessEntry>)[];
-
-  SR?: Maybe<Gsr>;
-
-  VMs?: Maybe<(Maybe<Gvm>)[]>;
-
-  virtualSize: number;
-
-  location: string;
 }
 
 export interface GPlaybook {
@@ -6143,14 +6059,14 @@ export interface Mutation {
   vmReboot?: Maybe<VmRebootMutation>;
   /** If VM is Running, pause VM. If Paused, unpause VM */
   vmPause?: Maybe<VmPauseMutation>;
-  /** Launch an Ansible Playbook on specified VMs */
-  playbookLaunch?: Maybe<PlaybookLaunchMutation>;
   /** Delete a Halted VM */
   vmDelete?: Maybe<VmDeleteMutation>;
+  /** Set VM access rights */
+  vmAccessSet?: Maybe<VmAccessSet>;
+  /** Launch an Ansible Playbook on specified VMs */
+  playbookLaunch?: Maybe<PlaybookLaunchMutation>;
   /** Attach VM to a Network by creating a new Interface */
   netAttach?: Maybe<AttachNetworkMutation>;
-  /** Attach ISO to a VM by creating a new virtual block device */
-  isoAttach?: Maybe<AttachIsoMutation>;
   /** Attach VDI to a VM by creating a new virtual block device */
   vdiAttach?: Maybe<AttachVdiMutation>;
 
@@ -6191,22 +6107,21 @@ export interface VmPauseMutation {
   taskId: string;
 }
 
-export interface PlaybookLaunchMutation {
-  /** Playbook execution task ID */
-  taskId: string;
-}
-
 export interface VmDeleteMutation {
   /** Deleting task ID */
   taskId: string;
 }
 
-export interface AttachNetworkMutation {
-  /** Attach/Detach task ID. If already attached/detached, returns null */
-  taskId?: Maybe<string>;
+export interface VmAccessSet {
+  success: boolean;
 }
 
-export interface AttachIsoMutation {
+export interface PlaybookLaunchMutation {
+  /** Playbook execution task ID */
+  taskId: string;
+}
+
+export interface AttachNetworkMutation {
   /** Attach/Detach task ID. If already attached/detached, returns null */
   taskId?: Maybe<string>;
 }
@@ -6273,9 +6188,9 @@ export interface GTask extends GAclXenObject {
   nameLabel: string;
   /** a human-readable description */
   nameDescription: string;
-  /** Unique constant identifier/object reference */
+  /** Unique constant identifier/object reference (primary) */
   ref: string;
-  /** Unique session-dependent identifier/object reference */
+  /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
 
   access: (Maybe<GAccessEntry>)[];
@@ -6309,28 +6224,28 @@ export interface PlaybookTasksSubscription {
 // ====================================================
 
 export interface VmQueryArgs {
-  uuid?: Maybe<string>;
+  ref?: Maybe<string>;
 }
 export interface TemplateQueryArgs {
-  uuid?: Maybe<string>;
+  ref?: Maybe<string>;
 }
 export interface HostQueryArgs {
-  uuid?: Maybe<string>;
+  ref?: Maybe<string>;
 }
 export interface PoolQueryArgs {
-  uuid?: Maybe<string>;
+  ref?: Maybe<string>;
 }
 export interface NetworkQueryArgs {
-  uuid?: Maybe<string>;
+  ref?: Maybe<string>;
 }
 export interface SrQueryArgs {
-  uuid?: Maybe<string>;
+  ref?: Maybe<string>;
 }
 export interface VdiQueryArgs {
-  uuid?: Maybe<string>;
+  ref?: Maybe<string>;
 }
 export interface IsoQueryArgs {
-  uuid?: Maybe<string>;
+  ref?: Maybe<string>;
 }
 export interface PlaybookQueryArgs {
   id?: Maybe<string>;
@@ -6339,7 +6254,7 @@ export interface PlaybookTaskQueryArgs {
   id: string;
 }
 export interface ConsoleQueryArgs {
-  vmUuid: string;
+  vmRef: string;
 }
 export interface SelectedItemsQueryArgs {
   tableId: Table;
@@ -6375,22 +6290,34 @@ export interface VmMutationArgs {
 export interface VmStartMutationArgs {
   options?: Maybe<VmStartInput>;
 
-  uuid: string;
+  ref: string;
 }
 export interface VmShutdownMutationArgs {
   /** Force shutdown in a hard or clean way */
   force?: Maybe<ShutdownForce>;
 
-  uuid: string;
+  ref: string;
 }
 export interface VmRebootMutationArgs {
   /** Force reboot in a hard or clean way. Default: clean */
   force?: Maybe<ShutdownForce>;
 
-  uuid: string;
+  ref: string;
 }
 export interface VmPauseMutationArgs {
-  uuid: string;
+  ref: string;
+}
+export interface VmDeleteMutationArgs {
+  ref: string;
+}
+export interface VmAccessSetMutationArgs {
+  actions: (Maybe<VmActions>)[];
+
+  ref: string;
+
+  revoke?: Maybe<boolean>;
+
+  user: string;
 }
 export interface PlaybookLaunchMutationArgs {
   /** Playbook ID */
@@ -6400,32 +6327,21 @@ export interface PlaybookLaunchMutationArgs {
   /** VM UUIDs to run Playbook on. Ignored if this is a Playbook with provided Inventory */
   vms?: Maybe<(Maybe<string>)[]>;
 }
-export interface VmDeleteMutationArgs {
-  uuid: string;
-}
 export interface NetAttachMutationArgs {
   /** True if attach, False if detach */
   isAttach: boolean;
 
-  netUuid: string;
+  netRef: string;
 
-  vmUuid: string;
-}
-export interface IsoAttachMutationArgs {
-  /** True if attach, False if detach */
-  isAttach: boolean;
-
-  isoUuid: string;
-
-  vmUuid: string;
+  vmRef: string;
 }
 export interface VdiAttachMutationArgs {
   /** True if attach, False if detach */
   isAttach: boolean;
 
-  vdiUuid: string;
+  vdiRef: string;
 
-  vmUuid: string;
+  vmRef: string;
 }
 export interface SelectedItemsMutationArgs {
   tableId: Table;
@@ -6435,16 +6351,16 @@ export interface SelectedItemsMutationArgs {
   isSelect: boolean;
 }
 export interface VmSubscriptionArgs {
-  uuid: string;
+  ref: string;
 }
 export interface HostSubscriptionArgs {
-  uuid: string;
+  ref: string;
 }
 export interface PoolSubscriptionArgs {
-  uuid: string;
+  ref: string;
 }
 export interface TaskSubscriptionArgs {
-  uuid: string;
+  ref: string;
 }
 export interface PlaybookTaskSubscriptionArgs {
   id: string;

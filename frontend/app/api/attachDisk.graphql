@@ -1,26 +1,12 @@
-mutation ISOAttach ($vmUuid: ID!, $isoUuid: ID!) {
-  isoAttach(vmUuid: $vmUuid, isoUuid:$isoUuid, isAttach: true)
+mutation VDIAttach ($vmRef: ID!, $vdiRef: ID!) {
+  vdiAttach(vmRef: $vmRef, vdiRef:$vdiRef, isAttach: true)
   {
     taskId
   }
 }
 
-mutation ISODetach ($vmUuid: ID!, $isoUuid: ID!) {
-  isoAttach(vmUuid: $vmUuid, isoUuid:$isoUuid, isAttach: false)
-  {
-    taskId
-  }
-}
-
-mutation VDIAttach ($vmUuid: ID!, $vdiUuid: ID!) {
-  vdiAttach(vmUuid: $vmUuid, vdiUuid:$vdiUuid, isAttach: true)
-  {
-    taskId
-  }
-}
-
-mutation VDIDetach ($vmUuid: ID!, $vdiUuid: ID!) {
-  vdiAttach(vmUuid: $vmUuid, vdiUuid:$vdiUuid, isAttach: false)
+mutation VDIDetach ($vmRef: ID!, $vdiRef: ID!) {
+  vdiAttach(vmRef: $vmRef, vdiRef:$vdiRef, isAttach: false)
   {
     taskId
   }

@@ -70,7 +70,7 @@ const VMForm = (props: FormikPropsValues) => {
     if (!props.values.template)
       return null;
 
-    return templates.filter(t => t.uuid === props.values.template.value)[0].osKind;
+    return templates.filter(t => t.ref === props.values.template.value)[0].osKind;
   }, [props.values.template]);
   return (
     <FormContext.Provider value={props}>

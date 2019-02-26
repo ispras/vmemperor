@@ -17,11 +17,11 @@ import {
   NET_ACTION,
 } from './constants';
 
-export function vm_convert(uuid, mode)
+export function vm_convert(ref, mode)
 {
   return {
     type: VM_CONVERT,
-    uuid, mode
+    ref, mode
   };
 }
 
@@ -59,12 +59,12 @@ export function net_action(vm, net, action)
 
 
 
-export function requestInfo(resourceType, uuid)
+export function requestInfo(resourceType, ref)
 {
   return {
     type: VM_REQUEST_INFO,
     resourceType,
-    uuid,
+    ref,
   };
 }
 
@@ -100,10 +100,10 @@ export function setInfo(resourceType, data)
 
 
 
-export function vmWatch(uuid)
+export function vmWatch(ref)
 {
   return {
     type: VM_WATCH,
-    uuid
+    ref
   }
 }

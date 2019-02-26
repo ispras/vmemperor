@@ -77,8 +77,7 @@ class GraphQLSubscriptionHandler(BaseWSHandler, BaseGQLSubscriptionHandler):
         if not isinstance(user_auth, BasicAuthenticator):
             self.log.error("GraphQL connection initiated, Loaded authToken, not a BasicAuthenticator")
             return False
-        self.request.user = user_auth.get_id()
-
+        self.request.user_authenticator = user_auth
 
 
         self.log.debug(f"GraphQL subscription authentication successful (as {user_auth.get_id()})")

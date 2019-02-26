@@ -1,3 +1,3 @@
 query Console($id:ID!) {
-  console(vmUuid: $id)
+  console(vmRef: $id)
 }

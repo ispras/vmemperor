@@ -21,7 +21,7 @@ import tableStyle from "./table.css";
 import {useApolloClient, useMutation, useQuery} from "react-apollo-hooks";
 import {Map, Set} from 'immutable';
 import {ButtonGroup, ButtonToolbar} from "reactstrap";
-import {dataIdFromObject, handleAddOfValue, handleAddRemove, handleRemoveOfValueByUuid} from "../../utils/cacheUtils";
+import {dataIdFromObject, handleAddOfValue, handleAddRemove, handleRemoveOfValueByRef} from "../../utils/cacheUtils";
 import StartButton from "../../components/StartButton";
 import StopButton from "../../components/StopButton";
 import RecycleBinButton from "../../components/RecycleBinButton";
@@ -88,7 +88,7 @@ interface State {
 
 interface Action {
   type: "Add" | "Change" | "Remove";
-  uuid: string;
+  ref: string;
 
 }
 
@@ -114,41 +114,41 @@ export default function ({history}: RouteComponentProps) {
     const info = client.cache.readFragment<VmListFragment.Fragment>({
       fragment: VmListFragment.FragmentDoc,
       id: dataIdFromObject({
-        uuid: action.uuid,
+        ref: action.ref,
         __typename: "GVM",
       }),
     });
     console.log("Got associated info: ", info, "Action:", action.type);
     console.log("State:", state);
 
-    if (action.type === 'Add' && state.wholeSelectionByPowerState.has(action.uuid))
+    if (action.type === 'Add' && state.wholeSelectionByPowerState.has(action.ref))
       return state;
 
     switch (action.type) {
       case "Change":
-        if (!state.wholeSelectionByPowerState.has(action.uuid) ||
-          (state.wholeSelectionByPowerState[action.uuid] === info.powerState))
+        if (!state.wholeSelectionByPowerState.has(action.ref) ||
+          (state.wholeSelectionByPowerState[action.ref] === info.powerState))
           return state;
       case "Add":
         return {
           selectedForStart: info.powerState !== PowerState.Running
-            ? state.selectedForStart.add(action.uuid)
-            : state.selectedForStart.remove(action.uuid),
+            ? state.selectedForStart.add(action.ref)
+            : state.selectedForStart.remove(action.ref),
           selectedForStop: info.powerState !== PowerState.Halted
-            ? state.selectedForStop.add(action.uuid)
-            : state.selectedForStop.remove(action.uuid),
+            ? state.selectedForStop.add(action.ref)
+            : state.selectedForStop.remove(action.ref),
           selectedForTrash: info.powerState === PowerState.Halted
-            ? state.selectedForTrash.add(action.uuid)
-            : state.selectedForTrash.remove(action.uuid),
-          wholeSelectionByPowerState: state.wholeSelectionByPowerState.set(action.uuid, info.powerState)
+            ? state.selectedForTrash.add(action.ref)
+            : state.selectedForTrash.remove(action.ref),
+          wholeSelectionByPowerState: state.wholeSelectionByPowerState.set(action.ref, info.powerState)
 
         };
       case "Remove":
         return {
-          selectedForStart: state.selectedForStart.remove(action.uuid),
-          selectedForStop: state.selectedForStop.remove(action.uuid),
-          selectedForTrash: state.selectedForTrash.remove(action.uuid),
-          wholeSelectionByPowerState: state.wholeSelectionByPowerState.remove(action.uuid)
+          selectedForStart: state.selectedForStart.remove(action.ref),
+          selectedForStop: state.selectedForStop.remove(action.ref),
+          selectedForTrash: state.selectedForTrash.remove(action.ref),
+          wholeSelectionByPowerState: state.wholeSelectionByPowerState.remove(action.ref)
         }
 
     }
@@ -157,7 +157,7 @@ export default function ({history}: RouteComponentProps) {
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: VmListFragment.Fragment, index) => {
     e.preventDefault();
-    history.push(`/vmsettings/${row.uuid}`);
+    history.push(`/vmsettings/${row.ref}`);
   }, [history]);
 
   useSubscription<VmListUpdate.Subscription>(VmListUpdate.Document,
@@ -174,7 +174,7 @@ export default function ({history}: RouteComponentProps) {
           case Change.Change: //Update our internal state
             dispatch({
               type: "Change",
-              uuid: change.value.uuid,
+              ref: change.value.ref,
             });
             break;
           default:
@@ -191,7 +191,7 @@ export default function ({history}: RouteComponentProps) {
     for (const id of selectedForStart.toArray()) {
       await startVm({
         variables: {
-          uuid: id
+          ref: id
         },
       });
 
@@ -205,7 +205,7 @@ export default function ({history}: RouteComponentProps) {
       await stopVm(
         {
           variables: {
-            uuid: id
+            ref: id
           },
         }
       );
@@ -219,7 +219,7 @@ export default function ({history}: RouteComponentProps) {
       await deleteVm(
         {
           variables: {
-            uuid: id
+            ref: id
           }
         });
     }
@@ -245,7 +245,7 @@ export default function ({history}: RouteComponentProps) {
         </ButtonGroup>
       </ButtonToolbar>
       <StatefulTable
-        keyField="uuid"
+        keyField="ref"
         refetchQueriesOnSelect={
           [
             {
@@ -272,7 +272,7 @@ export default function ({history}: RouteComponentProps) {
         onDoubleClick={onDoubleClick}
         onSelect={(key, isSelect) => dispatch({
           type: isSelect ? "Add" : "Remove",
-          uuid: key,
+          ref: key,
         })}
       />
     </React.Fragment>)

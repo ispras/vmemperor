@@ -1,5 +1,5 @@
-fragment ISOListFragment on GISO {
-  uuid
+fragment ISOListFragment on GVDI {
+  ref
   nameLabel
   SR {
     isToolsSr

@@ -1,12 +1,12 @@
-mutation NetAttach ($vmUuid: ID!, $netUuid: ID!) {
-  netAttach(vmUuid: $vmUuid, netUuid:$netUuid, isAttach: true)
+mutation NetAttach ($vmRef: ID!, $netRef: ID!) {
+  netAttach(vmRef: $vmRef, netRef:$netRef, isAttach: true)
   {
     taskId
   }
 }
 
-mutation NetDetach ($vmUuid: ID!, $netUuid: ID!) {
-  netAttach(vmUuid: $vmUuid, netUuid:$netUuid, isAttach: false)
+mutation NetDetach ($vmRef: ID!, $netRef: ID!) {
+  netAttach(vmRef: $vmRef, netRef:$netRef, isAttach: false)
   {
     taskId
   }

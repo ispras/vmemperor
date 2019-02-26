@@ -1,5 +1,5 @@
 fragment NetworkListFragment on GNetwork {
-  uuid
+  ref
   nameLabel
   nameDescription
 }

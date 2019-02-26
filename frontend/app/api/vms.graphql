@@ -1,7 +1,7 @@
 fragment VMListFragment on GVM {
-    uuid
-    nameLabel
-    powerState
+  ref
+  nameLabel
+  powerState
 }
 
 query VMList {

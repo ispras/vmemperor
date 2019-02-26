@@ -20,18 +20,18 @@ interface Props {
   vm: VmInfoFragment.Fragment,
 }
 
-const NetworkAttach = ({vm: {uuid, interfaces}}: Props) => {
+const NetworkAttach = ({vm: {ref, VIFs}}: Props) => {
   const onAttach = useMutation<NetAttach.Mutation, NetAttach.Variables>(NetAttach.Document);
   const {data: {networks}} = useQuery<NetworkList.Query, NetworkList.Variables>(NetworkList.Document);
   const notYetConnectedList = useMemo(() => (
       networks.filter(network =>
-        interfaces.every(item => item.network.uuid !== network.uuid))),
-    [interfaces, networks]);
+        VIFs.every(item => item.network.ref !== network.ref))),
+    [VIFs, networks]);
   const onDoubleClick = async (e, row: NetworkListFragment.Fragment, rowIndex) => {
     const taskId = await onAttach({
       variables: {
-        vmUuid: uuid,
-        netUuid: row.uuid,
+        vmRef: ref,
+        netRef: row.ref,
       }
     });
     console.log(`Network connection... taskId: ${taskId.data.netAttach.taskId}`)
@@ -45,7 +45,7 @@ const NetworkAttach = ({vm: {uuid, interfaces}}: Props) => {
           onDoubleClick
         }}
         data={notYetConnectedList}
-        keyField="uuid"
+        keyField="ref"
       />
     </div>
   )

@@ -4,7 +4,7 @@ import { Record } from 'immutable';
 const BasicRecord = Record({
   name_label: '',
   ref: '',
-  uuid: ''
+  ref: ''
 });
 
 export default BasicRecord;

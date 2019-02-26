@@ -32,7 +32,7 @@ interface Props {
 
 
 const StorageAttach: React.FunctionComponent<Props> = ({
-                                                         vm: {uuid, disks},
+                                                         vm: {ref, VBDs},
                                                          diskImageList,
                                                          caption
                                                        }) => {
@@ -40,16 +40,16 @@ const StorageAttach: React.FunctionComponent<Props> = ({
   const onDoubleClick = async (e, row: DiskFragment.Fragment, rowIndex) => {
     const taskId = await onAttach({
       variables: {
-        vmUuid: uuid,
-        vdiUuid: row.uuid,
+        vmRef: ref,
+        vdiRef: row.ref,
       }
     });
   };
 
   const notYetConnectedList = useMemo(() => (
       diskImageList.filter(disk =>
-        disks.every(item => item.VDI.uuid !== disk.uuid))),
-    [diskImageList, disks]);
+        VBDs.every(VBD => VBD.VDI.ref !== disk.ref))),
+    [diskImageList, VBDs]);
 
   return (
     <div>
@@ -61,7 +61,7 @@ const StorageAttach: React.FunctionComponent<Props> = ({
         rowEvents={{
           onDoubleClick
         }}
-        keyField="uuid"
+        keyField="ref"
       />
     </div>);
 };

@@ -17,7 +17,7 @@ const initialState = fromJS({
 function urlReducer(state = initialState, action) {
   switch (action.type) {
     case VNC_URL_ACQUIRED:
-      return state.set('url',action.url).set('uuid', action.uuid);
+      return state.set('url',action.url).set('ref', action.ref);
     case VNC_ERROR:
       return state.set('error', action.error);
     default:

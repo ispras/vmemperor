@@ -29,7 +29,7 @@ import {VM_RUN_ERROR, VMLIST_MESSAGE} from "../App/constants";
     onError: vm_run_error,
     handler: function* (args)
     {
-      const data = yield call(convert, args.uuid, args.mode);
+      const data = yield call(convert, args.ref, args.mode);
       console.log("convert: data:", data);
     }
   },
@@ -130,7 +130,7 @@ import {VM_RUN_ERROR, VMLIST_MESSAGE} from "../App/constants";
  }
 
  function* requestInfo(action) {
-   const { uuid, resourceType } = action;
+   const { ref, resourceType } = action;
    let func = null;
    switch (resourceType)
    {
@@ -141,14 +141,14 @@ import {VM_RUN_ERROR, VMLIST_MESSAGE} from "../App/constants";
        func = netInfo;
        break;
    }
-   const response = yield call(func, uuid);
+   const response = yield call(func, ref);
    yield put(setInfo(resourceType, response.data));
 
  }
 
  function* vmWatch(action)
  {
-   const {uuid} = action;
+   const {ref} = action;
    let disks = true;
    let networks = true;
    while(true)
@@ -164,17 +164,17 @@ import {VM_RUN_ERROR, VMLIST_MESSAGE} from "../App/constants";
        default:
          continue;
      }
-     if (value.uuid !== uuid)
+     if (value.ref !== ref)
        continue;
 
      if (value.disks !== disks)
      {
-       yield put(actRequestInfo('disk', uuid));
+       yield put(actRequestInfo('disk', ref));
      }
 
      if (value.networks !== networks)
      {
-       yield put(actRequestInfo('net', uuid));
+       yield put(actRequestInfo('net', ref));
      }
 
    }

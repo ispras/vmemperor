@@ -21,6 +21,6 @@ class GPBD(GXenObjectType):
 
 class PBD (XenObject):
     db_table_name = 'pbds'
-    api_class = 'pbd'
+    api_class = 'PBD'
     EVENT_CLASSES = ['pbd']
     GraphQLType = GPBD

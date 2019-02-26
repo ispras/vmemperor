@@ -1,6 +1,6 @@
-import { combineReducers } from 'redux-immutable';
-import { fromJS } from 'immutable';
-import { Set } from 'immutable';
+import {combineReducers} from 'redux-immutable';
+import {fromJS} from 'immutable';
+import {Set} from 'immutable';
 import {
   ADD_TO_WAIT_LIST, REMOVE_FROM_WAIT_LIST,
   VMLIST_MESSAGE
@@ -8,7 +8,7 @@ import {
 import VM from 'models/VM';
 
 const initialState = fromJS(
-{}
+  {}
 );
 
 const waitListInitialState = fromJS({
@@ -21,21 +21,18 @@ const waitListInitialState = fromJS({
 });
 
 
-
 const vm_data = (state = initialState, action) => {
-  switch (action.type)
-  {
+  switch (action.type) {
     case VMLIST_MESSAGE:
       const {type, ...message} = action.message;
-      switch (type)
-      {
+      switch (type) {
         case 'initial':
         case 'add':
-          return state.set(message.uuid, new VM(fromJS(message)));
+          return state.set(message.ref, new VM(fromJS(message)));
         case 'change':
-          return state.set(message.new_val.uuid, new VM(fromJS(message.new_val)));
+          return state.set(message.new_val.ref, new VM(fromJS(message.new_val)));
         case 'remove':
-          return state.delete(message.old_val.uuid);
+          return state.delete(message.old_val.ref);
         default:
           console.error('Unexpected message type: ', type);
       }
@@ -48,27 +45,23 @@ const vm_data = (state = initialState, action) => {
 };
 
 
-const  waitList = (actionType) => (state=fromJS({}), action) =>
-{ //Key: UUID; value: notification ID
-  switch (action.type)
-  {
+const waitList = (actionType) => (state = fromJS({}), action) => { //Key: REF; value: notification ID
+  switch (action.type) {
     case ADD_TO_WAIT_LIST:
-      switch (action.action)
-      {
+      switch (action.action) {
         case actionType:
-          return state.set(action.uuid, action.notifyId);
+          return state.set(action.ref, action.notifyId);
         default:
           return state;
 
       }
     case REMOVE_FROM_WAIT_LIST:
-      switch (action.action)
-      {
+      switch (action.action) {
         case actionType:
-          return state.delete(action.uuid);
+          return state.delete(action.ref);
         case 'rebooted':
           if (actionType === 'running') //Remove from rebooted wait list triggers addition to running wait list
-            return state.set(action.uuid, action.notifyId);
+            return state.set(action.ref, action.notifyId);
         default: //eslint-disable-line no-fallthrough
           return state;
       }
@@ -78,16 +71,14 @@ const  waitList = (actionType) => (state=fromJS({}), action) =>
 };
 
 
-const notifications = (state=fromJS({}), action) =>
-{ //Key: Notification ID, value: List of UUIDs
-  switch (action.type)
-  {
+const notifications = (state = fromJS({}), action) => { //Key: Notification ID, value: List of REFs
+  switch (action.type) {
     case ADD_TO_WAIT_LIST:
-      return state.update(action.notifyId, new Set(), oldSet => oldSet.add(action.uuid));
+      return state.update(action.notifyId, new Set(), oldSet => oldSet.add(action.ref));
     case REMOVE_FROM_WAIT_LIST:
       if (!state.has(action.notifyId))
         return state;
-      newState = state.update(action.notifyId, new Set(), oldSet => oldSet.delete(action.uuid));
+      newState = state.update(action.notifyId, new Set(), oldSet => oldSet.delete(action.ref));
       if (newState.get(action.notifyId).isEmpty())
         return state.delete(action.notifyId);
       else
@@ -101,7 +92,7 @@ const notifications = (state=fromJS({}), action) =>
 export default combineReducers(
   {
     vm_data,
-    waitList : combineReducers ( {
+    waitList: combineReducers({
       running: waitList('running'),
       halted: waitList('halted'),
       paused: waitList('paused'),

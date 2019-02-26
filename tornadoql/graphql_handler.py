@@ -90,9 +90,10 @@ class GQLHandler(web.RequestHandler):
             for error in result.errors:
                 if hasattr(error, 'original_error'):
                     capture_exception(error.original_error)
-
                 elif isinstance(error, str):
                     app_log.error(error)
+                else:
+                    capture_exception(error)
             raise ex
 
 

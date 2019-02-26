@@ -1,24 +1,24 @@
-fragment VMInterfaceFragment on Interface {
+fragment VMVIFFragment on GVIF {
   network {
-    uuid
+    ref
     nameLabel
   }
   ip
   ipv6
-  id
+  ref
   MAC
-  attached
+  currentlyAttached
 }
 
-fragment VMDiskFragment on BlockDevice {
-  id
+fragment VMVBDFragment on GVBD {
+  ref
   mode
   type
-  device
-  attached
+  userdevice
+  currentlyAttached
   bootable
   VDI {
-    uuid
+    ref
     nameDescription
     nameLabel
     virtualSize
@@ -26,15 +26,15 @@ fragment VMDiskFragment on BlockDevice {
 }
 
 fragment VMInfoFragment on GVM {
-  uuid
+  ref
   nameLabel
   nameDescription
-  interfaces {
-    ...VMInterfaceFragment
+  VIFs {
+    ...VMVIFFragment
   }
-  disks
+  VBDs
   {
-    ...VMDiskFragment
+    ...VMVBDFragment
   }
   powerState
   osVersion{
@@ -44,14 +44,14 @@ fragment VMInfoFragment on GVM {
   domainType
 }
 
-query VMInfo ($uuid: ID!) {
-  vm (uuid: $uuid) {
+query VMInfo ($ref: ID!) {
+  vm (ref: $ref) {
     ...VMInfoFragment
   }
 }
 
-subscription VMInfoUpdate($uuid: ID!) {
-  vm (uuid: $uuid) {
+subscription VMInfoUpdate($ref: ID!) {
+  vm (ref: $ref) {
     ...VMInfoFragment
   }
 }

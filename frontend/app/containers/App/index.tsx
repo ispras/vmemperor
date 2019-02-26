@@ -13,7 +13,7 @@
 
 
 import React from 'react';
-import { Switch, Route } from 'react-router-dom';
+import {Switch, Route} from 'react-router-dom';
 //import { ToastContainer } from 'react-toastify';
 
 import HomePage from '../../containers/HomePage/Loadable';
@@ -24,10 +24,9 @@ import VMs from '../VMList';
 import LoginPage from '../../containers/LoginPage/Loadable';
 import CreateVM from "../CreateVM";
 import Logout from '../../containers/Logout/Loadable';
-import VncView from '../../containers/Vncview/Loadable';
 
 
-import { compose } from 'redux';
+import {compose} from 'redux';
 import injectReducer from '../../utils/injectReducer';
 import reducer from './reducer';
 import VMSettings from "../Vmsettings";
@@ -39,21 +38,21 @@ function App() {
     <div>
       <Navbar/>
       <Switch>
-        <Route exact path="/" component={HomePage} />
-        <Route path="/login" component={LoginPage} />
-        <PrivateRoute  path="/vms" component={VMs} />
-        <PrivateRoute path="/vmsettings/:uuid" component={VMSettings}/>
+        <Route exact path="/" component={HomePage}/>
+        <Route path="/login" component={LoginPage}/>
+        <PrivateRoute path="/vms" component={VMs}/>
+        <PrivateRoute path="/vmsettings/:ref" component={VMSettings}/>
         <PrivateRoute path="/create-vm" component={CreateVM}/>
-        <PrivateRoute path="/logout" component={Logout} />
-        {/*<PrivateRoute path="/desktop/:uuid" component={VncView}/>*/}
+        <PrivateRoute path="/logout" component={Logout}/>
+        {/*<PrivateRoute path="/desktop/:ref" component={VncView}/>*/}
         <PrivateRoute path="/resources" component={AccessController}/>
-        <Route component={NotFoundPage} />
+        <Route component={NotFoundPage}/>
       </Switch>
     </div>
   );
 }
 
-const withReducer = injectReducer({ key: 'app', reducer });
+const withReducer = injectReducer({key: 'app', reducer});
 
 export default compose(
   withReducer,
