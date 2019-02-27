@@ -32,6 +32,7 @@ class ConsoleHandler(BaseWSHandler):
         self.auth_token = base64.encodebytes('{0}:{1}'.format
                                              (username,
                                               password).encode())
+        self.reader, self.writer = None, None
 
 
     async def open(self):
@@ -130,5 +131,6 @@ class ConsoleHandler(BaseWSHandler):
 
     def on_close(self):
         self.halt = True
-        self.writer.close()
+        if self.writer:
+            self.writer.close()
 

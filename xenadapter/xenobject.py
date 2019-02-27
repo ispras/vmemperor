@@ -187,8 +187,10 @@ class XenObject(metaclass=XenObjectMeta):
             except AttributeError:
                 raise NotAuthenticatedException()
             except XenAdapterAPIError as e:
-                if e.details['error_code'] == 'UUID_INVALID':
+                if e.details['error_code'] == 'HANDLE_INVALID':
                     return None
+                else:
+                    raise e
 
             obj.check_access(action=None, auth=info.context.user_authenticator)
 
