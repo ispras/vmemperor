@@ -61,7 +61,7 @@ from secrets import token_urlsafe
 from rethinkdb import RethinkDB
 
 r = RethinkDB()
-sentry_sdk.init("https://0d8af126e03f447fbdf43ef5afc9efc0@sentry.io/1395379")
+
 
 def table_drop(db, table_name):
     try:
@@ -611,6 +611,7 @@ def read_settings():
     define('ansible_logs', group='ansible', default='./ansible_logs')
     define('ansible_networks', group='ansible', default='', multiple=True)
     define('graphql_error_log_file', group='graphql', default='graphql_errors.log')
+    define('sentry_dsn', group='vmemperor', default='')
 
     from os import path
 
@@ -618,7 +619,7 @@ def read_settings():
     parse_config_file(file_path)
 
     rotateLogs()
-
+    sentry_sdk.init(opts.sentry_dsn)
     constants.ansible_pubkey = path.expanduser(opts.ansible_pubkey)
     ReDBConnection().set_options(opts.host, opts.port)
     if not os.access(constants.ansible_pubkey, os.R_OK):
