@@ -25,6 +25,16 @@ fragment VMVBDFragment on GVBD {
   }
 }
 
+fragment VMAccessFragment on GVMAccessEntry {
+  userId
+  {
+    id
+    name
+    username
+  }
+  actions
+}
+
 fragment VMInfoFragment on GVM {
   ref
   nameLabel
@@ -42,6 +52,9 @@ fragment VMInfoFragment on GVM {
   }
   startTime
   domainType
+  access {
+    ...VMAccessFragment
+  }
 }
 
 query VMInfo ($ref: ID!) {

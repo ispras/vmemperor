@@ -160,8 +160,8 @@ class XenObject(metaclass=XenObjectMeta):
         '''
         Use this method to resolve one XenObject that appears in tables as its uuid under its name
         :param field_name: root's field name to use (by default - this class' name)
-        :return resolver for one object that either gets one named argument uuid or
-        gets uuid from root's field named after XenObject class, e.g. for VM it will be
+        :return resolver for one object that either gets one named argument ref or
+        gets ref from root's field named after XenObject class, e.g. for VM it will be
         root.VM
         :param index - table's index to use. OVERRIDE WITH CARE, internally we use refs as links between docs, so to use with linked field, call
         resolve_one(index='ref'). Default is resolving via uuid, as uuid is a primary key there
@@ -192,7 +192,12 @@ class XenObject(metaclass=XenObjectMeta):
                 else:
                     raise e
 
-            obj.check_access(action=None, auth=info.context.user_authenticator)
+            try:
+                obj.check_access(action=None, auth=info.context.user_authenticator)
+            except XenAdapterUnauthorizedActionException: # TODO Logging
+                return None
+
+
 
 
             record = re.db.table(cls.db_table_name).get(ref).run()
@@ -270,7 +275,7 @@ class XenObject(metaclass=XenObjectMeta):
             :return:
             '''
 
-            query =  re.db.table(cls.db_table_name).coerce_to('array')
+            query = re.db.table(cls.db_table_name).coerce_to('array')
 
             if 'page' in kwargs:
                 if 'page_size' in kwargs:
@@ -543,7 +548,7 @@ class ACLXenObject(XenObject):
         '''
         if not action:
             action = self.Actions.NONE
-        if auth.get_id():
+        if auth.is_admin():
             return True # admin can do it all
 
         self.log.info(
@@ -564,14 +569,14 @@ class ACLXenObject(XenObject):
                                                         f"on object {self} (no info on access rights) by {auth.get_id()} : {action}")
 
 
-        username = f'users/{self.auth.get_id()}'
-        groupnames = [f'groups/{group}' for group in self.auth.get_user_groups()]
+        username = f'users/{auth.get_id()}'
+        groupnames = [f'groups/{group}' for group in auth.get_user_groups()]
         for userid in (username, *groupnames):
             for item in access_info.get(userid, []):
                 if not item:
                     continue
-                available_actions = SerFlag.deserialize(item)
-                if action & available_actions:
+                available_actions = self.Actions.deserialize(item)
+                if action & available_actions or action == self.Actions.NONE:
                     return True
 
 

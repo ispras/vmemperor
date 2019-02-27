@@ -6,6 +6,7 @@ from handlers.graphql.graphene_with_flags.schema import SchemaWithFlags
 from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.resolvers.subscription_utils import MakeSubscription, resolve_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_items_changes
+from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user
 from handlers.graphql.types.input.attachiso import AttachISOMutation
 from handlers.graphql.types.input.attachnet import AttachNetworkMutation
 from handlers.graphql.types.input.attachvdi import AttachVDIMutation
@@ -16,6 +17,7 @@ from handlers.graphql.types.input.vmaccessset import VMAccessSet
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
+from handlers.graphql.types.user import User
 from playbookloader import PlaybookLoader
 from xenadapter.disk import ISO, VDI, GVDI
 from xenadapter.host import Host, GHost
@@ -72,6 +74,12 @@ class Query(ObjectType):
 
     console = graphene.Field(graphene.String, required=False, vm_ref=graphene.NonNull(graphene.ID),
                              description="One-time link to RFB console for a VM", resolver=resolve_console)
+
+    users = graphene.List(User, required=True,
+                          description="All registered users (excluding root)", resolver=resolve_users)
+    groups = graphene.List(User, required=True,
+                          description="All registered groups", resolver=resolve_groups)
+    user = graphene.Field(User, description="User or group information", id=graphene.ID(), resolver=resolve_user())
 
 
 

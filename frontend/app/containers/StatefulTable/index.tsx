@@ -63,6 +63,7 @@ interface Props<T> {
   onDoubleClick?: (e: React.MouseEvent, row: T, rowIndex: number) => any;
   refetchQueriesOnSelect?: ((result: ExecutionResult) => RefetchQueryDescription) | RefetchQueryDescription;
   onSelect?: (key: string, isSelect: boolean) => any;
+  nonSelectable?: string[],
 }
 
 export default function StatefulTable<T>(
@@ -76,7 +77,8 @@ export default function StatefulTable<T>(
     props,
     onDoubleClick,
     onSelect: executeOnSelect,
-    refetchQueriesOnSelect: refetchQueries
+    refetchQueriesOnSelect: refetchQueries,
+    nonSelectable,
   }: Props<T>) {
   const selectOne = useMutation<SelectionResponse, SelectOneVariablesArgs>(
     tableSelectOne
@@ -141,6 +143,7 @@ export default function StatefulTable<T>(
     selected: selectedItems,
     onSelect,
     onSelectAll,
+    nonSelectable
   };
 
   const rowEvents = {

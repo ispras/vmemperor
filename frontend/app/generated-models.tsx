@@ -1123,6 +1123,26 @@ export namespace VmvbdFragment {
   };
 }
 
+export namespace VmAccessFragment {
+  export type Fragment = {
+    __typename?: "GVMAccessEntry";
+
+    userId: UserId;
+
+    actions: (Maybe<VmActions>)[];
+  };
+
+  export type UserId = {
+    __typename?: "User";
+
+    id: string;
+
+    name: string;
+
+    username: string;
+  };
+}
+
 export namespace VmInfoFragment {
   export type Fragment = {
     __typename?: "GVM";
@@ -1144,6 +1164,8 @@ export namespace VmInfoFragment {
     startTime: DateTime;
 
     domainType: DomainType;
+
+    access: (Maybe<Access>)[];
   };
 
   export type ViFs = VmvifFragment.Fragment;
@@ -1155,6 +1177,8 @@ export namespace VmInfoFragment {
 
     name: Maybe<string>;
   };
+
+  export type Access = VmAccessFragment.Fragment;
 }
 
 export namespace VmListFragment {
@@ -1318,6 +1342,19 @@ export namespace VmvbdFragment {
   `;
 }
 
+export namespace VmAccessFragment {
+  export const FragmentDoc = gql`
+    fragment VMAccessFragment on GVMAccessEntry {
+      userId {
+        id
+        name
+        username
+      }
+      actions
+    }
+  `;
+}
+
 export namespace VmInfoFragment {
   export const FragmentDoc = gql`
     fragment VMInfoFragment on GVM {
@@ -1336,10 +1373,14 @@ export namespace VmInfoFragment {
       }
       startTime
       domainType
+      access {
+        ...VMAccessFragment
+      }
     }
 
     ${VmvifFragment.FragmentDoc}
     ${VmvbdFragment.FragmentDoc}
+    ${VmAccessFragment.FragmentDoc}
   `;
 }
 
@@ -3207,6 +3248,12 @@ export namespace QueryResolvers {
     >;
     /** One-time link to RFB console for a VM */
     console?: ConsoleResolver<Maybe<string>, TypeParent, Context>;
+    /** All registered users (excluding root) */
+    users?: UsersResolver<(Maybe<User>)[], TypeParent, Context>;
+    /** All registered groups */
+    groups?: GroupsResolver<(Maybe<User>)[], TypeParent, Context>;
+    /** User or group information */
+    user?: UserResolver<Maybe<User>, TypeParent, Context>;
 
     selectedItems?: SelectedItemsResolver<string[], TypeParent, Context>;
 
@@ -3366,6 +3413,25 @@ export namespace QueryResolvers {
   > = Resolver<R, Parent, Context, ConsoleArgs>;
   export interface ConsoleArgs {
     vmRef: string;
+  }
+
+  export type UsersResolver<
+    R = (Maybe<User>)[],
+    Parent = {},
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type GroupsResolver<
+    R = (Maybe<User>)[],
+    Parent = {},
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type UserResolver<
+    R = Maybe<User>,
+    Parent = {},
+    Context = {}
+  > = Resolver<R, Parent, Context, UserArgs>;
+  export interface UserArgs {
+    id?: Maybe<string>;
   }
 
   export type SelectedItemsResolver<
@@ -3559,20 +3625,46 @@ export namespace GvmResolvers {
   > = Resolver<R, Parent, Context>;
 }
 
+export namespace UserResolvers {
+  export interface Resolvers<Context = {}, TypeParent = User> {
+    id?: IdResolver<string, TypeParent, Context>;
+
+    name?: NameResolver<string, TypeParent, Context>;
+
+    username?: UsernameResolver<string, TypeParent, Context>;
+  }
+
+  export type IdResolver<R = string, Parent = User, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type NameResolver<R = string, Parent = User, Context = {}> = Resolver<
+    R,
+    Parent,
+    Context
+  >;
+  export type UsernameResolver<
+    R = string,
+    Parent = User,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+}
+
 export namespace GvmAccessEntryResolvers {
   export interface Resolvers<Context = {}, TypeParent = GvmAccessEntry> {
-    userId?: UserIdResolver<string, TypeParent, Context>;
+    userId?: UserIdResolver<User, TypeParent, Context>;
 
-    actions?: ActionsResolver<VmActions, TypeParent, Context>;
+    actions?: ActionsResolver<(Maybe<VmActions>)[], TypeParent, Context>;
   }
 
   export type UserIdResolver<
-    R = string,
+    R = User,
     Parent = GvmAccessEntry,
     Context = {}
   > = Resolver<R, Parent, Context>;
   export type ActionsResolver<
-    R = VmActions,
+    R = (Maybe<VmActions>)[],
     Parent = GvmAccessEntry,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -4016,13 +4108,13 @@ export namespace GsrResolvers {
 
 export namespace GsrAccessEntryResolvers {
   export interface Resolvers<Context = {}, TypeParent = GsrAccessEntry> {
-    userId?: UserIdResolver<string, TypeParent, Context>;
+    userId?: UserIdResolver<User, TypeParent, Context>;
 
     actions?: ActionsResolver<SrActions, TypeParent, Context>;
   }
 
   export type UserIdResolver<
-    R = string,
+    R = User,
     Parent = GsrAccessEntry,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -4554,18 +4646,18 @@ export namespace GTemplateResolvers {
 
 export namespace GTemplateAccessEntryResolvers {
   export interface Resolvers<Context = {}, TypeParent = GTemplateAccessEntry> {
-    userId?: UserIdResolver<string, TypeParent, Context>;
+    userId?: UserIdResolver<User, TypeParent, Context>;
 
-    actions?: ActionsResolver<TemplateActions, TypeParent, Context>;
+    actions?: ActionsResolver<(Maybe<TemplateActions>)[], TypeParent, Context>;
   }
 
   export type UserIdResolver<
-    R = string,
+    R = User,
     Parent = GTemplateAccessEntry,
     Context = {}
   > = Resolver<R, Parent, Context>;
   export type ActionsResolver<
-    R = TemplateActions,
+    R = (Maybe<TemplateActions>)[],
     Parent = GTemplateAccessEntry,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -5502,6 +5594,7 @@ export interface JSONStringScalarConfig
 export interface IResolvers<Context = {}> {
   Query?: QueryResolvers.Resolvers<Context>;
   Gvm?: GvmResolvers.Resolvers<Context>;
+  User?: UserResolvers.Resolvers<Context>;
   GvmAccessEntry?: GvmAccessEntryResolvers.Resolvers<Context>;
   PvDriversVersion?: PvDriversVersionResolvers.Resolvers<Context>;
   OsVersion?: OsVersionResolvers.Resolvers<Context>;
@@ -5579,7 +5672,7 @@ export interface GAclXenObject {
 }
 
 export interface GAccessEntry {
-  userId: string;
+  userId: User;
 }
 
 export interface GXenObject {
@@ -5640,6 +5733,12 @@ export interface Query {
   playbookTasks: (Maybe<PlaybookTask>)[];
   /** One-time link to RFB console for a VM */
   console?: Maybe<string>;
+  /** All registered users (excluding root) */
+  users: (Maybe<User>)[];
+  /** All registered groups */
+  groups: (Maybe<User>)[];
+  /** User or group information */
+  user?: Maybe<User>;
 
   selectedItems: string[];
 
@@ -5695,10 +5794,18 @@ export interface Gvm extends GAclXenObject {
   VBDs: (Maybe<Gvbd>)[];
 }
 
-export interface GvmAccessEntry extends GAccessEntry {
-  userId: string;
+export interface User {
+  id: string;
 
-  actions: VmActions;
+  name: string;
+
+  username: string;
+}
+
+export interface GvmAccessEntry extends GAccessEntry {
+  userId: User;
+
+  actions: (Maybe<VmActions>)[];
 }
 
 /** Drivers version. We don't want any fancy resolver except for the thing that we know that it's a dict in VM document */
@@ -5835,7 +5942,7 @@ export interface Gsr extends GAclXenObject {
 }
 
 export interface GsrAccessEntry extends GAccessEntry {
-  userId: string;
+  userId: User;
 
   actions: SrActions;
 }
@@ -5985,9 +6092,9 @@ export interface GTemplate extends GAclXenObject {
 }
 
 export interface GTemplateAccessEntry extends GAccessEntry {
-  userId: string;
+  userId: User;
 
-  actions: TemplateActions;
+  actions: (Maybe<TemplateActions>)[];
 }
 
 export interface GPool extends GXenObject {
@@ -6255,6 +6362,9 @@ export interface PlaybookTaskQueryArgs {
 }
 export interface ConsoleQueryArgs {
   vmRef: string;
+}
+export interface UserQueryArgs {
+  id?: Maybe<string>;
 }
 export interface SelectedItemsQueryArgs {
   tableId: Table;

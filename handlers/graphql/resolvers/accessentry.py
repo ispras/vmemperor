@@ -11,9 +11,10 @@ def resolve_accessentries(actions_type : Type[SerFlag], access_type : Type[Objec
             return []
 
         def resolve_entry(key, value):
-            actions = actions_type.deserialize(value)
+            actions = actions_type.deserialize_distinct(value)
             return access_type(user_id=key, actions=actions)
 
-        return [resolve_entry(k,v) for k,v in root.access.items()]
+        ret =[resolve_entry(k,v) for k,v in root.access.items()]
+        return ret
 
     return resolver

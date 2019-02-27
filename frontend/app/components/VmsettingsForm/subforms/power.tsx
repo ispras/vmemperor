@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo} from 'react';
+import React, {useCallback, useMemo, Fragment} from 'react';
 import {Button, Card, CardBody, CardFooter, CardSubtitle, CardText, CardTitle, Col, Label, Row} from 'reactstrap';
 import FullHeightCard from '../../../components/FullHeightCard';
 import {VM_STATE_RUNNING} from "../../../containers/App/constants";
@@ -74,7 +74,7 @@ const Power = ({vm}: Props) => {
 
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Row>
         <Col sm={6}>
           <FullHeightCard>
@@ -108,30 +108,43 @@ const Power = ({vm}: Props) => {
           </FullHeightCard>
         </Col>
         <Col sm={6}>
-          {vm.VIFs.length > 0 && (
-            <React.Fragment>
-              {
-                vm.VIFs.map((value, index) => {
-                  const ip = value.ip;
-                  const ipv6 = value.ipv6;
-                  return (<Card key={index}>
-                    <CardBody>
-                      <CardTitle>Network{` "${value.network.nameLabel}"`}</CardTitle>
-                      <CardText>
-                        {ip && (<React.Fragment>
-                          <Label> <b>IP</b>: {ip}</Label><br/>
-                        </React.Fragment>)}
-                        {ipv6 && (<Label> <b>IPv6</b>: {ipv6}</Label>)}
-                        {(!ip && !ipv6) && (<Label><h6>No data</h6></Label>)}
-                      </CardText>
-                    </CardBody>
-                  </Card>)
+          {vm.VIFs && (vm.VIFs.length > 0 && (
+              <Fragment>
+                {
+                  vm.VIFs.map((value, index) => {
+                    const ip = value.ip;
+                    const ipv6 = value.ipv6;
+                    return (<Card key={index}>
+                      <CardBody>
+                        <CardTitle>
+                          {value.network && (
+                            <Fragment>
+                              Network{` "${value.network.nameLabel}"`}
+                            </Fragment>
+                          ) || (
+                            <Fragment>
+                              Unknown network
+                            </Fragment>
+                          )}
+                        </CardTitle>
+                        <CardText>
+                          {ip && (<React.Fragment>
+                            <Label> <b>IP</b>: {ip}</Label><br/>
+                          </React.Fragment>)}
+                          {ipv6 && (<Label> <b>IPv6</b>: {ipv6}</Label>)}
+                          {(!ip && !ipv6) && (<Label><h6>No data</h6></Label>)}
+                        </CardText>
+                      </CardBody>
+                    </Card>)
 
-                })
-              }
-            </React.Fragment>
+                  })
+                }
+              </Fragment>
+            ) || (
+              <h3>Connect your VM to a network to access it </h3>)
           ) || (
-            <h3>Connect your VM to a network to access it </h3>)
+            <h3>No authorization to view network information</h3>
+          )
           }
         </Col>
       </Row>
@@ -177,7 +190,7 @@ const Power = ({vm}: Props) => {
             vms={[vm.ref]}/>
         </Col>
       </Row>
-    </React.Fragment>
+    </Fragment>
 
   );
 };

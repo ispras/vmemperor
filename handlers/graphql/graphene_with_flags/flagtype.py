@@ -6,6 +6,9 @@ class FlagType(GrapheneEnumType):
     def serialize(self, value):
         # type: (SerFlag) -> Optional[str]
         if isinstance(value, SerFlag):
-            return value.value
+            try:
+                return value.serialize()[0]
+            except IndexError:
+                return SerFlag.NONE
 
         return None

@@ -5,7 +5,7 @@
  */
 
 import React, {useCallback, useState} from 'react';
-import {PowerState, VmInfo} from "../../generated-models";
+import {PowerState, VmAccessFragment, VmActions, VmInfo} from "../../generated-models";
 import Power from './subforms/power';
 import {Badge, Col, Nav, NavItem, NavLink, Row, TabContent, TabPane} from 'reactstrap';
 import classnames from 'classnames';
@@ -13,6 +13,7 @@ import Vncview from '../../containers/Vncview';
 import Vm = VmInfo.Vm;
 import Network from "./subforms/network";
 import Storage from "./subforms/storage";
+import AccessView from '../../components/AccessView';
 
 
 interface Props {
@@ -22,6 +23,7 @@ interface Props {
 enum Tab {
   Power = 'power',
   VNC = 'vnc',
+  Access = 'access',
   Storage = 'storage',
   Network = 'network',
 
@@ -60,7 +62,6 @@ const VmsettingsForm = ({vm}: Props) => {
             Power
           </NavLink>
         </NavItem>
-
         <NavItem>
           <NavLink
             className={classnames({active: activeTab === Tab.VNC})}
@@ -72,8 +73,16 @@ const VmsettingsForm = ({vm}: Props) => {
             VNC
           </NavLink>
         </NavItem>
-
-
+        <NavItem>
+          <NavLink
+            className={classnames({active: activeTab === Tab.Access})}
+            onClick={() => {
+              toggleTab(Tab.Access);
+            }}
+          >
+            Access
+          </NavLink>
+        </NavItem>
         <NavItem>
           <NavLink
             className={classnames({active: activeTab === Tab.Storage})}
@@ -100,6 +109,16 @@ const VmsettingsForm = ({vm}: Props) => {
           <Row>
             <Col sm="12">
               <Power vm={vm}/>
+            </Col>
+          </Row>
+        </TabPane>
+        <TabPane tabId={Tab.Access}>
+          <Row>
+            <Col sm="12">
+              {<AccessView
+                accessList={vm.access}
+                allActions={VmActions}
+              />}
             </Col>
           </Row>
         </TabPane>

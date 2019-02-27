@@ -12,5 +12,8 @@ export const checkBoxFormatter = (cell, row) => {
   }
 };
 export const sizeFormatter = (cell, row) => {
-  return formatBytes(cell, 2);
+  if (cell)
+    return formatBytes(cell, 2);
+  else
+    return "&mdash;"
 };

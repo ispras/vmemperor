@@ -72,17 +72,21 @@ const Network: React.FunctionComponent<Props> = ({vm}) => {
   const [netAttach, setNetAttach] = useState(false);
 
   const tableData: DataType[] = useMemo(() => {
-    return vm.VIFs.map(({ref, ip, ipv6, network: {nameLabel, ref: netRef}, MAC, currentlyAttached}: VmvifFragment.Fragment): DataType => {
+    return vm.VIFs.map(({ref, ip, ipv6, network, MAC, currentlyAttached}: VmvifFragment.Fragment): DataType => {
       return {
         ref,
         ip,
-        nameLabel,
+        nameLabel: network ? network.nameLabel : "Unknown network",
         MAC,
         currentlyAttached,
-        netRef,
+        netRef: network ? network.ref : null,
       }
     })
   }, [vm.VIFs]);
+
+  const nonSelectable = useMemo(() =>
+      tableData.filter(item => !item.netRef).map(item => item.ref),
+    [tableData]);
 
   const onDetach = useMutation<NetDetach.Mutation, NetDetach.Variables>(NetDetach.Document);
   const tableSelection = useQuery<NetAttachTableSelection.Query, NetAttachTableSelection.Variables>(NetAttachTableSelection.Document);
@@ -111,6 +115,7 @@ const Network: React.FunctionComponent<Props> = ({vm}) => {
                   tableSelectMany={NetAttachTableSelectAll.Document}
                   tableSelectOne={NetAttachTableSelect.Document}
                   tableSelectionQuery={NetAttachTableSelection.Document}
+                  nonSelectable={nonSelectable}
                 />
               </CardText>
             </CardBody>

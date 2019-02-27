@@ -44,52 +44,6 @@ const VmSettings = ({match: {params: {ref}}}: Props) => {
       }
     }); //Memoization inside
   return <VmsettingsForm vm={vm}/>;
-}
-/*
-export class VmSettings extends React.PureComponent<RouteComponentProps<RouterProps>> // eslint-disable-line react/prefer-stateless-function
-{
-  render()
-  {
-    return (
-      <VmInfo.Component variables={{ref: this.props.match.params.ref }}>
-        {({ data, error, loading, subscribeToMore }) => {
+};
 
-        if (error)
-        {
-          return (<div>
-          <h1>{error.message}</h1>
-          </div>);
-        }
-        if (loading)
-        {
-          return '...';
-        }
-
-        return (
-          <VmsettingsForm
-            vm={data.vm}
-            update={() =>
-              subscribeToMore({
-                document: VmInfoUpdate.Document,
-                variables: { ref: this.props.match.params.ref },
-                updateQuery: (prev, { subscriptionData }) =>
-                {
-                  if (subscriptionData.data.vm)
-                    return {
-                      vm: subscriptionData.data.vm
-                    };
-                  else {
-                    prev.vm.nameLabel += " (DELETED)";
-                    return prev;
-                  }
-                }
-              })
-            }
-          />
-        );
-      }}</VmInfo.Component>
-    );
-  }
-}
-*/
 export default VmSettings;

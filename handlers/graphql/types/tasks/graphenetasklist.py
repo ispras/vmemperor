@@ -1,8 +1,6 @@
 from abc import abstractmethod
 from typing import Union, Type
-
-from rethinkdb import RethinkDB
-
+import constants.re as re
 from authentication import with_default_authentication
 from handlers.graphql.resolvers import with_connection
 from handlers.graphql.types.objecttype import ObjectType, InputObjectType
@@ -28,9 +26,6 @@ class GrapheneTaskList(TaskList):
     def resolve_one(cls, field_name=None):
         if not field_name:
             field_name = cls.__name__
-
-        r = RethinkDB()
-
 
         @with_connection
         @with_default_authentication
@@ -58,7 +53,6 @@ class GrapheneTaskList(TaskList):
         if not field_name:
             field_name = f'{cls.__name__}s'
 
-        r = RethinkDB()
 
         @with_connection
         @with_default_authentication

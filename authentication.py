@@ -5,7 +5,7 @@ from typing import Union, Sequence
 
 from serflag import SerFlag
 
-from exc import XenAdapterAPIError
+from exc import XenAdapterAPIError, XenAdapterUnauthorizedActionException
 
 
 class Authentication(metaclass=ABCMeta):
@@ -191,7 +191,6 @@ def with_authentication(access_class : type = None, access_action : SerFlag = No
     :return:  decorated method
     '''
     def decorator(method):
-        from xenadapter.xenobject import ACLXenObject
         @wraps(method)
         def wrapper(root, info, *args, **kwargs):
             if not hasattr(info.context, 'user_authenticator'):
@@ -207,13 +206,17 @@ def with_authentication(access_class : type = None, access_action : SerFlag = No
                         return method(root, info, *args, **kwargs)
 
                 try:
-                    obj : ACLXenObject = access_class(xen=info.context.xen, ref=ref)
+
+                    obj = access_class(xen=info.context.xen, ref=ref)
                     obj.check_access(info.context.user_authenticator, access_action)
                 except XenAdapterAPIError as e:
                     if e.details['error_code'] == 'HANDLE_INVALID':
                         raise ValueError(f"Invalid {id_field}: {ref}")
                     else:
                         raise e
+                except XenAdapterUnauthorizedActionException:
+                    # TODO Logging on authentication routine, i.e. access not granted
+                    kwargs[access_class.__name__] = None
                 else:
                     kwargs[access_class.__name__] = obj
                 return method(root, info, *args, **kwargs)

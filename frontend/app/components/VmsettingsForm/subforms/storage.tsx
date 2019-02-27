@@ -84,19 +84,22 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
   const [isoAttach, setIsoAttach] = useState(false);
 
   const tableData: DataType[] = useMemo(() => {
-    return vm.VBDs.map(({ref, userdevice, type, currentlyAttached, bootable, VDI: {nameLabel, virtualSize, ref: vdiRef}}: VmvbdFragment.Fragment): DataType => {
+    return vm.VBDs.map(({ref, userdevice, type, currentlyAttached, bootable, VDI,}: VmvbdFragment.Fragment): DataType => {
       return {
         ref,
         userdevice,
         type,
         currentlyAttached,
         bootable,
-        nameLabel,
-        virtualSize,
-        vdiRef,
+        nameLabel: VDI ? VDI.nameLabel : "Unknown",
+        virtualSize: VDI ? VDI.virtualSize : null,
+        vdiRef: VDI ? VDI.ref : null,
       }
     })
   }, [vm.VBDs]);
+  const nonSelectable = useMemo(() =>
+      tableData.filter(item => !item.vdiRef).map(item => item.ref),
+    [tableData]);
   const onDetach = useMutation<VdiDetach.Mutation, VdiDetach.Variables>(VdiDetach.Document);
   const tableSelection = useQuery<DiskAttachTableSelection.Query, DiskAttachTableSelection.Variables>(DiskAttachTableSelection.Document);
   const selectedData = useMemo(() => tableData.filter(item => tableSelection.data.selectedItems.includes(item.ref)), [tableData, tableSelection]);
@@ -130,6 +133,7 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
                   tableSelectMany={DiskAttachTableSelectAll.Document}
                   tableSelectOne={DiskAttachTableSelect.Document}
                   tableSelectionQuery={DiskAttachTableSelection.Document}
+                  nonSelectable={nonSelectable}
                 />
               </CardText>
             </CardBody>
