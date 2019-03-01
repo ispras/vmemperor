@@ -5,6 +5,8 @@ from rx import Observable
 from enum import Enum
 import constants.re as re
 from connman import ReDBConnection
+from handlers.graphql.utils.querybuilder.changefeedbuilder import ChangefeedBuilder
+from handlers.graphql.utils.querybuilder.get_fields import get_fields
 
 
 class Change(graphene.Enum):
@@ -66,26 +68,24 @@ def resolve_item_by_key(item_class: type,  table_name : str, key_name:str = 'ref
         :return:
         '''
         async def iterable_to_item():
-            async with ReDBConnection().get_async_connection() as conn:
-                key = args.get(key_name, None)
-                if not key:
-                    yield None
-                    return
-                table = re.db.table(table_name)
-                changes = await table.get_all(key) \
-                                     .pluck(*item_class._meta.fields)\
-                                     .changes(include_types=True, include_initial=True).run(conn)
-                while True:
-                    change = await changes.next()
-                    if not change:
-                        break
-                    if change['type'] == 'remove' or change['new_val'] is None:
-                        yield None
-                        continue
-                    else:
-                        value = change['new_val']
+            print(get_fields(info))
 
-                    yield item_class(**value)
+            key = args.get(key_name, None)
+            if not key:
+                yield None
+                return
+            builder = ChangefeedBuilder(info, main_id=key)
+
+            async for change in builder.yield_values():
+                if not change:
+                    break
+                if change['type'] == 'remove' or change['new_val'] is None:
+                    yield None
+                    continue
+                else:
+                    value = change['new_val']
+
+                yield item_class(value)
 
         return Observable.from_future(iterable_to_item())
     return resolve_item

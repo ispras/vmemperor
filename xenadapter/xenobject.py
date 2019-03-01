@@ -19,6 +19,7 @@ from handlers.graphql.types.accessentry import GAccessEntry
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
 from handlers.graphql.utils.paging import do_paging
+from handlers.graphql.utils.graphql_xenobject import assign_xenobject_type_for_graphql_type
 from xenadapter import XenAdapter
 import logging
 from typing import Optional, Type, Collection, Dict
@@ -95,6 +96,9 @@ class XenObjectMeta(type):
                 create_acl_db_for_me(cls)
             else:
                 create_db_for_me(cls)
+
+            if 'GraphQLType' in dict and dict['GraphQLType']:
+                assign_xenobject_type_for_graphql_type(dict['GraphQLType'], cls)
 
 
 

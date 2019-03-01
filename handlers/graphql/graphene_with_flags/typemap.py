@@ -1,8 +1,7 @@
 import graphene.types.typemap as original_typemap
-from graphene import Enum
 from graphql import GraphQLEnumValue
 from graphql.pyutils.enum import OrderedDict
-
+import handlers.graphql.utils.graphql_xenobject as clss
 from handlers.graphql.graphene_with_flags.flagtype import FlagType
 
 
@@ -41,4 +40,11 @@ class TypeMap(original_typemap.TypeMap):
 
         else:
             return super().construct_enum(map, type)
+
+    def construct_objecttype(self, map, type):
+        _type = super().construct_objecttype(map,type)
+        if _type.name in clss.GRAPHQL_XENOBJECT_DICT:
+            _type.xentype = clss.GRAPHQL_XENOBJECT_DICT[_type.name]
+
+        return _type
 

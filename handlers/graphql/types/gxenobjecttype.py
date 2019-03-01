@@ -1,11 +1,15 @@
 from typing import Collection, Iterable
 
 import graphene
+from graphene.types.resolver import dict_resolver
 
 from handlers.graphql.types.objecttype import ObjectType
 
 
 class GXenObjectType(ObjectType):
+    class Meta:
+        default_resolver = dict_resolver
+
     @classmethod
     def get_type(cls, field_name: str):
         type = cls._meta.fields[field_name].type
