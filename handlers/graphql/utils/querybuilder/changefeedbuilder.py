@@ -49,12 +49,20 @@ class ChangefeedBuilder:
         self.id = id
         self.build_query()
         self.status = status
-        self.paths = []
+        self.paths = {}
 
     def build_query(self):
         query = f"re.db.table({self.fields['_xenobject_type_'].db_table_name}).get({self.id})"
 
         def add_fields(fields, prefix=""):
+            '''
+            Populates self.paths - JSONPath expressions for gathering dependent refs
+            and self.query
+
+            :param fields:
+            :param prefix:
+            :return:
+            '''
             nonlocal query
             _fields = [field for field in fields if field not in ('_xenobject_type_', '_list_')]
 
@@ -65,12 +73,14 @@ class ChangefeedBuilder:
                     if fields[item]['_list_']:
                         query  += f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
                             f".get_all(re.r.args(value['{item}']))"
+                        self.paths[prefix+item+'[*].ref'] = xentype
                         add_fields(fields[item], prefix=f"{prefix}{item}[*].")
                         query += ".coerce_to('array')})"
                     else:
                         query += f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
                             f".get(value['{item}'])"
-                        add_fields(fields[item])
+                        self.paths[prefix+item+'.ref'] = xentype
+                        add_fields(fields[item], prefix=f"{prefix}{item}.")
                         query += "})"
 
         add_fields(self.fields)
