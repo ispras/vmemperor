@@ -59,11 +59,10 @@ class ChangefeedBuilder:
         def add_fields(fields, prefix=None):
             '''
             Populates self.paths - JSONPath expressions for gathering dependent refs
-            and self.query
+            and nonlocal query variable to  ReQL query string for this subscription
 
-            :param fields:
-            :param prefix:
-            :return:
+            :param fields: subdict of self.fields to be processed
+            :param prefix: JSONPath of these fields
             '''
             nonlocal query
 
@@ -103,29 +102,32 @@ class ChangefeedBuilder:
         :return:
         '''
         while True:
-            value = self.query.run()
-            if not value:
-                yield {
-                    "type": "remove",
-                    "old_val": { "ref" : self.id}
-                }
-                return
-            else:
-                yield {
-                    "type": self.status,
-                    "new_val": {
-                        value
+            try:
+                value = self.query.run()
+                if not value:
+                    yield {
+                        "type": "remove",
+                        "old_val": { "ref" : self.id}
                     }
-                }
+                    return
+                else:
+                    yield {
+                        "type": self.status,
+                        "new_val": {
+                            value
+                        }
+                    }
 
-            # Find out all dependent refs
+                # Find out all dependent refs
 
-            # Create a waiter query
+                # Create a waiter query
 
-            # await waiter
+                # await waiter
 
-            # Awaited, run main query again
-            self.status = "change"
+                # Awaited, run main query again
+                self.status = "change"
+            except asyncio.CancelledError:
+                return
 
 
 
