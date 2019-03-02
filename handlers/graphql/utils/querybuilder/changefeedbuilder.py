@@ -10,6 +10,7 @@ from xenadapter.xenobject import XenObject
 import asyncio
 import  constants.re as re
 import jsonpath_rw
+from jsonpath_rw import Fields, Slice
 
 
 
@@ -49,12 +50,13 @@ class ChangefeedBuilder:
         self.id = id
         self.build_query()
         self.status = status
-        self.paths = {}
+        self.paths = {} # Key - JSONPath expression, value - database table name. Contains dependent paths
 
     def build_query(self):
         query = f"re.db.table({self.fields['_xenobject_type_'].db_table_name}).get({self.id})"
 
-        def add_fields(fields, prefix=""):
+
+        def add_fields(fields, prefix=None):
             '''
             Populates self.paths - JSONPath expressions for gathering dependent refs
             and self.query
@@ -64,23 +66,31 @@ class ChangefeedBuilder:
             :return:
             '''
             nonlocal query
-            _fields = [field for field in fields if field not in ('_xenobject_type_', '_list_')]
 
+            self.paths[prefix.child(Fields('ref')) if prefix else Fields('ref')] = fields['_xenobject_type_'].db_table_name
+            _fields = [field for field in fields if field not in ('_xenobject_type_', '_list_')]
+            if 'ref' not in _fields:
+                _fields.append('ref')
             query += f".pluck({','.join(_fields)})"
             for item in _fields:
                 xentype = fields[item]['_xenobject_type_']
                 if xentype:
+                    if not prefix:
+                        prefix = Fields(item)
+                    else:
+                        prefix = prefix.child(Fields(item))
+
+
                     if fields[item]['_list_']:
                         query  += f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
                             f".get_all(re.r.args(value['{item}']))"
-                        self.paths[prefix+item+'[*].ref'] = xentype
-                        add_fields(fields[item], prefix=f"{prefix}{item}[*].")
+
+                        add_fields(fields[item], prefix=prefix.child(Slice("*")))
                         query += ".coerce_to('array')})"
                     else:
                         query += f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
                             f".get(value['{item}'])"
-                        self.paths[prefix+item+'.ref'] = xentype
-                        add_fields(fields[item], prefix=f"{prefix}{item}.")
+                        add_fields(fields[item], prefix=prefix)
                         query += "})"
 
         add_fields(self.fields)
@@ -109,6 +119,14 @@ class ChangefeedBuilder:
                 }
 
             # Find out all dependent refs
+
+            # Create a waiter query
+
+            # await waiter
+
+            # Awaited, run main query again
+            self.status = "change"
+
 
 
 
