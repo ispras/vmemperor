@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from typing import Dict, Mapping, Any, Set, List, Tuple
 from graphql import ResolveInfo
 from functools import reduce
+
+from connman import ReDBConnection
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
 from handlers.graphql.utils.querybuilder.subscriptionwaiter import SubscriptionWaiter, QueueItem
 from xenadapter.xenobject import XenObject
@@ -45,12 +47,29 @@ def deep_set(dictionary : dict, key, value):
 
 
 class ChangefeedBuilder:
-    def __init__(self, id : str, info : ResolveInfo, status="initial"):
+    '''
+    Build a sophisticated changefeed and put its results in asyncio.Queue
+    It works by traversing GraphQL ResolveInfo AST and finding out dependencies of
+    sophisticated GraphQL query ("ref" fields).
+    It then queries RethinkDB, finds the values of "ref" fields found out in previous step and waits for
+    one of DB objects represented by these values to change. If something changes, it reruns the query.
+
+    '''
+    def __init__(self, queue: asyncio.Queue, id : str, info : ResolveInfo, status="initial"):
+        '''
+
+        :param queue: Queue to put results into
+        :param id:  Object ID (ref) to query
+        :param info:  GraphQL ResolveInfo field
+        :param status: status of 1st change to be put in query: one of ("initial", "add")
+        '''
         self.fields = get_fields(info)
         self.id = id
         self.build_query()
         self.status = status
         self.paths = {} # Key - JSONPath expression, value - database table name. Contains dependent paths
+        self.queue = queue
+
 
     def build_query(self):
         query = f"re.db.table({self.fields['_xenobject_type_'].db_table_name}).get({self.id})"
@@ -103,31 +122,33 @@ class ChangefeedBuilder:
         '''
         while True:
             try:
-                value = self.query.run()
-                if not value:
-                    yield {
-                        "type": "remove",
-                        "old_val": { "ref" : self.id}
-                    }
-                    return
-                else:
-                    yield {
-                        "type": self.status,
-                        "new_val": {
-                            value
-                        }
-                    }
+                with ReDBConnection().get_async_connection() as conn:
+                    value = await  self.query.run(conn)
+                    if not value:
+                        await self.queue.put({
+                            "type": "remove",
+                            "old_val": { "ref" : self.id}
+                        })
+                        return
+                    else:
+                        await self.queue.put({
+                            "type": self.status,
+                            "new_val": {
+                                value
+                            }
+                        })
 
-                # Find out all dependent refs
+                    # Find out all dependent refs
 
-                # Create a waiter query
+                    # Create a waiter query
 
-                # await waiter
+                    # await waiter
 
-                # Awaited, run main query again
-                self.status = "change"
+                    # Awaited, run main query again
+                    self.status = "change"
             except asyncio.CancelledError:
                 return
+
 
 
 
