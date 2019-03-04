@@ -105,6 +105,7 @@ class GVM(GXenObjectType):
     class Meta:
         interfaces = (GAclXenObject,)
 
+
     access = graphene.Field(graphene.List(GVMAccessEntry), required=True,
                             resolver=resolve_accessentries(VMActions, GVMAccessEntry))
 
@@ -125,5 +126,5 @@ class GVM(GXenObjectType):
     os_version = graphene.Field(OSVersion)
     power_state = graphene.Field(PowerState, required=True)
     start_time = graphene.Field(graphene.DateTime, required=True)
-    VIFs = graphene.Field(graphene.List(GVIF), required=True, resolver=VIF.resolve_many())
+    VIFs = graphene.Field(graphene.List(GVIF), required=True)
     VBDs = graphene.Field(graphene.List(GVBD), description="Virtual block devices", required=True, resolver=VBD.resolve_many())

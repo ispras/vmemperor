@@ -18,7 +18,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
-from graphql import GraphQLList
+from graphql import GraphQLList, ResolveInfo
 from graphql.language.ast import Field, FragmentSpread
 from graphql.utils.ast_to_dict import ast_to_dict
 from graphql.utils.get_field_def import get_field_def
@@ -65,7 +65,7 @@ def collect_fields(node : Field , fragments, return_type, get_field_type):
     return field
 
 
-def get_fields(info):
+def get_fields(info : ResolveInfo):
     """A convenience function to call collect_fields with info
     Args:
         info (ResolveInfo)
@@ -76,8 +76,16 @@ def get_fields(info):
     fragments = {}
 
     #node = ast_to_dict(info.field_asts[0])
+
+
+    for ast in info.field_asts:
+        if ast.name.value == info.field_name:
+            node = ast
+            break
+    else:
+        raise ValueError(f"Unable to find AST for path {info.path}")
+
     operation_type = info.parent_type
-    node = info.field_asts[0]
     #for name, value in info.fragments.items():
     #    fragments[name] = ast_to_dict(value)
 

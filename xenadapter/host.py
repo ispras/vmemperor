@@ -103,7 +103,7 @@ class GHost(GXenObjectType):
     API_version_minor = graphene.Field(graphene.Int, description="Minor XenAPI version number")
     PBDs = graphene.Field(graphene.List(GPBD),
                                          description="Connections to storage repositories",
-                                         required=True, resolver=PBD.resolve_many(index='ref'))
+                                         required=True, resolver=PBD.resolve_many())
     PCIs = graphene.List(graphene.ID, required=True)
     PGPUs = graphene.List(graphene.ID, required=True)
     PIFs = graphene.List(graphene.ID, required=True)

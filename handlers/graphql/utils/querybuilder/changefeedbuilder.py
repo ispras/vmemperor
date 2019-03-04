@@ -1,14 +1,12 @@
 import copy
-from collections import OrderedDict
+from collections import OrderedDict, Collection
 from dataclasses import dataclass
-from typing import Dict, Mapping, Any, Set, List, Tuple
+from typing import Dict, Mapping, Any, Set, List, Tuple, Optional, Union
 from graphql import ResolveInfo
 from functools import reduce
 
 from connman import ReDBConnection
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
-from handlers.graphql.utils.querybuilder.subscriptionwaiter import SubscriptionWaiter, QueueItem
-from xenadapter.xenobject import XenObject
 import asyncio
 import  constants.re as re
 import jsonpath_rw
@@ -55,27 +53,35 @@ class ChangefeedBuilder:
     one of DB objects represented by these values to change. If something changes, it reruns the query.
 
     '''
-    def __init__(self, queue: asyncio.Queue, id : str, info : ResolveInfo, status="initial"):
+    def __init__(self, id : Optional[Union[str, Collection]], info : ResolveInfo, queue: asyncio.Queue = None,  status="initial"):
         '''
 
-        :param queue: Queue to put results into
-        :param id:  Object ID (ref) to query
+        :param queue: Queue to put results into. If None, yield_values acts as generator
+        :param id:  Object ID (ref) to query. If many, query many objects. If None, query ALL objects. NB: Don't subscribe to ALL objects as all we want is to send one object at a time
         :param info:  GraphQL ResolveInfo field
         :param status: status of 1st change to be put in query: one of ("initial", "add")
+        NB: DO NOT SUBSCRIBE WITH id=None!!! Subscription needs to send one update at a time, i.e. not a list.
+         Use a queue parameter instead. Create many ChangefeedBuilder objects that put updates into same queue.
+         Using id=None with run_query only is fine.
         '''
         self.fields = get_fields(info)
         self.id = id
-        self.build_query()
         self.status = status
         self.paths = {} # Key - JSONPath expression, value - database table name. Contains dependent paths
         self.queue = queue
-
+        self.query = self.build_query()
 
     def build_query(self):
-        query = f"re.db.table({self.fields['_xenobject_type_'].db_table_name}).get({self.id})"
+
+        query = [f"re.db.table('{self.fields['_xenobject_type_'].db_table_name}')"]
+        if isinstance(self.id, str):
+            query.append(f".get('{self.id}')")
+        elif isinstance(self.id, Collection):
+            query.append(".get_all(")
+            query.append(','.join((f"'{item}'" for item in self.id)))
 
 
-        def add_fields(fields, prefix=None):
+        def add_fields(fields, prefix=""):
             '''
             Populates self.paths - JSONPath expressions for gathering dependent refs
             and nonlocal query variable to  ReQL query string for this subscription
@@ -85,65 +91,93 @@ class ChangefeedBuilder:
             '''
             nonlocal query
 
-            self.paths[prefix.child(Fields('ref')) if prefix else Fields('ref')] = fields['_xenobject_type_'].db_table_name
+            self.paths[prefix + 'ref'] = fields['_xenobject_type_']
             _fields = [field for field in fields if field not in ('_xenobject_type_', '_list_')]
             if 'ref' not in _fields:
                 _fields.append('ref')
-            query += f".pluck({','.join(_fields)})"
+            #query.append(".pluck(")
+            #query.append(",".join((f"'{item}'" for item in _fields)))
+            #query.append(")")
             for item in _fields:
+                if item == 'ref':
+                    continue
                 xentype = fields[item]['_xenobject_type_']
                 if xentype:
-                    if not prefix:
-                        prefix = Fields(item)
-                    else:
-                        prefix = prefix.child(Fields(item))
-
+                    new_prefix = ''.join((prefix, item))
 
                     if fields[item]['_list_']:
-                        query  += f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
-                            f".get_all(re.r.args(value['{item}']))"
-
-                        add_fields(fields[item], prefix=prefix.child(Slice("*")))
-                        query += ".coerce_to('array')})"
+                        query.append(f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
+                          f".get_all(re.r.args(value['{item}'])).coerce_to('array')")
+                        add_fields(fields[item], prefix=''.join((new_prefix, "[*].")))
+                        query.append("})")
                     else:
-                        query += f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
-                            f".get(value['{item}'])"
-                        add_fields(fields[item], prefix=prefix)
-                        query += "})"
+                        query.append(f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
+                            f".get(value['{item}'])")
+                        add_fields(fields[item], prefix=''.join((new_prefix, '.')))
+                        query.append("})")
 
         add_fields(self.fields)
-        self.query = eval(query)
+        query = ''.join(query)
+        return eval(query)
+
+    def run_query(self, connection=None):
+        if isinstance(self.id, str):
+            query = self.query
+        else:
+            query = self.query.coerce_to('array')
+
+        if connection:
+            return query.run(connection)
+
+        return query.run()
+
 
 
     async def yield_values(self):
         '''
         Asynchronous iterable yielding value based on changes of that query
-        :return:
+        :return: if self.queue is None, it yields values itself, performing as async generator.
+        Else it puts changes into self.queue
         '''
         while True:
             try:
-                with ReDBConnection().get_async_connection() as conn:
+                async with ReDBConnection().get_async_connection() as conn:
                     value = await  self.query.run(conn)
                     if not value:
-                        await self.queue.put({
+                        item  = {
                             "type": "remove",
                             "old_val": { "ref" : self.id}
-                        })
+                            }
+
+                        if self.queue:
+                            await self.queue.put(item)
+                        else:
+                            yield item
                         return
                     else:
-                        await self.queue.put({
+                        item = {
                             "type": self.status,
-                            "new_val": {
-                                value
-                            }
-                        })
+                            "new_val": value
+                        }
+                        if self.queue:
+                            await self.queue.put(item)
+                        else:
+                            yield item
 
                     # Find out all dependent refs
-
+                    waiter_query_info = [(xenobject.db_table_name, [match.value  for match in
+                                                                    jsonpath_rw.parse(path).find(value)]
+                                          )
+                                         for path, xenobject in self.paths.items()]
                     # Create a waiter query
+                    waiter_query = re.db.table(waiter_query_info[0][0]).get_all(*waiter_query_info[0][1])
+                    i = 1
+                    while i < len(waiter_query_info):
+                        waiter_query = waiter_query.union(re.db.table(waiter_query[i][0]).get_all(*waiter_query_info[i][1]))
 
+                    cursor = await waiter_query.changes().run()
                     # await waiter
-
+                    await cursor.next()
                     # Awaited, run main query again
                     self.status = "change"
             except asyncio.CancelledError:

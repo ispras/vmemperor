@@ -1,7 +1,8 @@
 import collections
 import json
 from collections import Mapping
-
+from functools import reduce
+from graphene.types.resolver import dict_resolver
 from serflag import SerFlag
 
 import XenAPI
@@ -14,12 +15,15 @@ import constants.auth as auth
 from exc import *
 from authentication import NotAuthenticatedException, \
     with_default_authentication, BasicAuthenticator
+from handlers.graphql.resolvers.query_utils import resolve_from_root
 from handlers.graphql.types.accessentry import GAccessEntry
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
 from handlers.graphql.utils.paging import do_paging
 from handlers.graphql.utils.graphql_xenobject import assign_xenobject_type_for_graphql_type
+from handlers.graphql.utils.querybuilder.changefeedbuilder import ChangefeedBuilder
+from handlers.graphql.utils.querybuilder.get_fields import underscore
 from xenadapter import XenAdapter
 import logging
 from typing import Optional, Type, Collection, Dict
@@ -181,40 +185,17 @@ class XenObject(metaclass=XenObjectMeta):
         @with_connection
         @with_default_authentication
         def resolver(root, info, **kwargs):
-
-            if 'ref' in kwargs:
-                ref = kwargs['ref']
+            if not root:
+                builder = ChangefeedBuilder(id=kwargs['ref'], info=info)
+                return builder.run_query()
             else:
-                ref = getattr(root, field_name)
-            try:
-                obj = cls(ref=ref, xen=info.context.xen)
-            except AttributeError:
-                raise NotAuthenticatedException()
-            except XenAdapterAPIError as e:
-                if e.details['error_code'] == 'HANDLE_INVALID':
-                    return None
-                else:
-                    raise e
-
-            try:
-                obj.check_access(action=None, auth=info.context.user_authenticator)
-            except XenAdapterUnauthorizedActionException: # TODO Logging
-                return None
-
-
-
-
-            record = re.db.table(cls.db_table_name).get(ref).run()
-
-            if not record or not len(record):
-                return None
-
-            return cls.GraphQLType(**record)
+                resolve_from_root(root, info, **kwargs)
 
         return resolver
 
+
     @classmethod
-    def resolve_many(cls, field_name=None, index=None):
+    def resolve_many(cls, field_name=None):
         '''
            Use this method to many one XenObject that appears in tables as their  uuids under its name
            :param cls: XenObject class
@@ -233,27 +214,12 @@ class XenObject(metaclass=XenObjectMeta):
         @with_connection
         @with_default_authentication
         def resolver(root, info, **kwargs):
-            if 'refs' in kwargs:
+            if not 'refs' in kwargs:
+                return  resolve_from_root(root, info, **kwargs)
+            else:
                 refs = kwargs['refs']
-            else:
-                refs = getattr(root, field_name)
-            if not index:
-                records = re.db.table(cls.db_table_name).get_all(*refs).coerce_to('array').run()
-            else:
-                records = re.db.table(cls.db_table_name).get_all(*refs, index=index).coerce_to('array').run()
-
-            def create_graphql_type(record):
-                try:
-                    obj = cls(ref=record['ref'], xen=info.context.xen)
-                except AttributeError:
-                    raise NotAuthenticatedException()
-                try:
-                    obj.check_access(action=None, auth=info.context.user_authenticator)
-                except XenAdapterUnauthorizedActionException as e:
-                    return None
-                return cls.GraphQLType(**record)
-
-            return [create_graphql_type(record) for record in records]
+                builder = ChangefeedBuilder(id=refs, info=info)
+                return builder.run_query()
 
         return resolver
 
@@ -278,17 +244,9 @@ class XenObject(metaclass=XenObjectMeta):
 
             :return:
             '''
+            builder = ChangefeedBuilder(id=None, info=info)
+            return builder.run_query()
 
-            query = re.db.table(cls.db_table_name).coerce_to('array')
-
-            if 'page' in kwargs:
-                if 'page_size' in kwargs:
-                    query = do_paging(query, kwargs['page'], kwargs['page_size'])
-                else:
-                    query = do_paging(query, kwargs['page'])
-
-            records = query.run()
-            return [cls.GraphQLType(**record) for record in records]
 
         return resolver
 

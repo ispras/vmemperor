@@ -1,4 +1,5 @@
 import graphene
+from graphene.types.resolver import dict_resolver
 
 
 class ObjectType(graphene.ObjectType):
@@ -16,6 +17,23 @@ class ObjectType(graphene.ObjectType):
 
     def __getitem__(self, item):
         return getattr(self, item)
+
+    @classmethod
+    def __init_subclass_with_meta__(
+        cls,
+        interfaces=(),
+        possible_types=(),
+        default_resolver=None,
+        _meta=None,
+        **options
+    ):
+        super().__init_subclass_with_meta__(
+            interfaces,
+            possible_types,
+            dict_resolver,
+            _meta,
+            **options
+        )
 
 
 class InputObjectType(graphene.InputObjectType):

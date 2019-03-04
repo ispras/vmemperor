@@ -1,3 +1,5 @@
+import asyncio
+
 import graphene
 from graphene import ObjectType
 from rethinkdb import RethinkDB
@@ -74,7 +76,7 @@ def resolve_item_by_key(item_class: type,  table_name : str, key_name:str = 'ref
             if not key:
                 yield None
                 return
-            builder = ChangefeedBuilder(info, main_id=key)
+            builder = ChangefeedBuilder(key, info)
 
             async for change in builder.yield_values():
                 if not change:
@@ -85,7 +87,7 @@ def resolve_item_by_key(item_class: type,  table_name : str, key_name:str = 'ref
                 else:
                     value = change['new_val']
 
-                yield item_class(value)
+                yield value
 
         return Observable.from_future(iterable_to_item())
     return resolve_item
@@ -123,7 +125,7 @@ def resolve_all_items_changes(item_class: type,   table_name : str):
                     else:
                         value = change['new_val']
 
-                    value = item_class(**value)
+                    #value = item_class(**value)
                     yield MakeSubscriptionWithChangeType(item_class)(change_type=str_to_changetype(change['type']),
                                                                      value=value)
 

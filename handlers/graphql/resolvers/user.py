@@ -50,7 +50,7 @@ def resolve_user(field_name = "user_id"):
             return None
 
         record["id"] = id
-        return User(**record)
+        return record
 
     return resolver
 
