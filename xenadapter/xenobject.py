@@ -1,8 +1,7 @@
 import collections
 import json
 from collections import Mapping
-from functools import reduce
-from graphene.types.resolver import dict_resolver
+from graphql import ResolveInfo
 from serflag import SerFlag
 
 import XenAPI
@@ -13,17 +12,16 @@ import pytz
 import constants.re as re
 import constants.auth as auth
 from exc import *
-from authentication import NotAuthenticatedException, \
-    with_default_authentication, BasicAuthenticator
+from authentication import with_default_authentication, BasicAuthenticator
+from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.utils.query import resolve_from_root
 from handlers.graphql.types.accessentry import GAccessEntry
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
-from handlers.graphql.utils.paging import do_paging
 from handlers.graphql.utils.graphql_xenobject import assign_xenobject_type_for_graphql_type
 from handlers.graphql.utils.querybuilder.changefeedbuilder import ChangefeedBuilder
-from handlers.graphql.utils.querybuilder.get_fields import underscore
+from handlers.graphql.utils.type import get_xentype, check_access_of_return_value
 from xenadapter import XenAdapter
 import logging
 from typing import Optional, Type, Collection, Dict
@@ -183,13 +181,16 @@ class XenObject(metaclass=XenObjectMeta):
 
         @with_connection
         @with_default_authentication
-        def resolver(root, info, **kwargs):
+        def resolver(root, info : ResolveInfo, **kwargs):
+            type : "XenObject"  = get_xentype(info.return_type)
+            ctx : ContextProtocol = info.context
             if not root:
                 builder = ChangefeedBuilder(id=kwargs['ref'], info=info)
-                return builder.run_query()
+                ret = builder.run_query()
             else:
                 ret = resolve_from_root(root, info, **kwargs)
-                return ret
+
+            return check_access_of_return_value(ctx, ret, type)
 
         return resolver
 
@@ -211,13 +212,16 @@ class XenObject(metaclass=XenObjectMeta):
         @with_connection
         @with_default_authentication
         def resolver(root, info, **kwargs):
+            type : "XenObject"  = get_xentype(info.return_type)
+            ctx : ContextProtocol = info.context
             if not 'refs' in kwargs:
                 ret =   resolve_from_root(root, info, **kwargs)
-                return ret
             else:
                 refs = kwargs['refs']
                 builder = ChangefeedBuilder(id=refs, info=info)
-                return builder.run_query()
+                ret =  builder.run_query()
+
+            return [check_access_of_return_value(ctx, item, type) for item in ret]
 
         return resolver
 

@@ -1,0 +1,33 @@
+from typing import Type
+
+from graphql import ResolveInfo
+
+from exc import XenAdapterUnauthorizedActionException
+from handlers.graphql.graphql_handler import ContextProtocol
+
+
+def get_xentype(type):
+    while hasattr(type, "of_type"):
+        type = type.of_type
+
+    return type.xentype
+
+
+def check_access_of_return_value(ctx : ContextProtocol, ret, type : Type["XenObject"]):
+    '''
+    Return None if user can't use this resource (by resolver's return value)
+    :param self:
+    :param ctx: GraphQL context (ours)
+    :param ret: value
+    :param type: value type
+    :return:
+    '''
+    if ctx.user_authenticator.is_admin():
+        return ret
+    type_object = type(xen=ctx.xen, ref=ret['ref'])
+    try:
+        type_object.check_access(ctx.user_authenticator, action=None)
+    except XenAdapterUnauthorizedActionException:
+        return None
+    return ret
+
