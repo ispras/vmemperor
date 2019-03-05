@@ -1,8 +1,7 @@
 from enum import auto
 from typing import Union
 
-from handlers.graphql.resolvers.sr import resolve_sr, srType
-from handlers.graphql.resolvers.vm import resolve_vms, vmType
+from handlers.graphql.resolvers.sr import srType
 from handlers.graphql.types.access import create_access_type
 from xenadapter.sr import SR
 from xenadapter.vbd import VBD
@@ -127,7 +126,7 @@ class GVDI(GXenObjectType):
     class Meta:
         interfaces = (GAclXenObject,)
 
-    SR = graphene.Field(srType, resolver=resolve_sr)
+    SR = graphene.Field(srType, resolver=XenObject.resolve_one())
     virtual_size = graphene.Field(graphene.Float, required=True)
     VBDs = graphene.List(GVBD, required=True, resolver=VBD.resolve_one())
 

@@ -1,7 +1,8 @@
 from enum import auto
 
-from handlers.graphql.resolvers.vm import resolve_vms, vmType
-from xenadapter.vif import VIF, GVIF
+
+from xenadapter.vif import VIF
+from handlers.graphql.types.vif import GVIF
 from .xenobject import *
 from xenadapter.helpers import use_logger
 

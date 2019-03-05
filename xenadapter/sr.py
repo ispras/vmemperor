@@ -4,7 +4,7 @@ import graphene
 from serflag import SerFlag
 
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
-from handlers.graphql.resolvers.diskimage import resolve_vdis, vdiType
+from handlers.graphql.resolvers.diskimage import vdiType
 from handlers.graphql.types.accessentry import GAccessEntry
 from handlers.graphql.types.objecttype import ObjectType
 from xenadapter.pbd import GPBD, PBD
@@ -58,7 +58,7 @@ class GSR(GXenObjectType):
                                  required=True, resolver=PBD.resolve_many(),
                                  description="Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI")
 
-    VDIs = graphene.Field(graphene.List(vdiType), resolver=resolve_vdis)
+    VDIs = graphene.Field(graphene.List(vdiType), resolver=XenObject.resolve_many())
     content_type = graphene.Field(SRContentType, required=True)
     type = graphene.Field(graphene.String, required=True)
     physical_size = graphene.Field(graphene.Float, required=True, description="Physical size in kilobytes")

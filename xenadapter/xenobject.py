@@ -163,8 +163,8 @@ class XenObject(metaclass=XenObjectMeta):
         self.access_prefix = 'vm-data/vmemperor/access'
 
 
-    @classmethod
-    def resolve_one(cls, field_name=None):
+    @staticmethod
+    def resolve_one():
         '''
         Use this method to resolve one XenObject that appears in tables as its uuid under its name
         :param field_name: root's field name to use (by default - this class' name)
@@ -176,8 +176,7 @@ class XenObject(metaclass=XenObjectMeta):
         :sa handlers/graphql/resolvers directory - they use index='ref' and load object classes in them to avoid circular dependencies
         '''
 
-        if not field_name:
-            field_name = cls.api_class
+
 
 
         from handlers.graphql.resolvers import with_connection
@@ -189,13 +188,14 @@ class XenObject(metaclass=XenObjectMeta):
                 builder = ChangefeedBuilder(id=kwargs['ref'], info=info)
                 return builder.run_query()
             else:
-                resolve_from_root(root, info, **kwargs)
+                ret = resolve_from_root(root, info, **kwargs)
+                return ret
 
         return resolver
 
 
-    @classmethod
-    def resolve_many(cls, field_name=None):
+    @staticmethod
+    def resolve_many():
         '''
            Use this method to many one XenObject that appears in tables as their  uuids under its name
            :param cls: XenObject class
@@ -207,15 +207,13 @@ class XenObject(metaclass=XenObjectMeta):
            If user does not have access for one of these objects, returns None in its place
            '''
 
-        if not field_name:
-            field_name = f'{cls.api_class}s'
         from handlers.graphql.resolvers import with_connection
-
         @with_connection
         @with_default_authentication
         def resolver(root, info, **kwargs):
             if not 'refs' in kwargs:
-                return  resolve_from_root(root, info, **kwargs)
+                ret =   resolve_from_root(root, info, **kwargs)
+                return ret
             else:
                 refs = kwargs['refs']
                 builder = ChangefeedBuilder(id=refs, info=info)
@@ -223,16 +221,16 @@ class XenObject(metaclass=XenObjectMeta):
 
         return resolver
 
-    @classmethod
-    def resolve_all(cls):
+    @staticmethod
+    def resolve_all():
         '''
         Resolves all objects belonging to a user
         :param cls:
 
         :return:
         '''
-        assert issubclass(cls.GraphQLType, GXenObjectType)
         from handlers.graphql.resolvers import with_connection
+
         @with_connection
         @with_default_authentication
         def resolver(root, info, **kwargs):
@@ -437,50 +435,6 @@ class ACLXenObject(XenObject):
     '''
     ALLOW_EMPTY_OTHERCONFIG = False
 
-
-    @classmethod
-    def resolve_all(cls):
-        '''
-        Resolves all objects belonging to a user
-        :param cls:
-        :return:
-        '''
-
-        from handlers.graphql.resolvers import with_connection
-        @with_connection
-        def resolver(root, info, **kwargs):
-
-            '''
-
-            :param root:
-            :param info:
-            :param kwargs: Optional keyword arguments for pagination: "page" and "page_size"
-
-            :return:
-            '''
-            from constants import user_table_ready
-
-            auth = info.context.user_authenticator
-            if auth.is_admin():
-                query = \
-                    re.db.table(cls.db_table_name).coerce_to('array')
-            else:
-                user_table_ready.wait()
-                user_id = auth.get_id()
-                entities = (f'users/{user_id}', 'any', *(f'groups/{group_id}' for group_id in auth.get_user_groups()))
-                query = \
-                    re.db.table(f'{cls.db_table_name}_user').get_all(*entities, index='userid'). \
-                        pluck('ref').coerce_to('array'). \
-                        merge(re.db.table(cls.db_table_name).get(re.r.row['ref']).without('ref'))
-
-            if 'page' in kwargs:
-                page_size = kwargs['page_size']
-                query = query.slice((kwargs['page'] - 1) * page_size, page_size)
-
-            records = query.run()
-            return [cls.GraphQLType(**record) for record in records]
-
-        return resolver
 
     @classmethod
     def process_record(cls, xen, ref, record):

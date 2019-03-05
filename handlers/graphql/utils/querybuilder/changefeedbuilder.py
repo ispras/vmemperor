@@ -173,9 +173,10 @@ class ChangefeedBuilder:
                     waiter_query = re.db.table(waiter_query_info[0][0]).get_all(*waiter_query_info[0][1])
                     i = 1
                     while i < len(waiter_query_info):
-                        waiter_query = waiter_query.union(re.db.table(waiter_query[i][0]).get_all(*waiter_query_info[i][1]))
+                        waiter_query = waiter_query.union(re.db.table(waiter_query_info[i][0]).get_all(*waiter_query_info[i][1]))
+                        i += 1
 
-                    cursor = await waiter_query.changes().run()
+                    cursor = await waiter_query.changes().run(conn)
                     # await waiter
                     await cursor.next()
                     # Awaited, run main query again

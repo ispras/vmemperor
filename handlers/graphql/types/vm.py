@@ -10,7 +10,8 @@ from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from xenadapter.vbd import VBD
 from handlers.graphql.types.vbd import GVBD
-from xenadapter.vif import GVIF, VIF
+from xenadapter.vif import VIF
+from handlers.graphql.types.vif import GVIF
 from xenadapter.xenobject import XenObject, GAclXenObject
 
 
@@ -126,5 +127,5 @@ class GVM(GXenObjectType):
     os_version = graphene.Field(OSVersion)
     power_state = graphene.Field(PowerState, required=True)
     start_time = graphene.Field(graphene.DateTime, required=True)
-    VIFs = graphene.Field(graphene.List(GVIF), required=True)
-    VBDs = graphene.Field(graphene.List(GVBD), description="Virtual block devices", required=True, resolver=VBD.resolve_many())
+    VIFs = graphene.Field(graphene.List(GVIF), required=True, resolver=XenObject.resolve_many())
+    VBDs = graphene.Field(graphene.List(GVBD), description="Virtual block devices", required=True, resolver=XenObject.resolve_many())

@@ -58,8 +58,8 @@ def collect_fields(node : Field , fragments, return_type, get_field_type):
                     underscore(leaf.name.value): collect_fields(leaf, fragments, get_field_type(return_type[0], leaf), get_field_type)
                 })
             elif isinstance(leaf, FragmentSpread):
-                field.update(collect_fields(fragments,
-                                            fragments[underscore(leaf.name.value)], get_field_type(return_type[0], leaf), get_field_type))
+                field.update(collect_fields(fragments[leaf.name.value],
+                                            fragments, return_type, get_field_type))
     field["_xenobject_type_"] = return_type[0].xentype if hasattr(return_type[0], "xentype") else None
     field["_list_"] = return_type[1]
     return field

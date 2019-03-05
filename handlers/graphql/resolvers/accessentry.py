@@ -11,11 +11,11 @@ def resolve_accessentries(actions_type : Type[SerFlag], access_type : Type[Objec
 
         access = resolve_from_root(root, info, **args)
         if not access:
-            return None
+            return []
 
         def resolve_entry(key, value):
             actions = actions_type.deserialize_distinct(value)
-            return access_type(user_id=key, actions=actions)
+            return {"user_id": key, "actions": actions}
 
         ret =[resolve_entry(k,v) for k,v in access.items()]
         return ret

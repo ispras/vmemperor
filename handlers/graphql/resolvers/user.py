@@ -27,7 +27,7 @@ def resolve_user(field_name = "user_id"):
         if 'id' in kwargs:
             id = kwargs['ref']
         else:
-            id = getattr(root, field_name)
+            id = root[field_name]
 
         tables = {
             "users/" : "users",

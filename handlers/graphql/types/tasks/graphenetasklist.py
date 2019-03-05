@@ -44,7 +44,7 @@ class GrapheneTaskList(TaskList):
             if not record:
                 return None
 
-            return cls.task_type()(**record)
+            return record
 
         return resolver
 
@@ -69,7 +69,7 @@ class GrapheneTaskList(TaskList):
                     query = do_paging(query, kwargs['page'])
 
                 records = query.run()
-                return [cls.task_type()(**record) for record in records]
+                return records
 
         return resolver
 

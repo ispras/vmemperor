@@ -32,8 +32,7 @@ def _resolve_playbook(id):
     data = table.get(id).pluck(*GPlaybook._meta.fields.keys()).run()
     if not data:
         raise ValueError(f"No such playbook: {id}")
-    p = GPlaybook(**data)
-    return p
+    return data
 
 @with_default_authentication
 @with_connection
@@ -49,5 +48,5 @@ def resolve_playbooks(root, info):
     table = r.db(opts.database).table(PlaybookLoader.PLAYBOOK_TABLE_NAME)
     data = table.pluck(*GPlaybook._meta.fields.keys()).coerce_to('array').run()
 
-    return [GPlaybook(**item) for item in data]
+    return data
 

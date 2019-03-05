@@ -70,8 +70,6 @@ def resolve_item_by_key(item_class: type,  table_name : str, key_name:str = 'ref
         :return:
         '''
         async def iterable_to_item():
-            print(get_fields(info))
-
             key = args.get(key_name, None)
             if not key:
                 yield None

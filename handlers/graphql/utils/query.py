@@ -26,6 +26,6 @@ def resolve_table(graphql_type : ObjectType, table_name : str):
                 query = do_paging(query, kwargs['page'])
 
         records = query.run()
-        return [graphql_type(**record) for record in records]
+        return records
 
     return resolver

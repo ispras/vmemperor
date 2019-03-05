@@ -48,7 +48,7 @@ const StorageAttach: React.FunctionComponent<Props> = ({
 
   const notYetConnectedList = useMemo(() => (
       diskImageList.filter(disk =>
-        VBDs.every(VBD => VBD.VDI.ref !== disk.ref))),
+        VBDs.filter(VBD => VBD.VDI).every(VBD => VBD.VDI.ref !== disk.ref))),
     [diskImageList, VBDs]);
 
   return (

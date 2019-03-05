@@ -1,8 +1,8 @@
 import graphene
 import constants.re as re
-from handlers.graphql.resolvers.sr import srType, resolve_sr
+from handlers.graphql.resolvers.sr import srType
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
-from handlers.graphql.resolvers.host import hostType, resolve_host
+from handlers.graphql.resolvers.host import hostType
 from rethinkdb_tools.helper import CHECK_ER
 from .xenobject import XenObject, GXenObject
 import json
@@ -12,9 +12,8 @@ import constants.auth as auth
 class GPool(GXenObjectType):
     class Meta:
         interfaces = (GXenObject,)
-    master = graphene.Field(hostType, description="Pool master",
-                            resolver=lambda *args, **kwargs: resolve_host(field_name='master', *args, **kwargs), required=True)
-    default_SR = graphene.Field(srType, description="Default SR", resolver=resolve_sr)
+    master = graphene.Field(hostType, description="Pool master", resolver=XenObject.resolve_one())
+    default_SR = graphene.Field(srType, description="Default SR", resolver=XenObject.resolve_one())
 
 
 class Pool (XenObject):

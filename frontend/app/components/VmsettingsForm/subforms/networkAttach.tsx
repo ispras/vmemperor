@@ -25,7 +25,7 @@ const NetworkAttach = ({vm: {ref, VIFs}}: Props) => {
   const {data: {networks}} = useQuery<NetworkList.Query, NetworkList.Variables>(NetworkList.Document);
   const notYetConnectedList = useMemo(() => (
       networks.filter(network =>
-        VIFs.every(item => item.network.ref !== network.ref))),
+        VIFs.filter(VIF => VIF.network).every(item => item.network.ref !== network.ref))),
     [VIFs, networks]);
   const onDoubleClick = async (e, row: NetworkListFragment.Fragment, rowIndex) => {
     const taskId = await onAttach({
