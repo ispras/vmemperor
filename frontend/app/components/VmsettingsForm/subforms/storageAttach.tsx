@@ -3,10 +3,10 @@ import NextTable from 'react-bootstrap-table-next';
 import React, {PureComponent, useMemo} from 'react';
 import {sizeFormatter} from "../../../utils/formatters";
 import {ColumnType} from "../../../containers/StatefulTable";
-import {DiskFragment, StorageAttachList, VdiAttach, VmInfoFragment} from "../../../generated-models";
+import {StorageAttachVdiListFragment, VdiAttach, VmInfoFragment} from "../../../generated-models";
 import {useMutation, useQuery} from "react-apollo-hooks";
 
-const columns: ColumnType<DiskFragment.Fragment>[] = [
+const columns: ColumnType<StorageAttachVdiListFragment.Fragment>[] = [
   {
     dataField: 'nameLabel',
     text: 'Name',
@@ -25,7 +25,7 @@ const columns: ColumnType<DiskFragment.Fragment>[] = [
 
 interface Props {
   vm: VmInfoFragment.Fragment;
-  diskImageList: DiskFragment.Fragment[];
+  diskImageList: StorageAttachVdiListFragment.Fragment[];
   caption: string;
 
 }
@@ -37,7 +37,7 @@ const StorageAttach: React.FunctionComponent<Props> = ({
                                                          caption
                                                        }) => {
   const onAttach = useMutation<VdiAttach.Mutation, VdiAttach.Variables>(VdiAttach.Document);
-  const onDoubleClick = async (e, row: DiskFragment.Fragment, rowIndex) => {
+  const onDoubleClick = async (e, row: StorageAttachVdiListFragment.Fragment, rowIndex) => {
     const taskId = await onAttach({
       variables: {
         vmRef: ref,

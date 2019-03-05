@@ -5,7 +5,7 @@ import graphene
 from rethinkdb import RethinkDB
 
 from connman import ReDBConnection
-from xenadapter.disk import ISO
+from xenadapter.disk import VDI
 from xenadapter.network import Network
 
 from handlers.graphql.graphql_handler import ContextProtocol
@@ -41,7 +41,7 @@ class AutoInstall(graphene.InputObjectType):
 
 def createvm(ctx : ContextProtocol, task_id : str, user: str,
              template: str, VCPUs : int, disks : Sequence[NewVDI], ram : int, name_label : str, name_description : str, network : str, iso : str =None, install_params : AutoInstall=None,
-             Template: Template = None, ISO: ISO = None ):
+             Template: Template = None, VDI: VDI = None ):
 
     with ReDBConnection().get_connection():
         xen = XenAdapterPool().get()
@@ -70,7 +70,7 @@ def createvm(ctx : ContextProtocol, task_id : str, user: str,
                 ram_size=ram,
                 net=net,
                 template=Template,
-                iso=ISO,
+                iso=VDI,
                 hostname=install_params.hostname if install_params else None,
                 ip=install_params.static_ip_config if install_params else None,
                 install_url=install_params.mirror_url if install_params else None,
@@ -103,12 +103,13 @@ class CreateVM(graphene.Mutation):
     @staticmethod
     @with_connection
     @with_authentication(access_class=Template, access_action=Template.Actions.clone, id_field="template")
-    @with_authentication(access_class=ISO, access_action=ISO.Actions.plug, id_field="iso")
+    @with_authentication(access_class=VDI, access_action=VDI.Actions.plug, id_field="iso")
     #@with_authentication(access_class=Network, access_action=Network.Actions.)
     def mutate(root, info, *args, **kwargs):
         task_id  = str(uuid.uuid4())
         ctx :ContextProtocol = info.context
-
+        if 'VDI' not in kwargs or kwargs['VDI'].type != 'iso':
+            raise TypeError("VDI argument is not ISO image")
         tornado.ioloop.IOLoop.current().run_in_executor(ctx.executor,
         lambda: createvm(ctx, task_id, user=ctx.user_authenticator.get_id(), *args, **kwargs))
         return CreateVM(task_id=task_id)

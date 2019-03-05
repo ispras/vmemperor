@@ -1,0 +1,18 @@
+fragment StorageAttachVDIListFragment on GVDI {
+  ref
+  nameLabel
+  nameDescription
+  virtualSize
+}
+
+query StorageAttachVDIList {
+  vdis(onlyIsos: false) {
+    ...StorageAttachVDIListFragment
+  }
+}
+
+query StorageAttachISOList {
+  vdis(onlyIsos: true) {
+    ...StorageAttachVDIListFragment
+  }
+}

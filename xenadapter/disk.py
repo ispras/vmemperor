@@ -1,7 +1,7 @@
 from enum import auto
 from typing import Union
 
-from handlers.graphql.resolvers.sr import srType
+from handlers.graphql.resolvers.sr import srType, srContentType
 from handlers.graphql.types.access import create_access_type
 from xenadapter.sr import SR
 from xenadapter.vbd import VBD
@@ -83,8 +83,6 @@ class Attachable:
                 return None
 
 
-
-
     @use_logger
     def _detach(self : XenObject, vm, sync=False):
         vbds = vm.get_VBDs()
@@ -106,7 +104,7 @@ class Attachable:
             raise XenAdapterAPIError(self.log, "Failed to detach disk:", f.details)
 
     @classmethod
-    def SR_type(cls, xen,  record, ref):
+    def SR_type(cls, xen,  record):
         '''
         This method returns SR type of this record
         :param record:
@@ -114,8 +112,6 @@ class Attachable:
         '''
         sr = SR(xen, record['SR'])
         return sr.get_content_type()
-
-
 
 
 GVDIActions = graphene.Enum.from_enum(VDIActions)
@@ -129,37 +125,8 @@ class GVDI(GXenObjectType):
     SR = graphene.Field(srType, resolver=XenObject.resolve_one())
     virtual_size = graphene.Field(graphene.Float, required=True)
     VBDs = graphene.List(GVBD, required=True, resolver=VBD.resolve_one())
+    content_type = graphene.Field(srContentType, required=True)
 
-
-
-class ISO(ACLXenObject, Attachable):
-    '''
-    ISO image. Contrary to VDI which sets permissions on its own, user can only access an ISO if they have 'scan' permissions on the undergoing SR.
-    '''
-    api_class = 'VDI'
-    db_table_name = 'isos'
-    EVENT_CLASSES = ['vdi']
-    GraphQLType = GVDI
-    Actions = VDIActions
-
-    from .vm import VM
-
-    @classmethod
-    def filter_record(cls, xen, record, ref):
-       return cls.SR_type(xen, record, ref) == 'iso'
-
-
-    def attach(self, vm : VM, sync=False) -> VBD:
-        '''
-        Attaches VDI to a vm as RW
-        :param vm:
-        WARNING: It does not check whether self is a real ISO, do it for yourself.
-
-        '''
-        return self._attach(vm, 'CD', 'RO', sync=sync)
-
-    def detach(self, vm: VM, sync=False):
-        return self._detach(vm, sync=sync)
 
 
 class VDI(ACLXenObject, Attachable):
@@ -171,7 +138,7 @@ class VDI(ACLXenObject, Attachable):
 
 
     @classmethod
-    def create(cls, xen, sr_ref, size, access = None, name_label=None):
+    def create(cls, xen, sr_ref, size, access=None, name_label=None):
         """
         Creates a VDI of a certain size in storage repository
         :param sr_ref: Storage Repository ref
@@ -197,10 +164,48 @@ class VDI(ACLXenObject, Attachable):
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(xen.log, "Failed to create VDI:", f.details)
 
+    @classmethod
+    def process_record(cls, xen, ref, record):
+        new_record = super().process_record(xen, ref, record)
+        new_record['content_type'] = Attachable.SR_type(xen, record)
+        return new_record
+
 
     @classmethod
     def filter_record(cls, xen, record, ref):
-        return cls.SR_type(xen, record, ref) != 'iso'
+        return not record['is_a_snapshot']
+
+    @staticmethod
+    def resolve_all():
+        '''
+        Resolves all objects belonging to a user
+        :param cls:
+
+        :return:
+        '''
+        from handlers.graphql.resolvers import with_connection
+
+        @with_connection
+        @with_default_authentication
+        def resolver(root, info, **kwargs):
+            '''
+
+            :param root:
+            :param info:
+            :param kwargs: Optional keyword arguments for pagination: "page" and "page_size"
+
+            :return:
+            '''
+            additional_string = ""
+            if 'only_isos' in kwargs and kwargs['only_isos'] is not None:
+                operator = "==" if kwargs['only_isos'] else '!='
+                additional_string = f".filter(lambda item: item['content_type'] {operator} 'iso')"
+            builder = ChangefeedBuilder(id=None, info=info,additional_string=additional_string)
+            return builder.run_query()
+
+
+        return resolver
+
 
     def destroy(self):
         sr = SR(xen=self.xen, ref=self.get_SR())
@@ -216,19 +221,14 @@ class VDI(ACLXenObject, Attachable):
         :param vm:
         :return:
         '''
-        return self._attach(vm, 'Disk', 'RW', sync=sync)
+        mode = "RO" if self.get_read_only() else "RW"
+        type = "CD" if self.get_content_type() == "iso" else "Disk"
+        return self._attach(vm, type, mode, sync=sync)
+        
 
     def detach(self, vm, sync=False):
         return self._detach(vm, sync=sync)
 
 
-class VDIorISO:
-    def __new__(cls, xen, ref):
-        if re.db.table(ISO.db_table_name).get(ref).run():
-            return ISO(xen, ref)
-        elif re.db.table(VDI.db_table_name).get(ref).run():
-            return VDI(xen,  ref)
-        else:
-            return None
 
 

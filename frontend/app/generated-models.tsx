@@ -377,16 +377,16 @@ export namespace HostListUpdate {
   export type Value = HostListFragment.Fragment;
 }
 
-export namespace IsoList {
+export namespace IsosCreateVmList {
   export type Variables = {};
 
   export type Query = {
     __typename?: "Query";
 
-    isos: (Maybe<Isos>)[];
+    vdis: (Maybe<Vdis>)[];
   };
 
-  export type Isos = IsoListFragment.Fragment;
+  export type Vdis = IsoCreateVmListFragment.Fragment;
 }
 
 export namespace DiskAttachTableSelection {
@@ -757,22 +757,6 @@ export namespace StartVm {
   };
 }
 
-export namespace StorageAttachList {
-  export type Variables = {};
-
-  export type Query = {
-    __typename?: "Query";
-
-    vdis: (Maybe<Vdis>)[];
-
-    isos: (Maybe<Isos>)[];
-  };
-
-  export type Vdis = DiskFragment.Fragment;
-
-  export type Isos = DiskFragment.Fragment;
-}
-
 export namespace StorageList {
   export type Variables = {};
 
@@ -835,6 +819,30 @@ export namespace TemplateList {
   };
 
   export type Templates = TemplateListFragment.Fragment;
+}
+
+export namespace StorageAttachVdiList {
+  export type Variables = {};
+
+  export type Query = {
+    __typename?: "Query";
+
+    vdis: (Maybe<Vdis>)[];
+  };
+
+  export type Vdis = StorageAttachVdiListFragment.Fragment;
+}
+
+export namespace StorageAttachIsoList {
+  export type Variables = {};
+
+  export type Query = {
+    __typename?: "Query";
+
+    vdis: (Maybe<Vdis>)[];
+  };
+
+  export type Vdis = StorageAttachVdiListFragment.Fragment;
 }
 
 export namespace VmInfo {
@@ -957,7 +965,7 @@ export namespace HostListFragment {
   };
 }
 
-export namespace IsoListFragment {
+export namespace IsoCreateVmListFragment {
   export type Fragment = {
     __typename?: "GVDI";
 
@@ -999,7 +1007,7 @@ export namespace PoolListFragment {
   export type Fragment = {
     __typename?: "GPool";
 
-    master: Master;
+    master: Maybe<Master>;
 
     nameLabel: string;
 
@@ -1014,20 +1022,6 @@ export namespace PoolListFragment {
     __typename?: "GHost";
 
     ref: string;
-  };
-}
-
-export namespace DiskFragment {
-  export type Fragment = {
-    __typename?: "GVDI";
-
-    ref: string;
-
-    nameLabel: string;
-
-    nameDescription: string;
-
-    virtualSize: number;
   };
 }
 
@@ -1065,11 +1059,25 @@ export namespace TemplateListFragment {
   };
 }
 
+export namespace StorageAttachVdiListFragment {
+  export type Fragment = {
+    __typename?: "GVDI";
+
+    ref: string;
+
+    nameLabel: string;
+
+    nameDescription: string;
+
+    virtualSize: number;
+  };
+}
+
 export namespace VmvifFragment {
   export type Fragment = {
     __typename?: "GVIF";
 
-    network: Network;
+    network: Maybe<Network>;
 
     ip: Maybe<string>;
 
@@ -1233,9 +1241,9 @@ export namespace HostListFragment {
   `;
 }
 
-export namespace IsoListFragment {
+export namespace IsoCreateVmListFragment {
   export const FragmentDoc = gql`
-    fragment ISOListFragment on GVDI {
+    fragment ISOCreateVMListFragment on GVDI {
       ref
       nameLabel
       SR {
@@ -1272,17 +1280,6 @@ export namespace PoolListFragment {
   `;
 }
 
-export namespace DiskFragment {
-  export const FragmentDoc = gql`
-    fragment DiskFragment on GVDI {
-      ref
-      nameLabel
-      nameDescription
-      virtualSize
-    }
-  `;
-}
-
 export namespace StorageListFragment {
   export const FragmentDoc = gql`
     fragment StorageListFragment on GSR {
@@ -1303,6 +1300,17 @@ export namespace TemplateListFragment {
       ref
       nameLabel
       osKind
+    }
+  `;
+}
+
+export namespace StorageAttachVdiListFragment {
+  export const FragmentDoc = gql`
+    fragment StorageAttachVDIListFragment on GVDI {
+      ref
+      nameLabel
+      nameDescription
+      virtualSize
     }
   `;
 }
@@ -1832,15 +1840,15 @@ export namespace HostListUpdate {
     >(Document, operationOptions);
   }
 }
-export namespace IsoList {
+export namespace IsosCreateVmList {
   export const Document = gql`
-    query ISOList {
-      isos {
-        ...ISOListFragment
+    query ISOSCreateVMList {
+      vdis(onlyIsos: true) {
+        ...ISOCreateVMListFragment
       }
     }
 
-    ${IsoListFragment.FragmentDoc}
+    ${IsoCreateVmListFragment.FragmentDoc}
   `;
   export class Component extends React.Component<
     Partial<ReactApollo.QueryProps<Query, Variables>>
@@ -2784,51 +2792,6 @@ export namespace StartVm {
     );
   }
 }
-export namespace StorageAttachList {
-  export const Document = gql`
-    query StorageAttachList {
-      vdis {
-        ...DiskFragment
-      }
-      isos {
-        ...DiskFragment
-      }
-    }
-
-    ${DiskFragment.FragmentDoc}
-  `;
-  export class Component extends React.Component<
-    Partial<ReactApollo.QueryProps<Query, Variables>>
-  > {
-    render() {
-      return (
-        <ReactApollo.Query<Query, Variables>
-          query={Document}
-          {...(this as any)["props"] as any}
-        />
-      );
-    }
-  }
-  export type Props<TChildProps = any> = Partial<
-    ReactApollo.DataProps<Query, Variables>
-  > &
-    TChildProps;
-  export function HOC<TProps, TChildProps = any>(
-    operationOptions:
-      | ReactApollo.OperationOption<
-          TProps,
-          Query,
-          Variables,
-          Props<TChildProps>
-        >
-      | undefined
-  ) {
-    return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
-      Document,
-      operationOptions
-    );
-  }
-}
 export namespace StorageList {
   export const Document = gql`
     query StorageList {
@@ -2933,6 +2896,90 @@ export namespace TemplateList {
     }
 
     ${TemplateListFragment.FragmentDoc}
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Query<Query, Variables>
+          query={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
+    TChildProps;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace StorageAttachVdiList {
+  export const Document = gql`
+    query StorageAttachVDIList {
+      vdis(onlyIsos: false) {
+        ...StorageAttachVDIListFragment
+      }
+    }
+
+    ${StorageAttachVdiListFragment.FragmentDoc}
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Query<Query, Variables>
+          query={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
+    TChildProps;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace StorageAttachIsoList {
+  export const Document = gql`
+    query StorageAttachISOList {
+      vdis(onlyIsos: true) {
+        ...StorageAttachVDIListFragment
+      }
+    }
+
+    ${StorageAttachVdiListFragment.FragmentDoc}
   `;
   export class Component extends React.Component<
     Partial<ReactApollo.QueryProps<Query, Variables>>
@@ -3226,10 +3273,6 @@ export namespace QueryResolvers {
     vdis?: VdisResolver<(Maybe<Gvdi>)[], TypeParent, Context>;
     /** Information about a single virtual disk image (hard disk) */
     vdi?: VdiResolver<Maybe<Gvdi>, TypeParent, Context>;
-    /** All ISO images available for user */
-    isos?: IsosResolver<(Maybe<Gvdi>)[], TypeParent, Context>;
-    /** Information about a single ISO image */
-    iso?: IsoResolver<Maybe<Gvdi>, TypeParent, Context>;
     /** List of Ansible-powered playbooks */
     playbooks?: PlaybooksResolver<(Maybe<GPlaybook>)[], TypeParent, Context>;
     /** Information about Ansible-powered playbook */
@@ -3276,7 +3319,7 @@ export namespace QueryResolvers {
     VmArgs
   >;
   export interface VmArgs {
-    ref?: Maybe<string>;
+    ref: string;
   }
 
   export type TemplatesResolver<
@@ -3290,7 +3333,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, TemplateArgs>;
   export interface TemplateArgs {
-    ref?: Maybe<string>;
+    ref: string;
   }
 
   export type HostsResolver<
@@ -3304,7 +3347,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, HostArgs>;
   export interface HostArgs {
-    ref?: Maybe<string>;
+    ref: string;
   }
 
   export type PoolsResolver<
@@ -3318,7 +3361,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, PoolArgs>;
   export interface PoolArgs {
-    ref?: Maybe<string>;
+    ref: string;
   }
 
   export type NetworksResolver<
@@ -3332,7 +3375,7 @@ export namespace QueryResolvers {
     Context = {}
   > = Resolver<R, Parent, Context, NetworkArgs>;
   export interface NetworkArgs {
-    ref?: Maybe<string>;
+    ref: string;
   }
 
   export type SrsResolver<
@@ -3347,35 +3390,26 @@ export namespace QueryResolvers {
     SrArgs
   >;
   export interface SrArgs {
-    ref?: Maybe<string>;
+    ref: string;
   }
 
   export type VdisResolver<
     R = (Maybe<Gvdi>)[],
     Parent = {},
     Context = {}
-  > = Resolver<R, Parent, Context>;
+  > = Resolver<R, Parent, Context, VdisArgs>;
+  export interface VdisArgs {
+    /** True - print only ISO images; False - print everything but ISO images; null - print everything */
+    onlyIsos?: Maybe<boolean>;
+  }
+
   export type VdiResolver<
     R = Maybe<Gvdi>,
     Parent = {},
     Context = {}
   > = Resolver<R, Parent, Context, VdiArgs>;
   export interface VdiArgs {
-    ref?: Maybe<string>;
-  }
-
-  export type IsosResolver<
-    R = (Maybe<Gvdi>)[],
-    Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type IsoResolver<
-    R = Maybe<Gvdi>,
-    Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, IsoArgs>;
-  export interface IsoArgs {
-    ref?: Maybe<string>;
+    ref: string;
   }
 
   export type PlaybooksResolver<
@@ -3750,7 +3784,7 @@ export namespace GvifResolvers {
     /** MAC address */
     MAC?: MacResolver<string, TypeParent, Context>;
 
-    VM?: VmResolver<Gvm, TypeParent, Context>;
+    VM?: VmResolver<Maybe<Gvm>, TypeParent, Context>;
     /** Device ID */
     device?: DeviceResolver<string, TypeParent, Context>;
 
@@ -3762,7 +3796,7 @@ export namespace GvifResolvers {
 
     ipv6?: Ipv6Resolver<Maybe<string>, TypeParent, Context>;
 
-    network?: NetworkResolver<GNetwork, TypeParent, Context>;
+    network?: NetworkResolver<Maybe<GNetwork>, TypeParent, Context>;
   }
 
   export type RefResolver<R = string, Parent = Gvif, Context = {}> = Resolver<
@@ -3775,11 +3809,11 @@ export namespace GvifResolvers {
     Parent,
     Context
   >;
-  export type VmResolver<R = Gvm, Parent = Gvif, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
+  export type VmResolver<
+    R = Maybe<Gvm>,
+    Parent = Gvif,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
   export type DeviceResolver<
     R = string,
     Parent = Gvif,
@@ -3806,7 +3840,7 @@ export namespace GvifResolvers {
     Context = {}
   > = Resolver<R, Parent, Context>;
   export type NetworkResolver<
-    R = GNetwork,
+    R = Maybe<GNetwork>,
     Parent = Gvif,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -3954,6 +3988,8 @@ export namespace GvdiResolvers {
     virtualSize?: VirtualSizeResolver<number, TypeParent, Context>;
 
     VBDs?: VbDsResolver<(Maybe<Gvbd>)[], TypeParent, Context>;
+
+    contentType?: ContentTypeResolver<SrContentType, TypeParent, Context>;
   }
 
   export type NameLabelResolver<
@@ -3993,6 +4029,11 @@ export namespace GvdiResolvers {
   > = Resolver<R, Parent, Context>;
   export type VbDsResolver<
     R = (Maybe<Gvbd>)[],
+    Parent = Gvdi,
+    Context = {}
+  > = Resolver<R, Parent, Context>;
+  export type ContentTypeResolver<
+    R = SrContentType,
     Parent = Gvdi,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -4674,7 +4715,7 @@ export namespace GPoolResolvers {
     /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, Context>;
     /** Pool master */
-    master?: MasterResolver<GHost, TypeParent, Context>;
+    master?: MasterResolver<Maybe<GHost>, TypeParent, Context>;
     /** Default SR */
     defaultSr?: DefaultSrResolver<Maybe<Gsr>, TypeParent, Context>;
   }
@@ -4700,7 +4741,7 @@ export namespace GPoolResolvers {
     Context
   >;
   export type MasterResolver<
-    R = GHost,
+    R = Maybe<GHost>,
     Parent = GPool,
     Context = {}
   > = Resolver<R, Parent, Context>;
@@ -5719,10 +5760,6 @@ export interface Query {
   vdis: (Maybe<Gvdi>)[];
   /** Information about a single virtual disk image (hard disk) */
   vdi?: Maybe<Gvdi>;
-  /** All ISO images available for user */
-  isos: (Maybe<Gvdi>)[];
-  /** Information about a single ISO image */
-  iso?: Maybe<Gvdi>;
   /** List of Ansible-powered playbooks */
   playbooks: (Maybe<GPlaybook>)[];
   /** Information about Ansible-powered playbook */
@@ -5838,7 +5875,7 @@ export interface Gvif {
   /** MAC address */
   MAC: string;
 
-  VM: Gvm;
+  VM?: Maybe<Gvm>;
   /** Device ID */
   device: string;
 
@@ -5850,7 +5887,7 @@ export interface Gvif {
 
   ipv6?: Maybe<string>;
 
-  network: GNetwork;
+  network?: Maybe<GNetwork>;
 }
 
 export interface GNetwork extends GAclXenObject {
@@ -5908,6 +5945,8 @@ export interface Gvdi extends GAclXenObject {
   virtualSize: number;
 
   VBDs: (Maybe<Gvbd>)[];
+
+  contentType: SrContentType;
 }
 
 export interface Gsr extends GAclXenObject {
@@ -6107,7 +6146,7 @@ export interface GPool extends GXenObject {
   /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
   /** Pool master */
-  master: GHost;
+  master?: Maybe<GHost>;
   /** Default SR */
   defaultSr?: Maybe<Gsr>;
 }
@@ -6331,28 +6370,29 @@ export interface PlaybookTasksSubscription {
 // ====================================================
 
 export interface VmQueryArgs {
-  ref?: Maybe<string>;
+  ref: string;
 }
 export interface TemplateQueryArgs {
-  ref?: Maybe<string>;
+  ref: string;
 }
 export interface HostQueryArgs {
-  ref?: Maybe<string>;
+  ref: string;
 }
 export interface PoolQueryArgs {
-  ref?: Maybe<string>;
+  ref: string;
 }
 export interface NetworkQueryArgs {
-  ref?: Maybe<string>;
+  ref: string;
 }
 export interface SrQueryArgs {
-  ref?: Maybe<string>;
+  ref: string;
+}
+export interface VdisQueryArgs {
+  /** True - print only ISO images; False - print everything but ISO images; null - print everything */
+  onlyIsos?: Maybe<boolean>;
 }
 export interface VdiQueryArgs {
-  ref?: Maybe<string>;
-}
-export interface IsoQueryArgs {
-  ref?: Maybe<string>;
+  ref: string;
 }
 export interface PlaybookQueryArgs {
   id?: Maybe<string>;

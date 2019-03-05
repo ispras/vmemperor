@@ -53,7 +53,7 @@ class ChangefeedBuilder:
     one of DB objects represented by these values to change. If something changes, it reruns the query.
 
     '''
-    def __init__(self, id : Optional[Union[str, Collection]], info : ResolveInfo, queue: asyncio.Queue = None,  status="initial"):
+    def __init__(self, id : Optional[Union[str, Collection]], info : ResolveInfo, queue: asyncio.Queue = None,  status="initial", additional_string = None):
         '''
 
         :param queue: Queue to put results into. If None, yield_values acts as generator
@@ -63,15 +63,17 @@ class ChangefeedBuilder:
         NB: DO NOT SUBSCRIBE WITH id=None!!! Subscription needs to send one update at a time, i.e. not a list.
          Use a queue parameter instead. Create many ChangefeedBuilder objects that put updates into same queue.
          Using id=None with run_query only is fine.
+         :param additional_string Add string to query. This may be used to support filtering, etc. NB: Don't use with subscriptions.
         '''
+
         self.fields = get_fields(info)
         self.id = id
         self.status = status
         self.paths = {} # Key - JSONPath expression, value - database table name. Contains dependent paths
         self.queue = queue
-        self.query = self.build_query()
+        self.query = self.build_query(additional_string)
 
-    def build_query(self):
+    def build_query(self, additional_string):
 
         query = [f"re.db.table('{self.fields['_xenobject_type_'].db_table_name}')"]
         if isinstance(self.id, str):
@@ -117,6 +119,8 @@ class ChangefeedBuilder:
                         query.append("})")
 
         add_fields(self.fields)
+        if additional_string:
+            query.append(additional_string)
         query = ''.join(query)
         return eval(query)
 

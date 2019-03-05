@@ -7,7 +7,6 @@ from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.resolvers.subscription_utils import MakeSubscription, resolve_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_items_changes
 from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user
-from handlers.graphql.types.input.attachiso import AttachISOMutation
 from handlers.graphql.types.input.attachnet import AttachNetworkMutation
 from handlers.graphql.types.input.attachvdi import AttachVDIMutation
 from handlers.graphql.types.input.createvm import CreateVM
@@ -19,12 +18,13 @@ from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
 from handlers.graphql.types.user import User
 from playbookloader import PlaybookLoader
-from xenadapter.disk import ISO, VDI, GVDI
+from xenadapter.disk import VDI, GVDI
 from xenadapter.host import Host, GHost
 from xenadapter.pool import GPool, Pool
 from xenadapter.task import GTask
 from xenadapter.template import Template, GTemplate
-from xenadapter.sr import SR, GSR
+from xenadapter.sr import SR
+from handlers.graphql.types.sr import GSR
 from xenadapter.vm import VM
 from handlers.graphql.types.vm import GVM
 from xenadapter.network import Network, GNetwork
@@ -55,13 +55,8 @@ class Query(ObjectType):
                              description="All Storage repositories available to user")
     sr = graphene.Field(GSR,  ref=graphene.NonNull(graphene.ID), resolver=SR.resolve_one(), description="Information about a single storage repository")
 
-
-    vdis = graphene.List(GVDI, required=True, resolver=VDI.resolve_all(), description="All Virtual Disk Images (hard disks), available for user")
+    vdis = graphene.Field(graphene.List(GVDI), only_isos=graphene.Boolean(description="True - print only ISO images; False - print everything but ISO images; null - print everything"), required=True, resolver=VDI.resolve_all(), description="All Virtual Disk Images (hard disks), available for user")
     vdi = graphene.Field(GVDI, ref=graphene.NonNull(graphene.ID), resolver=VDI.resolve_one(), description="Information about a single virtual disk image (hard disk)")
-
-    isos = graphene.List(GVDI, required=True, resolver=ISO.resolve_all(), description="All ISO images available for user")
-    iso = graphene.Field(GVDI, ref=graphene.NonNull(graphene.ID), resolver=ISO.resolve_one(),
-                         description="Information about a single ISO image")
 
     playbooks = graphene.List(GPlaybook,  required=True, resolver=resolve_playbooks, description="List of Ansible-powered playbooks")
     playbook = graphene.Field(GPlaybook, id=graphene.ID(), resolver=resolve_playbook,

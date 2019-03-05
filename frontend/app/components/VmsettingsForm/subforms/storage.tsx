@@ -19,10 +19,9 @@ import StatefulTable, {ColumnType} from '../../../containers/StatefulTable';
 import {
   DiskAttachTableSelect, DiskAttachTableSelectAll,
   DiskAttachTableSelection,
-  StorageAttachList,
   VdiDetach,
   VmvbdFragment,
-  VmInfo
+  VmInfo, StorageAttachVdiList, StorageAttachIsoList,
 } from "../../../generated-models";
 import Vm = VmInfo.Vm;
 import {useMutation, useQuery} from "react-apollo-hooks";
@@ -114,8 +113,8 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
       })
   }, [selectedData, vm.ref, tableData]);
 
-  const {data: {isos, vdis}} = useQuery<StorageAttachList.Query, StorageAttachList.Variables>(StorageAttachList.Document);
-
+  const {data: {vdis}} = useQuery<StorageAttachVdiList.Query, StorageAttachVdiList.Variables>(StorageAttachVdiList.Document);
+  const {data: {vdis: isos}} = useQuery<StorageAttachIsoList.Query, StorageAttachIsoList.Variables>(StorageAttachIsoList.Document);
 
   return (
     <React.Fragment>

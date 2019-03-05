@@ -26,10 +26,6 @@ from rethinkdb_tools.helper import CHECK_ER
 from quota import Quota
 from xenadapter import XenAdapter, XenAdapterPool
 from xenadapter.event_queue import EventQueue
-from xenadapter.template import Template
-from xenadapter.vm import VM
-from xenadapter.network import Network
-from xenadapter.disk import ISO, VDI, VDIorISO
 from playbookloader import PlaybookLoader, PlaybookEncoder
 import traceback
 import tornado.web
@@ -40,7 +36,7 @@ from tornado import ioloop
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlencode
 import pickle
-from rethinkdb.errors import ReqlTimeoutError
+from rethinkdb.errors import ReqlTimeoutError, ReqlOpFailedError
 from authentication import BasicAuthenticator
 from loggable import Loggable
 from pathlib import Path
@@ -66,7 +62,7 @@ r = RethinkDB()
 def table_drop(db, table_name):
     try:
         db.table_drop(table_name).run()
-    except r.errors.ReqlOpFailedError as e:
+    except ReqlOpFailedError as e:
         # TODO make logging
         print(e.message)
         r.db('rethinkdb').table('table_config').filter(
