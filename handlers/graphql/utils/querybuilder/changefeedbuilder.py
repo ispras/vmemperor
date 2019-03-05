@@ -53,7 +53,7 @@ class ChangefeedBuilder:
     one of DB objects represented by these values to change. If something changes, it reruns the query.
 
     '''
-    def __init__(self, id : Optional[Union[str, Collection]], info : ResolveInfo, queue: asyncio.Queue = None,  status="initial", additional_string = None):
+    def __init__(self, id : Optional[Union[str, Collection]], info : ResolveInfo, queue: asyncio.Queue = None,  status="initial", additional_string = None, select_subfield=None):
         '''
 
         :param queue: Queue to put results into. If None, yield_values acts as generator
@@ -64,9 +64,9 @@ class ChangefeedBuilder:
          Use a queue parameter instead. Create many ChangefeedBuilder objects that put updates into same queue.
          Using id=None with run_query only is fine.
          :param additional_string Add string to query. This may be used to support filtering, etc. NB: Don't use with subscriptions.
+         :param select_subfield. A list representing path to subfield that is supposed to be analyzed in info
         '''
-
-        self.fields = get_fields(info)
+        self.fields = get_fields(info, select_subfield)
         self.id = id
         self.status = status
         self.paths = {} # Key - JSONPath expression, value - database table name. Contains dependent paths
@@ -140,8 +140,7 @@ class ChangefeedBuilder:
     async def yield_values(self):
         '''
         Asynchronous iterable yielding value based on changes of that query
-        :return: if self.queue is None, it yields values itself, performing as async generator.
-        Else it puts changes into self.queue
+        :return:
         '''
         while True:
             try:
@@ -152,41 +151,64 @@ class ChangefeedBuilder:
                             "type": "remove",
                             "old_val": { "ref" : self.id}
                             }
-
-                        if self.queue:
-                            await self.queue.put(item)
-                        else:
-                            yield item
+                        yield item
                         return
                     else:
                         item = {
                             "type": self.status,
                             "new_val": value
                         }
-                        if self.queue:
-                            await self.queue.put(item)
-                        else:
-                            yield item
+                        yield item
 
                     # Find out all dependent refs
-                    waiter_query_info = [(xenobject.db_table_name, [match.value  for match in
-                                                                    jsonpath_rw.parse(path).find(value)]
-                                          )
-                                         for path, xenobject in self.paths.items()]
-                    # Create a waiter query
-                    waiter_query = re.db.table(waiter_query_info[0][0]).get_all(*waiter_query_info[0][1])
-                    i = 1
-                    while i < len(waiter_query_info):
-                        waiter_query = waiter_query.union(re.db.table(waiter_query_info[i][0]).get_all(*waiter_query_info[i][1]))
-                        i += 1
-
-                    cursor = await waiter_query.changes().run(conn)
-                    # await waiter
-                    await cursor.next()
-                    # Awaited, run main query again
-                    self.status = "change"
+                    await self.wait_for_change(conn, value)
             except asyncio.CancelledError:
                 return
+
+    async def put_values_in_queue(self):
+        '''
+        Just like yield_values, but for self.queue
+        :return:
+        '''
+        while True:
+            try:
+                async with ReDBConnection().get_async_connection() as conn:
+                    value = await self.query.run(conn)
+                    if not value:
+                        item  = {
+                            "type": "remove",
+                            "old_val": { "ref" : self.id}
+                            }
+                        await self.queue.put(item)
+                        return
+                    else:
+                        item = {
+                            "type": self.status,
+                            "new_val": value
+                        }
+                        await self.queue.put(item)
+
+                    # Find out all dependent refs
+                    await self.wait_for_change(conn, value)
+            except asyncio.CancelledError:
+                return
+
+    async def wait_for_change(self, conn, value):
+        waiter_query_info = [(xenobject.db_table_name, [match.value for match in
+                                                        jsonpath_rw.parse(path).find(value)]
+                              )
+                             for path, xenobject in self.paths.items()]
+        # Create a waiter query
+        waiter_query = re.db.table(waiter_query_info[0][0]).get_all(*waiter_query_info[0][1])
+        i = 1
+        while i < len(waiter_query_info):
+            waiter_query = waiter_query.union(re.db.table(waiter_query_info[i][0]).get_all(*waiter_query_info[i][1]))
+            i += 1
+        cursor = await waiter_query.changes().run(conn)
+        # await waiter
+        await cursor.next()
+        # Awaited, run main query again
+        self.status = "change"
 
 
 

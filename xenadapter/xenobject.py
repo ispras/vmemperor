@@ -15,7 +15,7 @@ import constants.auth as auth
 from exc import *
 from authentication import NotAuthenticatedException, \
     with_default_authentication, BasicAuthenticator
-from handlers.graphql.resolvers.query_utils import resolve_from_root
+from handlers.graphql.utils.query import resolve_from_root
 from handlers.graphql.types.accessentry import GAccessEntry
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType

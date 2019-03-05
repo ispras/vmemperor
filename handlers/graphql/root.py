@@ -1,10 +1,10 @@
 import graphene
 
-from graphene import ObjectType, Schema
+from graphene import ObjectType
 
 from handlers.graphql.graphene_with_flags.schema import SchemaWithFlags
 from handlers.graphql.resolvers.console import resolve_console
-from handlers.graphql.resolvers.subscription_utils import MakeSubscription, resolve_item_by_key, \
+from handlers.graphql.utils.subscription import MakeSubscription, resolve_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_items_changes
 from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user
 from handlers.graphql.types.input.attachnet import AttachNetworkMutation
@@ -17,7 +17,6 @@ from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolv
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
 from handlers.graphql.types.user import User
-from playbookloader import PlaybookLoader
 from xenadapter.disk import VDI, GVDI
 from xenadapter.host import Host, GHost
 from xenadapter.pool import GPool, Pool
@@ -31,7 +30,7 @@ from xenadapter.network import Network, GNetwork
 
 from handlers.graphql.types.input.template import TemplateMutation
 from rethinkdb import RethinkDB
-from tornado.options import options as opts
+
 r = RethinkDB()
 
 class Query(ObjectType):

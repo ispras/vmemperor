@@ -274,8 +274,6 @@ class EventLoop(Loggable):
                 cur = query.run()
                 self.log.debug(f"Started access_monitor in thread {threading.get_ident()}")
 
-                def ref_delete(table_user, ref):
-                    CHECK_ER(re.db.table(table_user).get_all(ref, index='ref').delete().run())
 
                 while True:
                     try:
@@ -317,7 +315,7 @@ class EventLoop(Loggable):
                         table = record['old_val']['table']
                         table_user = table + '_user'
                         log.info(f"Deleting access rights for {ref} (table {table})")
-                        CHECK_ER(re.db.table(table_user).get_all(ref, index='ref').delete())
+                        CHECK_ER(re.db.table(table_user).get_all(ref).delete().run())
         except Exception as e:
             self.log.error(f"Exception in access_monitor: {e}")
             capture_exception(e)

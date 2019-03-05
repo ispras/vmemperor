@@ -15,6 +15,16 @@ import XenAPI
 class VDIActions(SerFlag):
     plug = auto()
 
+class VDIType(graphene.Enum):
+    '''
+    VDI class supports only a subset of VDI types, that are listed below.
+    '''
+    System = "system"
+    User = "user"
+    Ephemeral = "ephemeral"
+
+
+
 
 class Attachable:
     import xenadapter.vm
@@ -126,6 +136,7 @@ class GVDI(GXenObjectType):
     virtual_size = graphene.Field(graphene.Float, required=True)
     VBDs = graphene.List(GVBD, required=True, resolver=VBD.resolve_one())
     content_type = graphene.Field(srContentType, required=True)
+    type = graphene.Field(VDIType, required=True)
 
 
 
@@ -173,7 +184,7 @@ class VDI(ACLXenObject, Attachable):
 
     @classmethod
     def filter_record(cls, xen, record, ref):
-        return not record['is_a_snapshot']
+        return not record['is_a_snapshot'] and record['type'] in ('system', 'user', 'ephemeral')
 
     @staticmethod
     def resolve_all():

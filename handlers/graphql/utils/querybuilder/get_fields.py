@@ -18,6 +18,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
+from typing import Optional, List
+
 from graphql import GraphQLList, ResolveInfo
 from graphql.language.ast import Field, FragmentSpread
 from graphql.utils.ast_to_dict import ast_to_dict
@@ -41,6 +43,7 @@ def collect_fields(node : Field , fragments, return_type, get_field_type):
     Args:
         node : A node in the AST
         fragments : Fragment definitions
+        return_type: Type of node
     Returns:
         A dict mapping each field found, along with their sub fields.
         {'name': {},
@@ -65,32 +68,24 @@ def collect_fields(node : Field , fragments, return_type, get_field_type):
     return field
 
 
-def get_fields(info : ResolveInfo):
+def get_fields(info : ResolveInfo, select_subfield : Optional[List] = None ):
     """A convenience function to call collect_fields with info
     Args:
         info (ResolveInfo)
+        select_subfield - path to "root" field in info we call collect_fields against
     Returns:
         dict: Returned from collect_fields
     """
 
     fragments = {}
 
-    #node = ast_to_dict(info.field_asts[0])
 
-
-    for ast in info.field_asts:
-        if ast.name.value == info.field_name:
-            node = ast
-            break
-    else:
-        raise ValueError(f"Unable to find AST for path {info.path}")
-
-    operation_type = info.parent_type
-    #for name, value in info.fragments.items():
-    #    fragments[name] = ast_to_dict(value)
 
     def get_field_type(parent_type, leaf):
         field_def = get_field_def(info.schema, parent_type, leaf)
+        if not field_def:
+            import sentry_sdk
+            sentry_sdk.capture_message("field_def returned None, this is discouraging")
         type = field_def.type
         is_list = False
         while hasattr(type, 'of_type') and type.of_type:
@@ -99,5 +94,19 @@ def get_fields(info : ResolveInfo):
             type = type.of_type
         return type, is_list
 
+    operation_type = info.parent_type
 
-    return collect_fields(node, info.fragments, get_field_type(operation_type, node), get_field_type)
+    for ast in info.field_asts:
+        if ast.name.value == info.field_name:
+            node = ast
+            while select_subfield:
+                current_field = select_subfield.pop(0)
+                operation_type, _ = get_field_type(operation_type, node)
+                node = tuple(filter(lambda selection: selection.name.value == current_field,
+                                    node.selection_set.selections))[0]
+
+            break
+    else:
+        raise ValueError(f"Unable to find AST for path {info.path}")
+    fields = collect_fields(node, info.fragments, get_field_type(operation_type, node), get_field_type)
+    return fields

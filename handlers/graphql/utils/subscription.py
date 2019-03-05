@@ -1,7 +1,9 @@
 import asyncio
+from typing import Dict
 
 import graphene
 from graphene import ObjectType
+from graphql import ResolveInfo
 from rethinkdb import RethinkDB
 from rx import Observable
 from enum import Enum
@@ -29,6 +31,47 @@ def str_to_changetype(s: str) -> Change:
         return Change.Change
     else:
         raise ValueError(f"No such ChangeType: {s}")
+
+
+async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, table_name : str, additional_string: str = None):
+     async with ReDBConnection().get_async_connection() as conn:
+        tasks : Dict[str, asyncio.Task] = {}
+        try:
+            table = re.db.table(table_name)
+            changes = await table.pluck('ref').changes(include_types=True, include_initial=True).run(conn)
+            while True:
+                change = await changes.next()
+                if not change:
+                    break
+                if change['type'] == 'remove':
+                    value = change['old_val']
+                    task = tasks.pop(value['ref'])
+                    if not task.done():
+                        task.cancel()
+
+
+                elif change['type'] == 'change':
+                    print(f"Ref change?: {change}")
+                    continue
+                else:
+                    value = change['new_val']
+                    builder = ChangefeedBuilder(id=value['ref'],
+                                                info=info,
+                                                queue=queue,
+                                                additional_string=additional_string,
+                                                select_subfield=['value']) # { value : {...} <-- this is what we need in info
+
+                    tasks[value['ref']] = asyncio.create_task(builder.put_values_in_queue())
+
+        except asyncio.CancelledError:
+            for task  in tasks.values():
+                task.cancel()
+            return
+        except Exception as e:
+            import sentry_sdk
+            sentry_sdk.capture_exception(e)
+            return
+
 
 def MakeSubscriptionWithChangeType(_class : type) -> type:
     return type(f'{_class.__name__}sSubscription',
@@ -110,22 +153,22 @@ def resolve_all_items_changes(item_class: type,   table_name : str):
         :param info:
         :return:
         '''
+
         async def iterable_to_items():
-            async with ReDBConnection().get_async_connection() as conn:
-                table = re.db.table(table_name)
-                changes = await table.pluck(*item_class._meta.fields.keys()).changes(include_types=True, include_initial=True).run(conn)
+            queue = asyncio.Queue()
+            creator_task = asyncio.create_task(create_single_changefeeds(queue, info, table_name))
+            try:
                 while True:
-                    change = await changes.next()
-                    if not change:
-                        break
+                    change = await queue.get()
                     if change['type'] == 'remove':
                         value = change['old_val']
                     else:
                         value = change['new_val']
-
-                    #value = item_class(**value)
                     yield MakeSubscriptionWithChangeType(item_class)(change_type=str_to_changetype(change['type']),
                                                                      value=value)
+            except asyncio.CancelledError:
+                creator_task.cancel()
+                return
 
         return Observable.from_future(iterable_to_items())
     return resolve_items

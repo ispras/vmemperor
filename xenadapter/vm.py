@@ -121,7 +121,7 @@ class VM (AbstractVM):
                 vif_data[vif_ref][key] = v
 
             documents = [{'ref': key, **value} for key, value in vif_data.items()]
-            CHECK_ER(re.db.table(VIF.db_table_name).insert(documents).run())
+            CHECK_ER(re.db.table(VIF.db_table_name).insert(documents, conflict="update").run())
         except ValueError as e:
             xen.log.warning(f"Can't get network information for VM {vm_ref}")
             capture_exception(e)

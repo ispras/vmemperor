@@ -2,7 +2,7 @@ from typing import Type
 
 from serflag import SerFlag
 
-from handlers.graphql.resolvers.query_utils import resolve_from_root
+from handlers.graphql.utils.query import resolve_from_root
 from handlers.graphql.types.objecttype import ObjectType
 
 

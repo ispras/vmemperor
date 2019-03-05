@@ -1,7 +1,12 @@
+from functools import reduce
+
+from graphql import ResolveInfo
+
 from authentication import with_default_authentication
 from constants import re as re
 from handlers.graphql.types.objecttype import ObjectType
 from handlers.graphql.utils.paging import do_paging
+from handlers.graphql.utils.querybuilder.get_fields import underscore
 
 
 def resolve_table(graphql_type : ObjectType, table_name : str):
@@ -29,3 +34,21 @@ def resolve_table(graphql_type : ObjectType, table_name : str):
         return records
 
     return resolver
+
+
+def resolve_from_root(root, info : ResolveInfo, **kwargs):
+    if not info.field_name:
+        raise ValueError("Cannot find field_name")
+
+    def reducer(object, key):
+        key = underscore(key)  # our JS-optimized api is camelCase while python api is under_score
+        if isinstance(object, dict):
+            return object.get(key)
+        elif isinstance(object, list):
+            return [reducer(item, key) for item in object]
+        elif object is None:
+            return None
+        else:
+            raise ValueError(object)
+
+    return reduce(reducer, [info.field_name], root)
