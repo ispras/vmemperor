@@ -5,8 +5,8 @@ from graphene import ObjectType
 from handlers.graphql.graphene_with_flags.schema import SchemaWithFlags
 from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.utils.query import resolve_all, resolve_one
-from handlers.graphql.utils.subscription import MakeSubscription, resolve_item_by_key, \
-    MakeSubscriptionWithChangeType, resolve_all_items_changes
+from handlers.graphql.utils.subscription import MakeSubscription, resolve_xen_item_by_key, \
+    MakeSubscriptionWithChangeType, resolve_all_xen_items_changes, resolve_item_by_key, resolve_all_items_changes
 from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user
 from handlers.graphql.types.input.attachnet import AttachNetworkMutation
 from handlers.graphql.types.input.attachvdi import AttachVDIMutation
@@ -125,28 +125,28 @@ class Subscription(ObjectType):
 
 
     def resolve_task(*args, **kwargs):
-        return resolve_item_by_key(GTask, 'tasks', key_name='ref')(*args, **kwargs)
+        return resolve_xen_item_by_key()(*args, **kwargs)
 
     def resolve_tasks(*args, **kwargs):
-        return resolve_all_items_changes(GTask, 'tasks')(*args, **kwargs)
+        return resolve_all_xen_items_changes(GTask)(*args, **kwargs)
 
     def resolve_vms(*args, **kwargs):
-        return resolve_all_items_changes(GVM, 'vms')(*args, **kwargs)
+        return resolve_all_xen_items_changes(GVM)(*args, **kwargs)
 
     def resolve_vm(*args, **kwargs):
-        return resolve_item_by_key(GVM, 'vms', key_name='ref')(*args, **kwargs)
+        return resolve_xen_item_by_key()(*args, **kwargs)
 
     def resolve_hosts(*args, **kwargs):
-        return resolve_all_items_changes(GHost, 'hosts')(*args, **kwargs)
+        return resolve_all_xen_items_changes(GHost)(*args, **kwargs)
 
     def resolve_host(*args, **kwargs):
-        return resolve_item_by_key(GHost, 'hosts', key_name='ref')(*args, **kwargs)
+        return resolve_xen_item_by_key()(*args, **kwargs)
 
     def resolve_pools(*args, **kwargs):
-        return resolve_all_items_changes(GPool,  'pools')(*args, **kwargs)
+        return resolve_all_xen_items_changes(GPool)(*args, **kwargs)
 
     def resolve_pool(*args, **kwargs):
-        return resolve_item_by_key(GPool, 'pools', key_name='ref')(*args, **kwargs)
+        return resolve_xen_item_by_key()(*args, **kwargs)
 
     def resolve_playbook_task(*args, **kwargs):
         return resolve_item_by_key(PlaybookTask, 'tasks_playbooks', key_name='id')(*args, **kwargs)
