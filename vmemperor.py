@@ -268,7 +268,7 @@ class EventLoop(Loggable):
                                                                                                                     include_types=True))
                     i += 1
 
-                # indicate that vms_user table is ready
+                # indicate that all users' tables are ready
                 constants.user_table_ready.set()
                 self.log.debug(f"Changes query: {query}")
                 cur = query.run()

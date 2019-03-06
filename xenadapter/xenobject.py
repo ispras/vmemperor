@@ -425,6 +425,8 @@ class ACLXenObject(XenObject):
                     else:
                         if cls.ALLOW_EMPTY_OTHERCONFIG:
                             return {'any':  cls.Actions.ALL.serialize()}
+                        else:
+                            return {}
 
         return read_other_config_access_rights(other_config)
 
@@ -468,13 +470,14 @@ class ACLXenObject(XenObject):
         user_actions: SerFlag = previous_actions.get(user, self.Actions.NONE)
 
         if revoke:
-            user_actions = user_actions ^ action
+            user_actions = user_actions & ~action
         else:
             user_actions = user_actions | action
         if user_actions:
             emperor['access'][auth.name][user] = user_actions.serialize()
         else:
-            del emperor['access'][auth.name][user]
+            if user in emperor['access'][auth.name]:
+                del emperor['access'][auth.name][user]
 
         if not emperor['access'][auth.name]:
             del emperor['access'][auth.name]
