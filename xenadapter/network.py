@@ -1,19 +1,9 @@
 from enum import auto
 
-
+from handlers.graphql.types.network import GNetwork
 from xenadapter.vif import VIF
-from handlers.graphql.types.vif import GVIF
 from .xenobject import *
 from xenadapter.helpers import use_logger
-
-
-class GNetwork(GXenObjectType):
-    class Meta:
-        interfaces = (GAclXenObject,)
-
-    VIFs = graphene.List(GVIF, resolver=VIF.resolve_many())
-    other_config = graphene.JSONString()
-
 
 
 class Network(ACLXenObject):

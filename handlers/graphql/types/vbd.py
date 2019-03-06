@@ -5,6 +5,7 @@ import graphene
 from handlers.graphql.resolvers.diskimage import vdiType
 from handlers.graphql.resolvers.vm import vmType
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
+from handlers.graphql.utils.query import resolve_one
 from xenadapter.xenobject import XenObject
 
 
@@ -43,8 +44,8 @@ class GVBD(GXenObjectType):
     uuid = graphene.Field(graphene.ID, required=True,
                           description="Unique non-primary identifier/object reference")
 
-    VM = graphene.Field(vmType, resolver=XenObject.resolve_one())
-    VDI = graphene.Field(vdiType, resolver=XenObject.resolve_one())
+    VM = graphene.Field(vmType, resolver=resolve_one())
+    VDI = graphene.Field(vdiType, resolver=resolve_one())
     type = graphene.Field(VBDType, required=True)
     mode = graphene.Field(VBDMode, required=True)
     currently_attached = graphene.Field(graphene.Boolean, required=True)

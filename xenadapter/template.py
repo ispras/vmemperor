@@ -6,7 +6,7 @@ from serflag import SerFlag
 
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.types.access import create_access_type
-from xenadapter.xenobject import GAclXenObject
+from handlers.graphql.interfaces.xenobject import GAclXenObject
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from .abstractvm import AbstractVM
 from exc import *

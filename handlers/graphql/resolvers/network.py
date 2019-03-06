@@ -1,3 +1,3 @@
 def networkType():
-    from xenadapter.network import GNetwork
+    from handlers.graphql.types.network import GNetwork
     return GNetwork

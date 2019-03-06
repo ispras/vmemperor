@@ -1,7 +1,6 @@
 import collections
 import json
 from collections import Mapping
-from graphql import ResolveInfo
 from serflag import SerFlag
 
 import XenAPI
@@ -12,21 +11,15 @@ import pytz
 import constants.re as re
 import constants.auth as auth
 from exc import *
-from authentication import with_default_authentication, BasicAuthenticator
-from handlers.graphql.graphql_handler import ContextProtocol
-from handlers.graphql.utils.query import resolve_from_root
-from handlers.graphql.types.accessentry import GAccessEntry
+from authentication import BasicAuthenticator
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
 from handlers.graphql.utils.graphql_xenobject import assign_xenobject_type_for_graphql_type
-from handlers.graphql.utils.querybuilder.changefeedbuilder import ChangefeedBuilder
-from handlers.graphql.utils.type import get_xentype, check_access_of_return_value
 from xenadapter import XenAdapter
 import logging
 from typing import Optional, Type, Collection, Dict
 from xenadapter.helpers import use_logger
-import graphene
 
 
 def dict_deep_convert(d):
@@ -103,14 +96,6 @@ class XenObjectMeta(type):
                 assign_xenobject_type_for_graphql_type(dict['GraphQLType'], cls)
 
 
-
-
-class GXenObject(graphene.Interface):
-    name_label = graphene.Field(graphene.String, required=True, description="a human-readable name")
-    name_description = graphene.Field(graphene.String, required=True, description="a human-readable description")
-    ref = graphene.Field(graphene.ID, required=True, description="Unique constant identifier/object reference (primary)")
-    uuid = graphene.Field(graphene.ID, required=True, description="Unique constant identifier/object reference (used in XenCenter)")
-
 class XenObject(metaclass=XenObjectMeta):
     api_class = None
     GraphQLType : GXenObjectType = None # Specify GraphQL type to access Rethinkdb cache
@@ -160,97 +145,6 @@ class XenObject(metaclass=XenObjectMeta):
 
         self.access_prefix = 'vm-data/vmemperor/access'
 
-
-    @staticmethod
-    def resolve_one():
-        '''
-        Use this method to resolve one XenObject that appears in tables as its uuid under its name
-        :param field_name: root's field name to use (by default - this class' name)
-        :return resolver for one object that either gets one named argument ref or
-        gets ref from root's field named after XenObject class, e.g. for VM it will be
-        root.VM
-        :param index - table's index to use. OVERRIDE WITH CARE, internally we use refs as links between docs, so to use with linked field, call
-        resolve_one(index='ref'). Default is resolving via uuid, as uuid is a primary key there
-        :sa handlers/graphql/resolvers directory - they use index='ref' and load object classes in them to avoid circular dependencies
-        '''
-
-
-
-
-        from handlers.graphql.resolvers import with_connection
-
-        @with_connection
-        @with_default_authentication
-        def resolver(root, info : ResolveInfo, **kwargs):
-            type : "XenObject"  = get_xentype(info.return_type)
-            ctx : ContextProtocol = info.context
-            if not root:
-                builder = ChangefeedBuilder(id=kwargs['ref'], info=info)
-                ret = builder.run_query()
-            else:
-                ret = resolve_from_root(root, info, **kwargs)
-
-            return check_access_of_return_value(ctx, ret, type)
-
-        return resolver
-
-
-    @staticmethod
-    def resolve_many():
-        '''
-           Use this method to many one XenObject that appears in tables as their  uuids under its name
-           :param cls: XenObject class
-           :param graphql_type: graphene type
-           :return resolver for many object that either gets one named argument uuids with list of uuids or
-           gets uuids from root's field named after XenObject class in plural form , e.g. for VM it will be
-           root.VMs
-
-           If user does not have access for one of these objects, returns None in its place
-           '''
-
-        from handlers.graphql.resolvers import with_connection
-        @with_connection
-        @with_default_authentication
-        def resolver(root, info, **kwargs):
-            type : "XenObject"  = get_xentype(info.return_type)
-            ctx : ContextProtocol = info.context
-            if not 'refs' in kwargs:
-                ret =   resolve_from_root(root, info, **kwargs)
-            else:
-                refs = kwargs['refs']
-                builder = ChangefeedBuilder(id=refs, info=info)
-                ret =  builder.run_query()
-
-            return [check_access_of_return_value(ctx, item, type) for item in ret]
-
-        return resolver
-
-    @staticmethod
-    def resolve_all():
-        '''
-        Resolves all objects belonging to a user
-        :param cls:
-
-        :return:
-        '''
-        from handlers.graphql.resolvers import with_connection
-
-        @with_connection
-        @with_default_authentication
-        def resolver(root, info, **kwargs):
-            '''
-
-            :param root:
-            :param info:
-            :param kwargs: Optional keyword arguments for pagination: "page" and "page_size"
-
-            :return:
-            '''
-            builder = ChangefeedBuilder(id=None, info=info)
-            return builder.run_query()
-
-
-        return resolver
 
 
     def check_access(self, auth: BasicAuthenticator,  action):
@@ -423,10 +317,6 @@ class XenObject(metaclass=XenObjectMeta):
                 raise XenAdapterAPIError(self.log, f"Failed to execute {self.api_class}::{name} asynchronously", f.details)
 
         return method
-
-
-class GAclXenObject(GXenObject):
-    access = graphene.List(GAccessEntry, required=True)
 
 
 class ACLXenObject(XenObject):

@@ -2,10 +2,13 @@ import graphene
 import constants.re as re
 from graphene.types.resolver import dict_resolver
 from handlers.graphql.resolvers.vm import vmType
+from handlers.graphql.utils.query import resolve_many
 from rethinkdb_tools.helper import CHECK_ER
-from xenadapter.pbd import GPBD, PBD
+from xenadapter.pbd import PBD
+from handlers.graphql.types.pbd import GPBD
 from xenadapter.xenobjectdict import XenObjectDict
-from .xenobject import XenObject, GXenObject
+from .xenobject import XenObject
+from handlers.graphql.interfaces.xenobject import GXenObject
 from handlers.graphql.types.gxenobjecttype import GXenObjectType, GSubtypeObjectType
 
 
@@ -103,7 +106,7 @@ class GHost(GXenObjectType):
     API_version_minor = graphene.Field(graphene.Int, description="Minor XenAPI version number")
     PBDs = graphene.Field(graphene.List(GPBD),
                                          description="Connections to storage repositories",
-                                         required=True, resolver=PBD.resolve_many())
+                                         required=True, resolver=resolve_many())
     PCIs = graphene.List(graphene.ID, required=True)
     PGPUs = graphene.List(graphene.ID, required=True)
     PIFs = graphene.List(graphene.ID, required=True)
@@ -116,7 +119,7 @@ class GHost(GXenObjectType):
     hostname = graphene.Field(graphene.String, required=True)
     software_version = graphene.Field(SoftwareVersion, required=True)
     resident_VMs = graphene.Field(graphene.List(vmType), required=True, description="VMs currently resident on host",
-                                                                             resolver=XenObject.resolve_many())
+                                                                             resolver=resolve_many())
     metrics = graphene.Field(graphene.ID, required=True)
     memory_total = graphene.Field(graphene.Float, description="Total memory in kilobytes")
     memory_free = graphene.Field(graphene.Float, description="Free memory in kilobytes")

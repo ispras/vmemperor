@@ -1,17 +1,15 @@
-import copy
 from collections import OrderedDict, Collection
-from dataclasses import dataclass
 from typing import Dict, Mapping, Any, Set, List, Tuple, Optional, Union
 from graphql import ResolveInfo
 from functools import reduce
 
 from connman import ReDBConnection
-from handlers.graphql.utils.querybuilder.get_fields import get_fields
 import asyncio
 import  constants.re as re
 import jsonpath_rw
-from jsonpath_rw import Fields, Slice
 
+
+from handlers.graphql.utils.querybuilder.querybuilder import QueryBuilder
 
 
 def deep_get(dictionary : dict, keys):
@@ -62,79 +60,12 @@ class ChangefeedBuilder:
         :param status: status of 1st change to be put in query: one of ("initial", "add")
         NB: DO NOT SUBSCRIBE WITH id=None!!! Subscription needs to send one update at a time, i.e. not a list.
          Use a queue parameter instead. Create many ChangefeedBuilder objects that put updates into same queue.
-         Using id=None with run_query only is fine.
          :param additional_string Add string to query. This may be used to support filtering, etc. NB: Don't use with subscriptions.
          :param select_subfield. A list representing path to subfield that is supposed to be analyzed in info
         '''
-        self.fields = get_fields(info, select_subfield)
-        self.id = id
-        self.status = status
-        self.paths = {} # Key - JSONPath expression, value - database table name. Contains dependent paths
         self.queue = queue
-        self.query = self.build_query(additional_string)
-
-    def build_query(self, additional_string):
-
-        query = [f"re.db.table('{self.fields['_xenobject_type_'].db_table_name}')"]
-        if isinstance(self.id, str):
-            query.append(f".get('{self.id}')")
-        elif isinstance(self.id, Collection):
-            query.append(".get_all(")
-            query.append(','.join((f"'{item}'" for item in self.id)))
-
-
-        def add_fields(fields, prefix=""):
-            '''
-            Populates self.paths - JSONPath expressions for gathering dependent refs
-            and nonlocal query variable to  ReQL query string for this subscription
-
-            :param fields: subdict of self.fields to be processed
-            :param prefix: JSONPath of these fields
-            '''
-            nonlocal query
-
-            self.paths[prefix + 'ref'] = fields['_xenobject_type_']
-            _fields = [field for field in fields if field not in ('_xenobject_type_', '_list_')]
-            if 'ref' not in _fields:
-                _fields.append('ref')
-            #query.append(".pluck(")
-            #query.append(",".join((f"'{item}'" for item in _fields)))
-            #query.append(")")
-            for item in _fields:
-                if item == 'ref':
-                    continue
-                xentype = fields[item]['_xenobject_type_']
-                if xentype:
-                    new_prefix = ''.join((prefix, item))
-
-                    if fields[item]['_list_']:
-                        query.append(f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
-                          f".get_all(re.r.args(value['{item}'])).coerce_to('array')")
-                        add_fields(fields[item], prefix=''.join((new_prefix, "[*].")))
-                        query.append("})")
-                    else:
-                        query.append(f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
-                            f".get(value['{item}'])")
-                        add_fields(fields[item], prefix=''.join((new_prefix, '.')))
-                        query.append("})")
-
-        add_fields(self.fields)
-        if additional_string:
-            query.append(additional_string)
-        query = ''.join(query)
-        return eval(query)
-
-    def run_query(self, connection=None):
-        if isinstance(self.id, str):
-            query = self.query
-        else:
-            query = self.query.coerce_to('array')
-
-        if connection:
-            return query.run(connection)
-
-        return query.run()
-
+        self.builder = QueryBuilder(id, info, None, additional_string, select_subfield)
+        self.status = status
 
 
     async def yield_values(self):
@@ -145,11 +76,11 @@ class ChangefeedBuilder:
         while True:
             try:
                 async with ReDBConnection().get_async_connection() as conn:
-                    value = await  self.query.run(conn)
+                    value = await self.builder.query.run(conn)
                     if not value:
                         item  = {
                             "type": "remove",
-                            "old_val": { "ref" : self.id}
+                            "old_val": { "ref" : self.builder.id}
                             }
                         yield item
                         return
@@ -173,11 +104,11 @@ class ChangefeedBuilder:
         while True:
             try:
                 async with ReDBConnection().get_async_connection() as conn:
-                    value = await self.query.run(conn)
+                    value = await self.builder.query.run(conn)
                     if not value:
                         item  = {
                             "type": "remove",
-                            "old_val": { "ref" : self.id}
+                            "old_val": { "ref" : self.builder.id}
                             }
                         await self.queue.put(item)
                         return
@@ -197,7 +128,7 @@ class ChangefeedBuilder:
         waiter_query_info = [(xenobject.db_table_name, [match.value for match in
                                                         jsonpath_rw.parse(path).find(value)]
                               )
-                             for path, xenobject in self.paths.items()]
+                             for path, xenobject in self.builder.paths.items()]
         # Create a waiter query
         waiter_query = re.db.table(waiter_query_info[0][0]).get_all(*waiter_query_info[0][1])
         i = 1

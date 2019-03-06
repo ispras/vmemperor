@@ -4,6 +4,7 @@ from graphene import ObjectType
 
 from handlers.graphql.graphene_with_flags.schema import SchemaWithFlags
 from handlers.graphql.resolvers.console import resolve_console
+from handlers.graphql.utils.query import resolve_all, resolve_one
 from handlers.graphql.utils.subscription import MakeSubscription, resolve_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_items_changes
 from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user
@@ -17,7 +18,8 @@ from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolv
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
 from handlers.graphql.types.user import User
-from xenadapter.disk import VDI, GVDI
+from xenadapter.disk import VDI
+from handlers.graphql.types.vdi import GVDI
 from xenadapter.host import Host, GHost
 from xenadapter.pool import GPool, Pool
 from xenadapter.task import GTask
@@ -26,7 +28,8 @@ from xenadapter.sr import SR
 from handlers.graphql.types.sr import GSR
 from xenadapter.vm import VM
 from handlers.graphql.types.vm import GVM
-from xenadapter.network import Network, GNetwork
+from xenadapter.network import Network
+from handlers.graphql.types.network import GNetwork
 
 from handlers.graphql.types.input.template import TemplateMutation
 from rethinkdb import RethinkDB
@@ -35,27 +38,27 @@ r = RethinkDB()
 
 class Query(ObjectType):
 
-    vms = graphene.List(GVM, required=True, resolver=VM.resolve_all(), description="All VMs available to user")
-    vm = graphene.Field(GVM, ref=graphene.NonNull(graphene.ID), resolver=VM.resolve_one())
+    vms = graphene.List(GVM, required=True, resolver=resolve_all(), description="All VMs available to user")
+    vm = graphene.Field(GVM, ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
 
-    templates = graphene.List(GTemplate, required=True, resolver=Template.resolve_all(), description="All Templates available to user")
-    template = graphene.Field(GVM,  ref=graphene.NonNull(graphene.ID), resolver=Template.resolve_one())
+    templates = graphene.List(GTemplate, required=True, resolver=resolve_all(), description="All Templates available to user")
+    template = graphene.Field(GVM,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
 
-    hosts = graphene.List(GHost, required=True, resolver=Host.resolve_all())
-    host = graphene.Field(GHost,  ref=graphene.NonNull(graphene.ID), resolver=Host.resolve_one())
+    hosts = graphene.List(GHost, required=True, resolver=resolve_all())
+    host = graphene.Field(GHost,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
 
-    pools = graphene.List(GPool, required=True, resolver=Pool.resolve_all())
-    pool = graphene.Field(GPool, ref=graphene.NonNull(graphene.ID), resolver=Pool.resolve_one())
+    pools = graphene.List(GPool, required=True, resolver=resolve_all())
+    pool = graphene.Field(GPool, ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
 
-    networks = graphene.List(GNetwork, required=True, resolver=Network.resolve_all(), description="All Networks available to user")
-    network = graphene.Field(GNetwork,  ref=graphene.NonNull(graphene.ID), resolver=Network.resolve_one(), description="Information about a single network")
+    networks = graphene.List(GNetwork, required=True, resolver=resolve_all(), description="All Networks available to user")
+    network = graphene.Field(GNetwork,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a single network")
 
-    srs = graphene.List(GSR, required=True, resolver=SR.resolve_all(),
+    srs = graphene.List(GSR, required=True, resolver=resolve_all(),
                              description="All Storage repositories available to user")
-    sr = graphene.Field(GSR,  ref=graphene.NonNull(graphene.ID), resolver=SR.resolve_one(), description="Information about a single storage repository")
+    sr = graphene.Field(GSR,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a single storage repository")
 
     vdis = graphene.Field(graphene.List(GVDI), only_isos=graphene.Boolean(description="True - print only ISO images; False - print everything but ISO images; null - print everything"), required=True, resolver=VDI.resolve_all(), description="All Virtual Disk Images (hard disks), available for user")
-    vdi = graphene.Field(GVDI, ref=graphene.NonNull(graphene.ID), resolver=VDI.resolve_one(), description="Information about a single virtual disk image (hard disk)")
+    vdi = graphene.Field(GVDI, ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a single virtual disk image (hard disk)")
 
     playbooks = graphene.List(GPlaybook,  required=True, resolver=resolve_playbooks, description="List of Ansible-powered playbooks")
     playbook = graphene.Field(GPlaybook, id=graphene.ID(), resolver=resolve_playbook,

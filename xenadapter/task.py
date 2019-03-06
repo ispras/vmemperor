@@ -1,5 +1,6 @@
 import constants.re as re
-from .xenobject import ACLXenObject, GAclXenObject
+from .xenobject import ACLXenObject
+from handlers.graphql.interfaces.xenobject import GAclXenObject
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 import graphene
 

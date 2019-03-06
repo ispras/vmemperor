@@ -8,11 +8,13 @@ from serflag import SerFlag
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
+from handlers.graphql.utils.query import resolve_many
 from xenadapter.vbd import VBD
 from handlers.graphql.types.vbd import GVBD
 from xenadapter.vif import VIF
 from handlers.graphql.types.vif import GVIF
-from xenadapter.xenobject import XenObject, GAclXenObject
+from xenadapter.xenobject import XenObject
+from handlers.graphql.interfaces.xenobject import GAclXenObject
 
 
 @dataclass
@@ -127,5 +129,5 @@ class GVM(GXenObjectType):
     os_version = graphene.Field(OSVersion)
     power_state = graphene.Field(PowerState, required=True)
     start_time = graphene.Field(graphene.DateTime, required=True)
-    VIFs = graphene.Field(graphene.List(GVIF), required=True, resolver=XenObject.resolve_many())
-    VBDs = graphene.Field(graphene.List(GVBD), description="Virtual block devices", required=True, resolver=XenObject.resolve_many())
+    VIFs = graphene.Field(graphene.List(GVIF), required=True, resolver=resolve_many())
+    VBDs = graphene.Field(graphene.List(GVBD), description="Virtual block devices", required=True, resolver=resolve_many())

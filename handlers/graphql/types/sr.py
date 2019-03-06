@@ -8,8 +8,9 @@ from handlers.graphql.resolvers.diskimage import vdiType
 from handlers.graphql.types.accessentry import GAccessEntry
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.objecttype import ObjectType
-from xenadapter.pbd import GPBD, PBD
-from xenadapter.xenobject import GAclXenObject, XenObject
+from handlers.graphql.utils.query import resolve_many
+from handlers.graphql.types.pbd import GPBD
+from handlers.graphql.interfaces.xenobject import GAclXenObject
 
 
 class SRType(graphene.Enum):
@@ -59,10 +60,10 @@ class GSR(GXenObjectType):
     access = graphene.Field(graphene.List(GSRAccessEntry), required=True,
                             resolver=resolve_accessentries(SRActions, GSRAccessEntry))
     PBDs = graphene.Field(graphene.List(GPBD),
-                                 required=True, resolver=PBD.resolve_many(),
+                                 required=True, resolver=resolve_many(),
                                  description="Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI")
 
-    VDIs = graphene.Field(graphene.List(vdiType), resolver=XenObject.resolve_many())
+    VDIs = graphene.Field(graphene.List(vdiType), resolver=resolve_many())
     content_type = graphene.Field(SRContentType, required=True)
     type = graphene.Field(graphene.String, required=True)
     physical_size = graphene.Field(graphene.Float, required=True, description="Physical size in kilobytes")
