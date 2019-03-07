@@ -2,7 +2,7 @@ from typing import Type
 
 from graphql import ResolveInfo
 
-from exc import XenAdapterUnauthorizedActionException
+
 from handlers.graphql.graphql_handler import ContextProtocol
 
 
@@ -25,9 +25,8 @@ def check_access_of_return_value(ctx : ContextProtocol, ret, type : Type["XenObj
     if ctx.user_authenticator.is_admin():
         return ret
     type_object = type(xen=ctx.xen, ref=ret['ref'])
-    try:
-        type_object.check_access(ctx.user_authenticator, action=None)
-    except XenAdapterUnauthorizedActionException:
+
+    if not type_object.check_access(ctx.user_authenticator, action=None):
         return None
     return ret
 

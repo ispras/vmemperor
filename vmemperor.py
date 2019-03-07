@@ -20,7 +20,6 @@ from datetimeencoder import DateTimeEncoder
 from handlers.rest.base import RESTHandler, auth_required, admin_required
 from handlers.graphql.root import schema
 from handlers.rest.console import ConsoleHandler
-from handlers.rest.createvm import CreateVM
 from rethinkdb_tools import db_classes
 from rethinkdb_tools.helper import CHECK_ER
 from quota import Quota
@@ -562,8 +561,6 @@ def make_app(executor, auth_class=None, debug=False):
         (XenAdapter.AUTOINSTALL_PREFIX + r'/([^/]+)', AutoInstall, dict(pool_executor=executor)),
         (constants.POSTINST_ROUTE + r'.*', Postinst, dict(pool_executor=executor)),
         (r'/console.*', ConsoleHandler, dict(pool_executor=executor)),
-        (r'/createvm', CreateVM, dict(pool_executor=executor)),
-
         (r'/list_pools', PoolListPublic, dict(pool_executor=executor)),
         (r'/adminauth', AdminAuth, dict(pool_executor=executor, authenticator=auth_class)),
         (r'/graphql', gql_handler.GraphQLHandler, dict(pool_executor=executor, graphiql=False, schema=schema)),

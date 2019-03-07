@@ -6,7 +6,7 @@ import ldap3.core.exceptions
 import uuid
 import logging
 from exc import *
-
+from exc import AuthenticationPasswordException
 
 
 class LDAPIspAuthenticator(BasicAuthenticator):

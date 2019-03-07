@@ -352,7 +352,7 @@ class ACLXenObject(XenObject):
 
         Implementation details:
         looks for self.db_table_name and then in db to table $(self.db_table_name)_access
-        :raise XenAdapterUnauthorizedActionException - user is not authorized to perform action
+
         with empty=True if XenStore is empty and ALLOW_EMPTY_OTHERCONFIG set to false
 
         '''
@@ -373,10 +373,11 @@ class ACLXenObject(XenObject):
         access_info = access_info['access'] if access_info else None
         if not access_info:
             if self.ALLOW_EMPTY_OTHERCONFIG:
-                    return True
-            raise XenAdapterUnauthorizedActionException(self.log, empty=True,
-                                                        message=f"Unauthorized attempt "
-                                                        f"on object {self} (no info on access rights) by {auth.get_id()} : {action}")
+                self.log.info(f"Access granted to {self} for {auth.get_id()}")
+                return True
+            else:
+                self.log.info(f"Access prohibited to {self} for {auth.get_id()}")
+                return False
 
 
         username = f'users/{auth.get_id()}'
@@ -387,18 +388,11 @@ class ACLXenObject(XenObject):
                     continue
                 available_actions = self.Actions.deserialize(item)
                 if action & available_actions or action == self.Actions.NONE:
+                    self.log.info(f"Access granted to {self} for {auth.get_id()}")
                     return True
 
-
-
-
-
-
-
-        raise XenAdapterUnauthorizedActionException(self.log, empty=False,
-            message=f"Unauthorized attempt on object"
-            f" {self} by {auth.get_id()}{': requested action {action}' if action else ''}")
-
+        self.log.info(f"Access prohibited to {self} for {auth.get_id()}")
+        return False
     @classmethod
     def get_access_data(cls, record):
         '''

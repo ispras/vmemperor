@@ -15,7 +15,6 @@ from tornado.websocket import WebSocketHandler
 from authentication import BasicAuthenticator
 from connman import ReDBConnection
 from constants import first_batch_of_events
-from exc import XenAdapterUnauthorizedActionException, EmperorException
 from loggable import Loggable
 
 
@@ -83,59 +82,8 @@ class BaseHandler(RequestHandler, HandlerMethods):
         self.user_authenticator = Optional[BasicAuthenticator]
 
 
-
-
-
     def get_current_user(self):
         return self.get_secure_cookie("user")
-
-
-    def async_run(self, task_ref):
-        '''
-        Run (wait for end of) asyncronous task (from XenServer)  in executor
-        :param task_ref: Task reference
-        :return:
-        '''
-        ioloop = tornado.ioloop.IOLoop.instance()
-        ioloop.run_in_executor(self.executor, self._run_async_task, task_ref)
-
-
-    def try_xenadapter(self, func, post_hook=None):
-        '''
-        Call a xenadapter method, handle exceptions
-        :param func:
-        :param post_hook: call this function with a xenadapter method's return value and an authenticator object  as arguments argument (optional)        :return:
-        '''
-        auth = self.user_authenticator
-
-        try:
-            ret = func(auth)
-
-        except XenAdapterUnauthorizedActionException as ee:
-            self.set_status(403)
-            self.write(json.dumps({'status': 'not allowed', 'details': ee.message}))
-            self.finish()
-
-
-        except EmperorException as ee:
-            self.set_status(400)
-            self.write(json.dumps({'status': 'error', 'details': ee.message}))
-            self.finish()
-
-
-
-        else:
-            if ret:
-                self.write(ret)
-            else:
-                self.write(json.dumps({'status': 'ok'}))
-
-            self.finish()
-            try:
-                if post_hook:
-                    post_hook(ret, auth)
-            except EmperorException as e:
-                self.log.error("try_xenadapter: exception catched in post_hook: %s" % e.message)
 
 
 class BaseWSHandler(WebSocketHandler, HandlerMethods):

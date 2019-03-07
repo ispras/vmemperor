@@ -15,7 +15,6 @@ from tornado.websocket import WebSocketClosedError
 
 from connman import ReDBConnection
 from consolelist import ConsoleList
-from exc import XenAdapterUnauthorizedActionException, EmperorException
 from handlers.base import BaseWSHandler
 from xenadapter.vm import VM
 

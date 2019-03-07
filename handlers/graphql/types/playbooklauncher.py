@@ -8,10 +8,9 @@ from typing import Optional, Dict, List, Any
 
 import graphene
 import tornado.ioloop
-
+import constants.re as re
 from authentication import with_default_authentication
 from connman import ReDBConnection
-from exc import XenAdapterUnauthorizedActionException
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.resolvers import with_connection
 from handlers.graphql.types.tasks.playbook import PlaybookTaskList, PlaybookTask, PlaybookTaskState
@@ -44,21 +43,19 @@ def launch_playbook(ctx: ContextProtocol, task_id, playbook_id, vms: Optional[Li
 
 
         log.debug("Checking access rights for VMs")
-        def check_access(uuid):
-            _vm = VM(ctx.user_authenticator, uuid=uuid)
-            try:
-                _vm.check_access("playbook")
-            except XenAdapterUnauthorizedActionException:
-                launcher.task_list.upsert_task(ctx.user_authenticator, PlaybookTask(
+        def check_access(ref):
+            _vm = VM(ctx.xen, ref)
+            if not _vm.check_access("playbook"):
+                launcher.task_list.upsert_task(ctx.user_authenticator.get_id(), PlaybookTask(
                     id=task_id, playbook_id=playbook_id, state=PlaybookTaskState.Error,
                     message=f"VM {_vm}: Access denied (for playbook launcher). Needs 'playbook' access"))
+                return
         if vms:
-            for uuid in vms:
-                check_access(uuid)
+            vms = list(filter(check_access, vms))
         else:
             vms = []
         try:
-            table = r.db(opts.database).table(PlaybookLoader.PLAYBOOK_TABLE_NAME)
+            table = re.db(opts.database).table(PlaybookLoader.PLAYBOOK_TABLE_NAME)
             playbook = table.get(playbook_id).run()
 
             temp_dir = tempfile.mkdtemp(prefix='vmemperor-playbook', suffix=playbook_id)
@@ -68,7 +65,7 @@ def launch_playbook(ctx: ContextProtocol, task_id, playbook_id, vms: Optional[Li
             log.debug(f"Copying {playbook_dir} into temporary directory")
             copy_tree(playbook_dir, temp_dir)
             temp_path = Path(temp_dir)
-            vms_table = r.db(opts.database).table('vms')
+            vms_table = re.db(opts.database).table('vms')
             documents = vms_table.get_all(*vms).coerce_to('array').run()
 
             if not playbook['inventory']:
@@ -76,8 +73,8 @@ def launch_playbook(ctx: ContextProtocol, task_id, playbook_id, vms: Optional[Li
                 yaml_hosts = {'all': {'hosts': {}}}
                 for vm in documents:
                     for interface in vm['interfaces'].values():
-                        network = Network(ctx.user_authenticator, ref=interface['network'])
-                        if network.uuid not in opts.ansible_networks:
+                        network = Network(ctx.user_authenticator.get_id(), ref=interface['network'])
+                        if network.get_uuid() not in opts.ansible_networks:
                             log.debug(f"{network} is not a network configured for Ansible. This is probably okay")
                             continue
                         if not 'ip' in interface or not interface['ip']:
@@ -91,7 +88,7 @@ def launch_playbook(ctx: ContextProtocol, task_id, playbook_id, vms: Optional[Li
                     else:
                         log.warning(
                             f"Ignoring VM {vm['uuid']}: not connected to any of 'ansible_networks'. Check your configuration")
-                        launcher.task_list.upsert_task(ctx.user_authenticator, PlaybookTask(
+                        launcher.task_list.upsert_task(ctx.user_authenticator.get_id(), PlaybookTask(
                             id=task_id, playbook_id=playbook_id, state=PlaybookTaskState.ConfigurationWarning,
                             message=f"Could not connect to VM {vm['uuid']}: Not connected to Ansible network")
                         )
@@ -133,7 +130,7 @@ def launch_playbook(ctx: ContextProtocol, task_id, playbook_id, vms: Optional[Li
                 with open(log_path.joinpath('stderr'), 'w') as _stderr:
 
                     log.debug(f"Running {cmd_line} in {cwd}. Log path: {log_path}")
-                    launcher.task_list.upsert_task(ctx.user_authenticator, PlaybookTask(id=task_id, playbook_id=playbook_id,
+                    launcher.task_list.upsert_task(ctx.user_authenticator.get_id(), PlaybookTask(id=task_id, playbook_id=playbook_id,
                                                                                         state=PlaybookTaskState.Running,
                                                                                         message=f"Task is currently running"))
                     proc = subprocess.run(cmd_line,
@@ -141,7 +138,7 @@ def launch_playbook(ctx: ContextProtocol, task_id, playbook_id, vms: Optional[Li
                                              env={"ANSIBLE_HOST_KEY_CHECKING": "False"})
 
                     return_code = proc.returncode
-                    launcher.task_list.upsert_task(ctx.user_authenticator,
+                    launcher.task_list.upsert_task(ctx.user_authenticator.get_id(),
                                                    PlaybookTask(id=task_id, playbook_id=playbook_id,
                                                                 state=PlaybookTaskState.Finished if return_code == 0 else PlaybookTaskState.Error,
                                                                 message=f"Task is finished with exit code {return_code}"))
@@ -149,7 +146,7 @@ def launch_playbook(ctx: ContextProtocol, task_id, playbook_id, vms: Optional[Li
             log.info(f'Finished with return code {return_code}. Logs are available in {log_path}')
         except Exception as e:
             excString = str(e).replace('\n', ' ')
-            launcher.task_list.upsert_task(ctx.user_authenticator,
+            launcher.task_list.upsert_task(ctx.user_authenticator.get_id(),
                                            PlaybookTask(id=task_id, playbook_id=playbook_id, state=PlaybookTaskState.Error,
                                                         message=f"Exception: {excString}"))
             log.error(f"Exception: {excString}")
@@ -169,15 +166,23 @@ class PlaybookLaunchMutation(graphene.Mutation):
     @with_default_authentication
     @with_connection
     def mutate(root, info, id, vms=None, variables=None):
+        '''
+        Lauch a specified playbooks
+        :param root:
+        :param info:
+        :param id: Playbook to launch
+        :param vms: VM refs to launch playbook on. If None, don't generate an inventory file
+        :param variables:
+        :return:
+        '''
         ctx : ContextProtocol = info.context
-        r = RethinkDB()
-        table = r.db(opts.database).table(PlaybookLoader.PLAYBOOK_TABLE_NAME)
+        table = re.db(opts.database).table(PlaybookLoader.PLAYBOOK_TABLE_NAME)
         data = table.get(id).pluck('id').coerce_to('array').run()
         if not data:
             raise ValueError(f"No such playbook: {id}")
         task_id = str(uuid.uuid4())
         task_list = PlaybookTaskList()
-        task_list.upsert_task(ctx.user_authenticator, PlaybookTask(
+        task_list.upsert_task(ctx.user_authenticator.get_id(), PlaybookTask(
             id=task_id, playbook_id=id, state=PlaybookTaskState.Preparing, message=""))
         tornado.ioloop.IOLoop.current().run_in_executor(ctx.executor,
                                                         lambda: launch_playbook(ctx, task_id, id, vms, variables))

@@ -6,6 +6,7 @@ import graphene
 from graphene import ObjectType
 from graphql import ResolveInfo
 from rethinkdb import RethinkDB
+from rethinkdb.errors import ReqlOpFailedError
 from rx import Observable
 from enum import Enum
 import constants.re as re
@@ -55,7 +56,10 @@ async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, use
 
             changes = await table.pluck('ref').changes(include_types=True, include_initial=True).run(conn)
             while True:
-                change = await changes.next()
+                try:
+                    change = await changes.next()
+                except ReqlOpFailedError:
+                    return
                 if not change:
                     break
                 if change['type'] == 'remove':

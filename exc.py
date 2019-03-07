@@ -4,7 +4,6 @@ r = RethinkDB()
 import tornado.options as opts
 __all__ = ['EmperorException',
            'XenAdapterException',
-           'XenAdapterUnauthorizedActionException',
            'XenAdapterAPIError', 'XenAdapterArgumentError', 'XenAdapterConnectionError',
            'AuthenticationException', 'AuthenticationRealmException',  'AuthenticationUserNotFoundException', 'AuthenticationWithEmptyPasswordException']
 class EmperorException(Exception):
@@ -26,10 +25,7 @@ class XenAdapterException(EmperorException):
 class XenAdapterConnectionError(XenAdapterException):
     pass
 
-class XenAdapterUnauthorizedActionException(XenAdapterException):
-    def __init__(self, log, message, empty):
-        super().__init__(log, message)
-        self.empty = empty
+
 
 class XenAdapterAPIError(XenAdapterException):
     def __init__(self, log, message, details=None):

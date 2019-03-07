@@ -92,7 +92,12 @@ class ChangefeedBuilder:
                         yield item
 
                     # Find out all dependent refs
-                    await self.wait_for_change(conn, value)
+                    deleted = await self.wait_for_change(conn, value)
+                    if deleted:
+                        yield  deleted
+                        if isinstance(self.builder.id, str):
+                            return
+
             except asyncio.CancelledError:
                 return
 
@@ -120,7 +125,11 @@ class ChangefeedBuilder:
                         await self.queue.put(item)
 
                     # Find out all dependent refs
-                    await self.wait_for_change(conn, value)
+                    deleted = await self.wait_for_change(conn, value)
+                    if deleted:
+                        yield  deleted
+                        if isinstance(self.builder.id, str):
+                            return
             except asyncio.CancelledError:
                 return
 
@@ -137,8 +146,18 @@ class ChangefeedBuilder:
             i += 1
         cursor = await waiter_query.changes().run(conn)
         # await waiter
-        await cursor.next()
+        change = await cursor.next()
         # Awaited, run main query again
+        if change['type'] == 'remove':
+            old_ref = change['old_val']['ref']
+            if isinstance(self.builder.id, Collection) and old_ref in self.builder.id:
+                self.builder.id = list(filter(lambda item: item != old_ref, self.builder.id))
+            return {
+                            "type": "remove",
+                            "old_val": { "ref" : old_ref}
+            }
+
+
         self.status = "change"
 
 
