@@ -5,7 +5,7 @@ export const useReactSelectFromRecord = <T extends ListItem>(dataSource: T[],
                                                              labelFunction: (item: T) => string = null,
                                                              filterFunction: (item: T) => boolean = null) => {
   if (!labelFunction) { // Default is using nameLabel
-    labelFunction = (item: T) => item.nameLabel || item.nameDescription || item.uuid ? `No name (UUID: ${item.uuid})` : `No name (Ref: ${item.ref})`;
+    labelFunction = (item: T) => item.nameLabel || item.nameDescription || `No name (Ref: ${item.ref})`;
   }
   if (!filterFunction)
     filterFunction = (item) => true;

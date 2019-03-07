@@ -127,7 +127,7 @@ class ChangefeedBuilder:
                     # Find out all dependent refs
                     deleted = await self.wait_for_change(conn, value)
                     if deleted:
-                        yield  deleted
+                        await self.queue.put(deleted)
                         if isinstance(self.builder.id, str):
                             return
             except asyncio.CancelledError:
@@ -144,7 +144,7 @@ class ChangefeedBuilder:
         while i < len(waiter_query_info):
             waiter_query = waiter_query.union(re.db.table(waiter_query_info[i][0]).get_all(*waiter_query_info[i][1]))
             i += 1
-        cursor = await waiter_query.changes().run(conn)
+        cursor = await waiter_query.changes(include_types=True).run(conn)
         # await waiter
         change = await cursor.next()
         # Awaited, run main query again

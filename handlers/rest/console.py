@@ -102,7 +102,6 @@ class ConsoleHandler(BaseWSHandler):
                         notok = b'200 OK' not in data
                         if notok:
                             self.log.error(f"Unable to open VNC Console {self.request.uri}: Error: {data}")
-                            self.write_message(data)
                             self.close()
                             return
                         else:
