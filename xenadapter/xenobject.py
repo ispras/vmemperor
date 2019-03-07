@@ -177,7 +177,7 @@ class XenObject(metaclass=XenObjectMeta):
 
             if event['operation'] in ('mod', 'add'):
                 new_rec = cls.process_record(xen, event['ref'], record)
-                CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
+                CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='replace').run())
 
                 if 'current_operations' in record and isinstance(record['current_operations'], Mapping):
                     task_docs = [{
@@ -185,7 +185,7 @@ class XenObject(metaclass=XenObjectMeta):
                         "object": cls.__name__,
                         "type": v
                     } for k, v in record['current_operations'].items()]
-                    CHECK_ER(re.db.table(Task.db_table_name).insert(task_docs, conflict='update').run())
+                    CHECK_ER(re.db.table(Task.db_table_name).insert(task_docs, conflict='replace').run())
 
     @classmethod
     def create_db(cls, indexes=None):
@@ -427,6 +427,11 @@ class ACLXenObject(XenObject):
                             return {'any':  cls.Actions.ALL.serialize()}
                         else:
                             return {}
+            else:
+                if cls.ALLOW_EMPTY_OTHERCONFIG:
+                    return {'any':  cls.Actions.ALL.serialize()}
+                else:
+                    return {}
 
         return read_other_config_access_rights(other_config)
 

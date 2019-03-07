@@ -128,6 +128,6 @@ class GVM(GXenObjectType):
     metrics = graphene.Field(graphene.ID, required=True)
     os_version = graphene.Field(OSVersion)
     power_state = graphene.Field(PowerState, required=True)
-    start_time = graphene.Field(graphene.DateTime, required=True)
+    start_time = graphene.Field(graphene.DateTime)
     VIFs = graphene.Field(graphene.List(GVIF), required=True, resolver=resolve_many())
     VBDs = graphene.Field(graphene.List(GVBD), description="Virtual block devices", required=True, resolver=resolve_many())

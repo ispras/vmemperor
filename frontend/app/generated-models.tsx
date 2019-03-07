@@ -140,6 +140,12 @@ export enum SrContentType {
   Disk = "Disk",
   Iso = "ISO"
 }
+/** VDI class supports only a subset of VDI types, that are listed below. */
+export enum VdiType {
+  System = "System",
+  User = "User",
+  Ephemeral = "Ephemeral"
+}
 
 export enum VbdType {
   Cd = "CD",
@@ -369,12 +375,20 @@ export namespace HostListUpdate {
   export type Hosts = {
     __typename?: "GHostsSubscription";
 
-    value: Value;
+    value: Maybe<Value>;
 
     changeType: Change;
+
+    deleted: Maybe<Deleted>;
   };
 
   export type Value = HostListFragment.Fragment;
+
+  export type Deleted = {
+    __typename?: "Deleted";
+
+    ref: string;
+  };
 }
 
 export namespace IsosCreateVmList {
@@ -693,12 +707,20 @@ export namespace PoolListUpdate {
   export type Pools = {
     __typename?: "GPoolsSubscription";
 
-    value: Value;
+    value: Maybe<Value>;
+
+    deleted: Maybe<Deleted>;
 
     changeType: Change;
   };
 
   export type Value = PoolListFragment.Fragment;
+
+  export type Deleted = {
+    __typename?: "Deleted";
+
+    ref: string;
+  };
 }
 
 export namespace RebootVm {
@@ -781,7 +803,9 @@ export namespace Tasks {
   export type Tasks = {
     __typename?: "GTasksSubscription";
 
-    value: Value;
+    value: Maybe<Value>;
+
+    deleted: Maybe<Deleted>;
 
     changeType: Change;
   };
@@ -806,6 +830,12 @@ export namespace Tasks {
     result: Maybe<string>;
 
     residentOn: Maybe<string>;
+  };
+
+  export type Deleted = {
+    __typename?: "Deleted";
+
+    ref: string;
   };
 }
 
@@ -897,12 +927,20 @@ export namespace VmListUpdate {
   export type Vms = {
     __typename?: "GVMsSubscription";
 
-    value: Value;
+    value: Maybe<Value>;
+
+    deleted: Maybe<Deleted>;
 
     changeType: Change;
   };
 
   export type Value = VmListFragment.Fragment;
+
+  export type Deleted = {
+    __typename?: "Deleted";
+
+    ref: string;
+  };
 }
 
 export namespace HostListFragment {
@@ -1169,7 +1207,7 @@ export namespace VmInfoFragment {
 
     osVersion: Maybe<OsVersion>;
 
-    startTime: DateTime;
+    startTime: Maybe<DateTime>;
 
     domainType: DomainType;
 
@@ -1201,10 +1239,9 @@ export namespace VmListFragment {
   };
 }
 
-import * as ReactApollo from "react-apollo";
-import * as React from "react";
-
 import gql from "graphql-tag";
+import * as React from "react";
+import * as ReactApollo from "react-apollo";
 
 // ====================================================
 // Fragments
@@ -1801,6 +1838,9 @@ export namespace HostListUpdate {
           ...HostListFragment
         }
         changeType
+        deleted {
+          ref
+        }
       }
     }
 
@@ -2629,6 +2669,9 @@ export namespace PoolListUpdate {
         value {
           ...PoolListFragment
         }
+        deleted {
+          ref
+        }
         changeType
       }
     }
@@ -2848,6 +2891,9 @@ export namespace Tasks {
           progress
           result
           residentOn
+        }
+        deleted {
+          ref
         }
         changeType
       }
@@ -3148,6 +3194,9 @@ export namespace VmListUpdate {
         value {
           ...VMListFragment
         }
+        deleted {
+          ref
+        }
         changeType
       }
     }
@@ -3194,24 +3243,24 @@ import {
   GraphQLScalarTypeConfig
 } from "graphql";
 
-export type Resolver<Result, Parent = {}, Context = {}, Args = {}> = (
+export type Resolver<Result, Parent = {}, TContext = {}, Args = {}> = (
   parent: Parent,
   args: Args,
-  context: Context,
+  context: TContext,
   info: GraphQLResolveInfo
 ) => Promise<Result> | Result;
 
-export interface ISubscriptionResolverObject<Result, Parent, Context, Args> {
+export interface ISubscriptionResolverObject<Result, Parent, TContext, Args> {
   subscribe<R = Result, P = Parent>(
     parent: P,
     args: Args,
-    context: Context,
+    context: TContext,
     info: GraphQLResolveInfo
   ): AsyncIterator<R | Result> | Promise<AsyncIterator<R | Result>>;
   resolve?<R = Result, P = Parent>(
     parent: P,
     args: Args,
-    context: Context,
+    context: TContext,
     info: GraphQLResolveInfo
   ): R | Result | Promise<R | Result>;
 }
@@ -3219,17 +3268,17 @@ export interface ISubscriptionResolverObject<Result, Parent, Context, Args> {
 export type SubscriptionResolver<
   Result,
   Parent = {},
-  Context = {},
+  TContext = {},
   Args = {}
 > =
   | ((
       ...args: any[]
-    ) => ISubscriptionResolverObject<Result, Parent, Context, Args>)
-  | ISubscriptionResolverObject<Result, Parent, Context, Args>;
+    ) => ISubscriptionResolverObject<Result, Parent, TContext, Args>)
+  | ISubscriptionResolverObject<Result, Parent, TContext, Args>;
 
-export type TypeResolveFn<Types, Parent = {}, Context = {}> = (
+export type TypeResolveFn<Types, Parent = {}, TContext = {}> = (
   parent: Parent,
-  context: Context,
+  context: TContext,
   info: GraphQLResolveInfo
 ) => Maybe<Types>;
 
@@ -3244,78 +3293,78 @@ export type DirectiveResolverFn<TResult, TArgs = {}, TContext = {}> = (
 ) => TResult | Promise<TResult>;
 
 export namespace QueryResolvers {
-  export interface Resolvers<Context = {}, TypeParent = {}> {
+  export interface Resolvers<TContext = {}, TypeParent = {}> {
     /** All VMs available to user */
-    vms?: VmsResolver<(Maybe<Gvm>)[], TypeParent, Context>;
+    vms?: VmsResolver<(Maybe<Gvm>)[], TypeParent, TContext>;
 
-    vm?: VmResolver<Maybe<Gvm>, TypeParent, Context>;
+    vm?: VmResolver<Maybe<Gvm>, TypeParent, TContext>;
     /** All Templates available to user */
-    templates?: TemplatesResolver<(Maybe<GTemplate>)[], TypeParent, Context>;
+    templates?: TemplatesResolver<(Maybe<GTemplate>)[], TypeParent, TContext>;
 
-    template?: TemplateResolver<Maybe<Gvm>, TypeParent, Context>;
+    template?: TemplateResolver<Maybe<Gvm>, TypeParent, TContext>;
 
-    hosts?: HostsResolver<(Maybe<GHost>)[], TypeParent, Context>;
+    hosts?: HostsResolver<(Maybe<GHost>)[], TypeParent, TContext>;
 
-    host?: HostResolver<Maybe<GHost>, TypeParent, Context>;
+    host?: HostResolver<Maybe<GHost>, TypeParent, TContext>;
 
-    pools?: PoolsResolver<(Maybe<GPool>)[], TypeParent, Context>;
+    pools?: PoolsResolver<(Maybe<GPool>)[], TypeParent, TContext>;
 
-    pool?: PoolResolver<Maybe<GPool>, TypeParent, Context>;
+    pool?: PoolResolver<Maybe<GPool>, TypeParent, TContext>;
     /** All Networks available to user */
-    networks?: NetworksResolver<(Maybe<GNetwork>)[], TypeParent, Context>;
+    networks?: NetworksResolver<(Maybe<GNetwork>)[], TypeParent, TContext>;
     /** Information about a single network */
-    network?: NetworkResolver<Maybe<GNetwork>, TypeParent, Context>;
+    network?: NetworkResolver<Maybe<GNetwork>, TypeParent, TContext>;
     /** All Storage repositories available to user */
-    srs?: SrsResolver<(Maybe<Gsr>)[], TypeParent, Context>;
+    srs?: SrsResolver<(Maybe<Gsr>)[], TypeParent, TContext>;
     /** Information about a single storage repository */
-    sr?: SrResolver<Maybe<Gsr>, TypeParent, Context>;
+    sr?: SrResolver<Maybe<Gsr>, TypeParent, TContext>;
     /** All Virtual Disk Images (hard disks), available for user */
-    vdis?: VdisResolver<(Maybe<Gvdi>)[], TypeParent, Context>;
+    vdis?: VdisResolver<(Maybe<Gvdi>)[], TypeParent, TContext>;
     /** Information about a single virtual disk image (hard disk) */
-    vdi?: VdiResolver<Maybe<Gvdi>, TypeParent, Context>;
+    vdi?: VdiResolver<Maybe<Gvdi>, TypeParent, TContext>;
     /** List of Ansible-powered playbooks */
-    playbooks?: PlaybooksResolver<(Maybe<GPlaybook>)[], TypeParent, Context>;
+    playbooks?: PlaybooksResolver<(Maybe<GPlaybook>)[], TypeParent, TContext>;
     /** Information about Ansible-powered playbook */
-    playbook?: PlaybookResolver<Maybe<GPlaybook>, TypeParent, Context>;
+    playbook?: PlaybookResolver<Maybe<GPlaybook>, TypeParent, TContext>;
     /** Info about a playbook task */
     playbookTask?: PlaybookTaskResolver<
       Maybe<PlaybookTask>,
       TypeParent,
-      Context
+      TContext
     >;
     /** All Playbook Tasks */
     playbookTasks?: PlaybookTasksResolver<
       (Maybe<PlaybookTask>)[],
       TypeParent,
-      Context
+      TContext
     >;
     /** One-time link to RFB console for a VM */
-    console?: ConsoleResolver<Maybe<string>, TypeParent, Context>;
+    console?: ConsoleResolver<Maybe<string>, TypeParent, TContext>;
     /** All registered users (excluding root) */
-    users?: UsersResolver<(Maybe<User>)[], TypeParent, Context>;
+    users?: UsersResolver<(Maybe<User>)[], TypeParent, TContext>;
     /** All registered groups */
-    groups?: GroupsResolver<(Maybe<User>)[], TypeParent, Context>;
+    groups?: GroupsResolver<(Maybe<User>)[], TypeParent, TContext>;
     /** User or group information */
-    user?: UserResolver<Maybe<User>, TypeParent, Context>;
+    user?: UserResolver<Maybe<User>, TypeParent, TContext>;
 
-    selectedItems?: SelectedItemsResolver<string[], TypeParent, Context>;
+    selectedItems?: SelectedItemsResolver<string[], TypeParent, TContext>;
 
     vmSelectedReadyFor?: VmSelectedReadyForResolver<
       VmSelectedIdLists,
       TypeParent,
-      Context
+      TContext
     >;
   }
 
   export type VmsResolver<
     R = (Maybe<Gvm>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type VmResolver<R = Maybe<Gvm>, Parent = {}, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VmResolver<R = Maybe<Gvm>, Parent = {}, TContext = {}> = Resolver<
     R,
     Parent,
-    Context,
+    TContext,
     VmArgs
   >;
   export interface VmArgs {
@@ -3325,13 +3374,13 @@ export namespace QueryResolvers {
   export type TemplatesResolver<
     R = (Maybe<GTemplate>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type TemplateResolver<
     R = Maybe<Gvm>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, TemplateArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, TemplateArgs>;
   export interface TemplateArgs {
     ref: string;
   }
@@ -3339,13 +3388,13 @@ export namespace QueryResolvers {
   export type HostsResolver<
     R = (Maybe<GHost>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type HostResolver<
     R = Maybe<GHost>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, HostArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, HostArgs>;
   export interface HostArgs {
     ref: string;
   }
@@ -3353,13 +3402,13 @@ export namespace QueryResolvers {
   export type PoolsResolver<
     R = (Maybe<GPool>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PoolResolver<
     R = Maybe<GPool>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, PoolArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, PoolArgs>;
   export interface PoolArgs {
     ref: string;
   }
@@ -3367,13 +3416,13 @@ export namespace QueryResolvers {
   export type NetworksResolver<
     R = (Maybe<GNetwork>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NetworkResolver<
     R = Maybe<GNetwork>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, NetworkArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, NetworkArgs>;
   export interface NetworkArgs {
     ref: string;
   }
@@ -3381,12 +3430,12 @@ export namespace QueryResolvers {
   export type SrsResolver<
     R = (Maybe<Gsr>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type SrResolver<R = Maybe<Gsr>, Parent = {}, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SrResolver<R = Maybe<Gsr>, Parent = {}, TContext = {}> = Resolver<
     R,
     Parent,
-    Context,
+    TContext,
     SrArgs
   >;
   export interface SrArgs {
@@ -3396,8 +3445,8 @@ export namespace QueryResolvers {
   export type VdisResolver<
     R = (Maybe<Gvdi>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VdisArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VdisArgs>;
   export interface VdisArgs {
     /** True - print only ISO images; False - print everything but ISO images; null - print everything */
     onlyIsos?: Maybe<boolean>;
@@ -3406,8 +3455,8 @@ export namespace QueryResolvers {
   export type VdiResolver<
     R = Maybe<Gvdi>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VdiArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VdiArgs>;
   export interface VdiArgs {
     ref: string;
   }
@@ -3415,13 +3464,13 @@ export namespace QueryResolvers {
   export type PlaybooksResolver<
     R = (Maybe<GPlaybook>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PlaybookResolver<
     R = Maybe<GPlaybook>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, PlaybookArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, PlaybookArgs>;
   export interface PlaybookArgs {
     id?: Maybe<string>;
   }
@@ -3429,8 +3478,8 @@ export namespace QueryResolvers {
   export type PlaybookTaskResolver<
     R = Maybe<PlaybookTask>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, PlaybookTaskArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, PlaybookTaskArgs>;
   export interface PlaybookTaskArgs {
     id: string;
   }
@@ -3438,13 +3487,13 @@ export namespace QueryResolvers {
   export type PlaybookTasksResolver<
     R = (Maybe<PlaybookTask>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ConsoleResolver<
     R = Maybe<string>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, ConsoleArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, ConsoleArgs>;
   export interface ConsoleArgs {
     vmRef: string;
   }
@@ -3452,18 +3501,18 @@ export namespace QueryResolvers {
   export type UsersResolver<
     R = (Maybe<User>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type GroupsResolver<
     R = (Maybe<User>)[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type UserResolver<
     R = Maybe<User>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, UserArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, UserArgs>;
   export interface UserArgs {
     id?: Maybe<string>;
   }
@@ -3471,8 +3520,8 @@ export namespace QueryResolvers {
   export type SelectedItemsResolver<
     R = string[],
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, SelectedItemsArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, SelectedItemsArgs>;
   export interface SelectedItemsArgs {
     tableId: Table;
   }
@@ -3480,1454 +3529,1481 @@ export namespace QueryResolvers {
   export type VmSelectedReadyForResolver<
     R = VmSelectedIdLists,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvmResolvers {
-  export interface Resolvers<Context = {}, TypeParent = Gvm> {
+  export interface Resolvers<TContext = {}, TypeParent = Gvm> {
     /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    nameLabel?: NameLabelResolver<string, TypeParent, TContext>;
     /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    nameDescription?: NameDescriptionResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (primary) */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (used in XenCenter) */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    access?: AccessResolver<(Maybe<GvmAccessEntry>)[], TypeParent, Context>;
+    access?: AccessResolver<(Maybe<GvmAccessEntry>)[], TypeParent, TContext>;
     /** True if PV drivers are up to date, reported if Guest Additions are installed */
     PVDriversUpToDate?: PvDriversUpToDateResolver<
       Maybe<boolean>,
       TypeParent,
-      Context
+      TContext
     >;
     /** PV drivers version, if available */
     PVDriversVersion?: PvDriversVersionResolver<
       Maybe<PvDriversVersion>,
       TypeParent,
-      Context
+      TContext
     >;
 
-    VCPUsAtStartup?: VcpUsAtStartupResolver<number, TypeParent, Context>;
+    VCPUsAtStartup?: VcpUsAtStartupResolver<number, TypeParent, TContext>;
 
-    VCPUsMax?: VcpUsMaxResolver<number, TypeParent, Context>;
+    VCPUsMax?: VcpUsMaxResolver<number, TypeParent, TContext>;
 
-    domainType?: DomainTypeResolver<DomainType, TypeParent, Context>;
+    domainType?: DomainTypeResolver<DomainType, TypeParent, TContext>;
 
-    guestMetrics?: GuestMetricsResolver<string, TypeParent, Context>;
+    guestMetrics?: GuestMetricsResolver<string, TypeParent, TContext>;
 
-    installTime?: InstallTimeResolver<DateTime, TypeParent, Context>;
+    installTime?: InstallTimeResolver<DateTime, TypeParent, TContext>;
 
-    memoryActual?: MemoryActualResolver<number, TypeParent, Context>;
+    memoryActual?: MemoryActualResolver<number, TypeParent, TContext>;
 
-    memoryStaticMin?: MemoryStaticMinResolver<number, TypeParent, Context>;
+    memoryStaticMin?: MemoryStaticMinResolver<number, TypeParent, TContext>;
 
-    memoryStaticMax?: MemoryStaticMaxResolver<number, TypeParent, Context>;
+    memoryStaticMax?: MemoryStaticMaxResolver<number, TypeParent, TContext>;
 
-    memoryDynamicMin?: MemoryDynamicMinResolver<number, TypeParent, Context>;
+    memoryDynamicMin?: MemoryDynamicMinResolver<number, TypeParent, TContext>;
 
-    memoryDynamicMax?: MemoryDynamicMaxResolver<number, TypeParent, Context>;
+    memoryDynamicMax?: MemoryDynamicMaxResolver<number, TypeParent, TContext>;
 
-    metrics?: MetricsResolver<string, TypeParent, Context>;
+    metrics?: MetricsResolver<string, TypeParent, TContext>;
 
-    osVersion?: OsVersionResolver<Maybe<OsVersion>, TypeParent, Context>;
+    osVersion?: OsVersionResolver<Maybe<OsVersion>, TypeParent, TContext>;
 
-    powerState?: PowerStateResolver<PowerState, TypeParent, Context>;
+    powerState?: PowerStateResolver<PowerState, TypeParent, TContext>;
 
-    startTime?: StartTimeResolver<DateTime, TypeParent, Context>;
+    startTime?: StartTimeResolver<Maybe<DateTime>, TypeParent, TContext>;
 
-    VIFs?: ViFsResolver<(Maybe<Gvif>)[], TypeParent, Context>;
+    VIFs?: ViFsResolver<(Maybe<Gvif>)[], TypeParent, TContext>;
     /** Virtual block devices */
-    VBDs?: VbDsResolver<(Maybe<Gvbd>)[], TypeParent, Context>;
+    VBDs?: VbDsResolver<(Maybe<Gvbd>)[], TypeParent, TContext>;
   }
 
   export type NameLabelResolver<
     R = string,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NameDescriptionResolver<
     R = string,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type RefResolver<R = string, Parent = Gvm, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = Gvm, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type UuidResolver<R = string, Parent = Gvm, Context = {}> = Resolver<
+  export type UuidResolver<R = string, Parent = Gvm, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
   export type AccessResolver<
     R = (Maybe<GvmAccessEntry>)[],
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PvDriversUpToDateResolver<
     R = Maybe<boolean>,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PvDriversVersionResolver<
     R = Maybe<PvDriversVersion>,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VcpUsAtStartupResolver<
     R = number,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VcpUsMaxResolver<
     R = number,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type DomainTypeResolver<
     R = DomainType,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type GuestMetricsResolver<
     R = string,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type InstallTimeResolver<
     R = DateTime,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MemoryActualResolver<
     R = number,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MemoryStaticMinResolver<
     R = number,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MemoryStaticMaxResolver<
     R = number,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MemoryDynamicMinResolver<
     R = number,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MemoryDynamicMaxResolver<
     R = number,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MetricsResolver<
     R = string,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type OsVersionResolver<
     R = Maybe<OsVersion>,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PowerStateResolver<
     R = PowerState,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type StartTimeResolver<
-    R = DateTime,
+    R = Maybe<DateTime>,
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ViFsResolver<
     R = (Maybe<Gvif>)[],
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VbDsResolver<
     R = (Maybe<Gvbd>)[],
     Parent = Gvm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace UserResolvers {
-  export interface Resolvers<Context = {}, TypeParent = User> {
-    id?: IdResolver<string, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = User> {
+    id?: IdResolver<string, TypeParent, TContext>;
 
-    name?: NameResolver<string, TypeParent, Context>;
+    name?: NameResolver<string, TypeParent, TContext>;
 
-    username?: UsernameResolver<string, TypeParent, Context>;
+    username?: UsernameResolver<string, TypeParent, TContext>;
   }
 
-  export type IdResolver<R = string, Parent = User, Context = {}> = Resolver<
+  export type IdResolver<R = string, Parent = User, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type NameResolver<R = string, Parent = User, Context = {}> = Resolver<
+  export type NameResolver<R = string, Parent = User, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
   export type UsernameResolver<
     R = string,
     Parent = User,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvmAccessEntryResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GvmAccessEntry> {
-    userId?: UserIdResolver<User, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = GvmAccessEntry> {
+    userId?: UserIdResolver<User, TypeParent, TContext>;
 
-    actions?: ActionsResolver<(Maybe<VmActions>)[], TypeParent, Context>;
+    actions?: ActionsResolver<(Maybe<VmActions>)[], TypeParent, TContext>;
   }
 
   export type UserIdResolver<
     R = User,
     Parent = GvmAccessEntry,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ActionsResolver<
     R = (Maybe<VmActions>)[],
     Parent = GvmAccessEntry,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** Drivers version. We don't want any fancy resolver except for the thing that we know that it's a dict in VM document */
 export namespace PvDriversVersionResolvers {
-  export interface Resolvers<Context = {}, TypeParent = PvDriversVersion> {
-    major?: MajorResolver<Maybe<number>, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = PvDriversVersion> {
+    major?: MajorResolver<Maybe<number>, TypeParent, TContext>;
 
-    minor?: MinorResolver<Maybe<number>, TypeParent, Context>;
+    minor?: MinorResolver<Maybe<number>, TypeParent, TContext>;
 
-    micro?: MicroResolver<Maybe<number>, TypeParent, Context>;
+    micro?: MicroResolver<Maybe<number>, TypeParent, TContext>;
 
-    build?: BuildResolver<Maybe<number>, TypeParent, Context>;
+    build?: BuildResolver<Maybe<number>, TypeParent, TContext>;
   }
 
   export type MajorResolver<
     R = Maybe<number>,
     Parent = PvDriversVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MinorResolver<
     R = Maybe<number>,
     Parent = PvDriversVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MicroResolver<
     R = Maybe<number>,
     Parent = PvDriversVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type BuildResolver<
     R = Maybe<number>,
     Parent = PvDriversVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** OS version reported by Xen tools */
 export namespace OsVersionResolvers {
-  export interface Resolvers<Context = {}, TypeParent = OsVersion> {
-    name?: NameResolver<Maybe<string>, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = OsVersion> {
+    name?: NameResolver<Maybe<string>, TypeParent, TContext>;
 
-    uname?: UnameResolver<Maybe<string>, TypeParent, Context>;
+    uname?: UnameResolver<Maybe<string>, TypeParent, TContext>;
 
-    distro?: DistroResolver<Maybe<string>, TypeParent, Context>;
+    distro?: DistroResolver<Maybe<string>, TypeParent, TContext>;
 
-    major?: MajorResolver<Maybe<number>, TypeParent, Context>;
+    major?: MajorResolver<Maybe<number>, TypeParent, TContext>;
 
-    minor?: MinorResolver<Maybe<number>, TypeParent, Context>;
+    minor?: MinorResolver<Maybe<number>, TypeParent, TContext>;
   }
 
   export type NameResolver<
     R = Maybe<string>,
     Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type UnameResolver<
     R = Maybe<string>,
     Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type DistroResolver<
     R = Maybe<string>,
     Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MajorResolver<
     R = Maybe<number>,
     Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MinorResolver<
     R = Maybe<number>,
     Parent = OsVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvifResolvers {
-  export interface Resolvers<Context = {}, TypeParent = Gvif> {
+  export interface Resolvers<TContext = {}, TypeParent = Gvif> {
     /** Unique constant identifier/object reference (primary) */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** MAC address */
-    MAC?: MacResolver<string, TypeParent, Context>;
+    MAC?: MacResolver<string, TypeParent, TContext>;
 
-    VM?: VmResolver<Maybe<Gvm>, TypeParent, Context>;
+    VM?: VmResolver<Maybe<Gvm>, TypeParent, TContext>;
     /** Device ID */
-    device?: DeviceResolver<string, TypeParent, Context>;
+    device?: DeviceResolver<string, TypeParent, TContext>;
 
-    currentlyAttached?: CurrentlyAttachedResolver<boolean, TypeParent, Context>;
+    currentlyAttached?: CurrentlyAttachedResolver<
+      boolean,
+      TypeParent,
+      TContext
+    >;
 
-    ip?: IpResolver<Maybe<string>, TypeParent, Context>;
+    ip?: IpResolver<Maybe<string>, TypeParent, TContext>;
 
-    ipv4?: Ipv4Resolver<Maybe<string>, TypeParent, Context>;
+    ipv4?: Ipv4Resolver<Maybe<string>, TypeParent, TContext>;
 
-    ipv6?: Ipv6Resolver<Maybe<string>, TypeParent, Context>;
+    ipv6?: Ipv6Resolver<Maybe<string>, TypeParent, TContext>;
 
-    network?: NetworkResolver<Maybe<GNetwork>, TypeParent, Context>;
+    network?: NetworkResolver<Maybe<GNetwork>, TypeParent, TContext>;
   }
 
-  export type RefResolver<R = string, Parent = Gvif, Context = {}> = Resolver<
+  export type RefResolver<R = string, Parent = Gvif, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type MacResolver<R = string, Parent = Gvif, Context = {}> = Resolver<
+  export type MacResolver<R = string, Parent = Gvif, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
   export type VmResolver<
     R = Maybe<Gvm>,
     Parent = Gvif,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type DeviceResolver<
     R = string,
     Parent = Gvif,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type CurrentlyAttachedResolver<
     R = boolean,
     Parent = Gvif,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type IpResolver<
     R = Maybe<string>,
     Parent = Gvif,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type Ipv4Resolver<
     R = Maybe<string>,
     Parent = Gvif,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type Ipv6Resolver<
     R = Maybe<string>,
     Parent = Gvif,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NetworkResolver<
     R = Maybe<GNetwork>,
     Parent = Gvif,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GNetworkResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GNetwork> {
+  export interface Resolvers<TContext = {}, TypeParent = GNetwork> {
     /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    nameLabel?: NameLabelResolver<string, TypeParent, TContext>;
     /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    nameDescription?: NameDescriptionResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (primary) */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (used in XenCenter) */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
+    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, TContext>;
 
-    VIFs?: ViFsResolver<Maybe<(Maybe<Gvif>)[]>, TypeParent, Context>;
+    VIFs?: ViFsResolver<Maybe<(Maybe<Gvif>)[]>, TypeParent, TContext>;
 
-    otherConfig?: OtherConfigResolver<Maybe<JsonString>, TypeParent, Context>;
+    otherConfig?: OtherConfigResolver<Maybe<JsonString>, TypeParent, TContext>;
   }
 
   export type NameLabelResolver<
     R = string,
     Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NameDescriptionResolver<
     R = string,
     Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type RefResolver<
     R = string,
     Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type UuidResolver<
     R = string,
     Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type AccessResolver<
     R = (Maybe<GAccessEntry>)[],
     Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ViFsResolver<
     R = Maybe<(Maybe<Gvif>)[]>,
     Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type OtherConfigResolver<
     R = Maybe<JsonString>,
     Parent = GNetwork,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvbdResolvers {
-  export interface Resolvers<Context = {}, TypeParent = Gvbd> {
+  export interface Resolvers<TContext = {}, TypeParent = Gvbd> {
     /** Unique constant identifier/object reference */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique non-primary identifier/object reference */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    VM?: VmResolver<Maybe<Gvm>, TypeParent, Context>;
+    VM?: VmResolver<Maybe<Gvm>, TypeParent, TContext>;
 
-    VDI?: VdiResolver<Maybe<Gvdi>, TypeParent, Context>;
+    VDI?: VdiResolver<Maybe<Gvdi>, TypeParent, TContext>;
 
-    type?: TypeResolver<VbdType, TypeParent, Context>;
+    type?: TypeResolver<VbdType, TypeParent, TContext>;
 
-    mode?: ModeResolver<VbdMode, TypeParent, Context>;
+    mode?: ModeResolver<VbdMode, TypeParent, TContext>;
 
-    currentlyAttached?: CurrentlyAttachedResolver<boolean, TypeParent, Context>;
+    currentlyAttached?: CurrentlyAttachedResolver<
+      boolean,
+      TypeParent,
+      TContext
+    >;
 
-    bootable?: BootableResolver<boolean, TypeParent, Context>;
+    bootable?: BootableResolver<boolean, TypeParent, TContext>;
 
-    userdevice?: UserdeviceResolver<number, TypeParent, Context>;
+    userdevice?: UserdeviceResolver<number, TypeParent, TContext>;
   }
 
-  export type RefResolver<R = string, Parent = Gvbd, Context = {}> = Resolver<
+  export type RefResolver<R = string, Parent = Gvbd, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type UuidResolver<R = string, Parent = Gvbd, Context = {}> = Resolver<
+  export type UuidResolver<R = string, Parent = Gvbd, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
   export type VmResolver<
     R = Maybe<Gvm>,
     Parent = Gvbd,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VdiResolver<
     R = Maybe<Gvdi>,
     Parent = Gvbd,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type TypeResolver<R = VbdType, Parent = Gvbd, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
-  export type ModeResolver<R = VbdMode, Parent = Gvbd, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TypeResolver<
+    R = VbdType,
+    Parent = Gvbd,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ModeResolver<
+    R = VbdMode,
+    Parent = Gvbd,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type CurrentlyAttachedResolver<
     R = boolean,
     Parent = Gvbd,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type BootableResolver<
     R = boolean,
     Parent = Gvbd,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type UserdeviceResolver<
     R = number,
     Parent = Gvbd,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvdiResolvers {
-  export interface Resolvers<Context = {}, TypeParent = Gvdi> {
+  export interface Resolvers<TContext = {}, TypeParent = Gvdi> {
     /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    nameLabel?: NameLabelResolver<string, TypeParent, TContext>;
     /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    nameDescription?: NameDescriptionResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (primary) */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (used in XenCenter) */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
+    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, TContext>;
 
-    SR?: SrResolver<Maybe<Gsr>, TypeParent, Context>;
+    SR?: SrResolver<Maybe<Gsr>, TypeParent, TContext>;
 
-    virtualSize?: VirtualSizeResolver<number, TypeParent, Context>;
+    virtualSize?: VirtualSizeResolver<number, TypeParent, TContext>;
 
-    VBDs?: VbDsResolver<(Maybe<Gvbd>)[], TypeParent, Context>;
+    VBDs?: VbDsResolver<(Maybe<Gvbd>)[], TypeParent, TContext>;
 
-    contentType?: ContentTypeResolver<SrContentType, TypeParent, Context>;
+    contentType?: ContentTypeResolver<SrContentType, TypeParent, TContext>;
+
+    type?: TypeResolver<VdiType, TypeParent, TContext>;
   }
 
   export type NameLabelResolver<
     R = string,
     Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NameDescriptionResolver<
     R = string,
     Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type RefResolver<R = string, Parent = Gvdi, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = Gvdi, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type UuidResolver<R = string, Parent = Gvdi, Context = {}> = Resolver<
+  export type UuidResolver<R = string, Parent = Gvdi, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
   export type AccessResolver<
     R = (Maybe<GAccessEntry>)[],
     Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type SrResolver<
     R = Maybe<Gsr>,
     Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VirtualSizeResolver<
     R = number,
     Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VbDsResolver<
     R = (Maybe<Gvbd>)[],
     Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ContentTypeResolver<
     R = SrContentType,
     Parent = Gvdi,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TypeResolver<
+    R = VdiType,
+    Parent = Gvdi,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GsrResolvers {
-  export interface Resolvers<Context = {}, TypeParent = Gsr> {
+  export interface Resolvers<TContext = {}, TypeParent = Gsr> {
     /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    nameLabel?: NameLabelResolver<string, TypeParent, TContext>;
     /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    nameDescription?: NameDescriptionResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (primary) */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (used in XenCenter) */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    access?: AccessResolver<(Maybe<GsrAccessEntry>)[], TypeParent, Context>;
+    access?: AccessResolver<(Maybe<GsrAccessEntry>)[], TypeParent, TContext>;
     /** Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI */
-    PBDs?: PbDsResolver<(Maybe<Gpbd>)[], TypeParent, Context>;
+    PBDs?: PbDsResolver<(Maybe<Gpbd>)[], TypeParent, TContext>;
 
-    VDIs?: VdIsResolver<Maybe<(Maybe<Gvdi>)[]>, TypeParent, Context>;
+    VDIs?: VdIsResolver<Maybe<(Maybe<Gvdi>)[]>, TypeParent, TContext>;
 
-    contentType?: ContentTypeResolver<SrContentType, TypeParent, Context>;
+    contentType?: ContentTypeResolver<SrContentType, TypeParent, TContext>;
 
-    type?: TypeResolver<string, TypeParent, Context>;
+    type?: TypeResolver<string, TypeParent, TContext>;
     /** Physical size in kilobytes */
-    physicalSize?: PhysicalSizeResolver<number, TypeParent, Context>;
+    physicalSize?: PhysicalSizeResolver<number, TypeParent, TContext>;
     /** Virtual allocation in kilobytes */
-    virtualAllocation?: VirtualAllocationResolver<number, TypeParent, Context>;
+    virtualAllocation?: VirtualAllocationResolver<number, TypeParent, TContext>;
     /** This SR contains XenServer Tools */
-    isToolsSr?: IsToolsSrResolver<boolean, TypeParent, Context>;
+    isToolsSr?: IsToolsSrResolver<boolean, TypeParent, TContext>;
     /** Physical utilisation in bytes */
     physicalUtilisation?: PhysicalUtilisationResolver<
       number,
       TypeParent,
-      Context
+      TContext
     >;
     /** Available space in bytes */
-    spaceAvailable?: SpaceAvailableResolver<number, TypeParent, Context>;
+    spaceAvailable?: SpaceAvailableResolver<number, TypeParent, TContext>;
   }
 
   export type NameLabelResolver<
     R = string,
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NameDescriptionResolver<
     R = string,
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type RefResolver<R = string, Parent = Gsr, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = Gsr, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type UuidResolver<R = string, Parent = Gsr, Context = {}> = Resolver<
+  export type UuidResolver<R = string, Parent = Gsr, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
   export type AccessResolver<
     R = (Maybe<GsrAccessEntry>)[],
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PbDsResolver<
     R = (Maybe<Gpbd>)[],
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VdIsResolver<
     R = Maybe<(Maybe<Gvdi>)[]>,
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ContentTypeResolver<
     R = SrContentType,
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type TypeResolver<R = string, Parent = Gsr, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TypeResolver<R = string, Parent = Gsr, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
   export type PhysicalSizeResolver<
     R = number,
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VirtualAllocationResolver<
     R = number,
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type IsToolsSrResolver<
     R = boolean,
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PhysicalUtilisationResolver<
     R = number,
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type SpaceAvailableResolver<
     R = number,
     Parent = Gsr,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GsrAccessEntryResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GsrAccessEntry> {
-    userId?: UserIdResolver<User, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = GsrAccessEntry> {
+    userId?: UserIdResolver<User, TypeParent, TContext>;
 
-    actions?: ActionsResolver<SrActions, TypeParent, Context>;
+    actions?: ActionsResolver<SrActions, TypeParent, TContext>;
   }
 
   export type UserIdResolver<
     R = User,
     Parent = GsrAccessEntry,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ActionsResolver<
     R = SrActions,
     Parent = GsrAccessEntry,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** Fancy name for a PBD. Not a real Xen object, though a connection between a host and a SR */
 export namespace GpbdResolvers {
-  export interface Resolvers<Context = {}, TypeParent = Gpbd> {
+  export interface Resolvers<TContext = {}, TypeParent = Gpbd> {
     /** Unique constant identifier/object reference */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique non-primary identifier/object reference */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
     /** Host to which the SR is supposed to be connected to */
-    host?: HostResolver<GHost, TypeParent, Context>;
+    host?: HostResolver<GHost, TypeParent, TContext>;
 
-    deviceConfig?: DeviceConfigResolver<JsonString, TypeParent, Context>;
+    deviceConfig?: DeviceConfigResolver<JsonString, TypeParent, TContext>;
 
-    SR?: SrResolver<Gsr, TypeParent, Context>;
+    SR?: SrResolver<Gsr, TypeParent, TContext>;
 
-    currentlyAttached?: CurrentlyAttachedResolver<boolean, TypeParent, Context>;
+    currentlyAttached?: CurrentlyAttachedResolver<
+      boolean,
+      TypeParent,
+      TContext
+    >;
   }
 
-  export type RefResolver<R = string, Parent = Gpbd, Context = {}> = Resolver<
+  export type RefResolver<R = string, Parent = Gpbd, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type UuidResolver<R = string, Parent = Gpbd, Context = {}> = Resolver<
+  export type UuidResolver<R = string, Parent = Gpbd, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type HostResolver<R = GHost, Parent = Gpbd, Context = {}> = Resolver<
+  export type HostResolver<R = GHost, Parent = Gpbd, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
   export type DeviceConfigResolver<
     R = JsonString,
     Parent = Gpbd,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type SrResolver<R = Gsr, Parent = Gpbd, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SrResolver<R = Gsr, Parent = Gpbd, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
   export type CurrentlyAttachedResolver<
     R = boolean,
     Parent = Gpbd,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GHostResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GHost> {
+  export interface Resolvers<TContext = {}, TypeParent = GHost> {
     /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    nameLabel?: NameLabelResolver<string, TypeParent, TContext>;
     /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    nameDescription?: NameDescriptionResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (primary) */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (used in XenCenter) */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
     /** Major XenAPI version number */
     APIVersionMajor?: ApiVersionMajorResolver<
       Maybe<number>,
       TypeParent,
-      Context
+      TContext
     >;
     /** Minor XenAPI version number */
     APIVersionMinor?: ApiVersionMinorResolver<
       Maybe<number>,
       TypeParent,
-      Context
+      TContext
     >;
     /** Connections to storage repositories */
-    PBDs?: PbDsResolver<(Maybe<Gpbd>)[], TypeParent, Context>;
+    PBDs?: PbDsResolver<(Maybe<Gpbd>)[], TypeParent, TContext>;
 
-    PCIs?: PcIsResolver<(Maybe<string>)[], TypeParent, Context>;
+    PCIs?: PcIsResolver<(Maybe<string>)[], TypeParent, TContext>;
 
-    PGPUs?: PgpUsResolver<(Maybe<string>)[], TypeParent, Context>;
+    PGPUs?: PgpUsResolver<(Maybe<string>)[], TypeParent, TContext>;
 
-    PIFs?: PiFsResolver<(Maybe<string>)[], TypeParent, Context>;
+    PIFs?: PiFsResolver<(Maybe<string>)[], TypeParent, TContext>;
 
-    PUSBs?: PusBsResolver<(Maybe<string>)[], TypeParent, Context>;
+    PUSBs?: PusBsResolver<(Maybe<string>)[], TypeParent, TContext>;
     /** The address by which this host can be contacted from any other host in the pool */
-    address?: AddressResolver<string, TypeParent, Context>;
+    address?: AddressResolver<string, TypeParent, TContext>;
 
     allowedOperations?: AllowedOperationsResolver<
       (Maybe<HostAllowedOperations>)[],
       TypeParent,
-      Context
+      TContext
     >;
 
-    cpuInfo?: CpuInfoResolver<CpuInfo, TypeParent, Context>;
+    cpuInfo?: CpuInfoResolver<CpuInfo, TypeParent, TContext>;
 
-    display?: DisplayResolver<HostDisplay, TypeParent, Context>;
+    display?: DisplayResolver<HostDisplay, TypeParent, TContext>;
 
-    hostname?: HostnameResolver<string, TypeParent, Context>;
+    hostname?: HostnameResolver<string, TypeParent, TContext>;
 
     softwareVersion?: SoftwareVersionResolver<
       SoftwareVersion,
       TypeParent,
-      Context
+      TContext
     >;
     /** VMs currently resident on host */
-    residentVms?: ResidentVmsResolver<(Maybe<Gvm>)[], TypeParent, Context>;
+    residentVms?: ResidentVmsResolver<(Maybe<Gvm>)[], TypeParent, TContext>;
 
-    metrics?: MetricsResolver<string, TypeParent, Context>;
+    metrics?: MetricsResolver<string, TypeParent, TContext>;
     /** Total memory in kilobytes */
-    memoryTotal?: MemoryTotalResolver<Maybe<number>, TypeParent, Context>;
+    memoryTotal?: MemoryTotalResolver<Maybe<number>, TypeParent, TContext>;
     /** Free memory in kilobytes */
-    memoryFree?: MemoryFreeResolver<Maybe<number>, TypeParent, Context>;
+    memoryFree?: MemoryFreeResolver<Maybe<number>, TypeParent, TContext>;
     /** Available memory as measured by the host in kilobytes */
     memoryAvailable?: MemoryAvailableResolver<
       Maybe<number>,
       TypeParent,
-      Context
+      TContext
     >;
     /** Virtualization overhead in kilobytes */
-    memoryOverhead?: MemoryOverheadResolver<Maybe<number>, TypeParent, Context>;
+    memoryOverhead?: MemoryOverheadResolver<
+      Maybe<number>,
+      TypeParent,
+      TContext
+    >;
     /** True if host is up. May be null if no data */
-    live?: LiveResolver<Maybe<boolean>, TypeParent, Context>;
+    live?: LiveResolver<Maybe<boolean>, TypeParent, TContext>;
     /** When live status was last updated */
-    liveUpdated?: LiveUpdatedResolver<Maybe<DateTime>, TypeParent, Context>;
+    liveUpdated?: LiveUpdatedResolver<Maybe<DateTime>, TypeParent, TContext>;
   }
 
   export type NameLabelResolver<
     R = string,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NameDescriptionResolver<
     R = string,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type RefResolver<R = string, Parent = GHost, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = GHost, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type UuidResolver<R = string, Parent = GHost, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
+  export type UuidResolver<
+    R = string,
+    Parent = GHost,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ApiVersionMajorResolver<
     R = Maybe<number>,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ApiVersionMinorResolver<
     R = Maybe<number>,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PbDsResolver<
     R = (Maybe<Gpbd>)[],
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PcIsResolver<
     R = (Maybe<string>)[],
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PgpUsResolver<
     R = (Maybe<string>)[],
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PiFsResolver<
     R = (Maybe<string>)[],
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PusBsResolver<
     R = (Maybe<string>)[],
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type AddressResolver<
     R = string,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type AllowedOperationsResolver<
     R = (Maybe<HostAllowedOperations>)[],
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type CpuInfoResolver<
     R = CpuInfo,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type DisplayResolver<
     R = HostDisplay,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type HostnameResolver<
     R = string,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type SoftwareVersionResolver<
     R = SoftwareVersion,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ResidentVmsResolver<
     R = (Maybe<Gvm>)[],
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MetricsResolver<
     R = string,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MemoryTotalResolver<
     R = Maybe<number>,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MemoryFreeResolver<
     R = Maybe<number>,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MemoryAvailableResolver<
     R = Maybe<number>,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MemoryOverheadResolver<
     R = Maybe<number>,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type LiveResolver<
     R = Maybe<boolean>,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type LiveUpdatedResolver<
     R = Maybe<DateTime>,
     Parent = GHost,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace CpuInfoResolvers {
-  export interface Resolvers<Context = {}, TypeParent = CpuInfo> {
-    cpuCount?: CpuCountResolver<number, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = CpuInfo> {
+    cpuCount?: CpuCountResolver<number, TypeParent, TContext>;
 
-    modelname?: ModelnameResolver<string, TypeParent, Context>;
+    modelname?: ModelnameResolver<string, TypeParent, TContext>;
 
-    socketCount?: SocketCountResolver<number, TypeParent, Context>;
+    socketCount?: SocketCountResolver<number, TypeParent, TContext>;
 
-    vendor?: VendorResolver<string, TypeParent, Context>;
+    vendor?: VendorResolver<string, TypeParent, TContext>;
 
-    family?: FamilyResolver<number, TypeParent, Context>;
+    family?: FamilyResolver<number, TypeParent, TContext>;
 
-    features?: FeaturesResolver<string, TypeParent, Context>;
+    features?: FeaturesResolver<string, TypeParent, TContext>;
 
-    featuresHvm?: FeaturesHvmResolver<Maybe<string>, TypeParent, Context>;
+    featuresHvm?: FeaturesHvmResolver<Maybe<string>, TypeParent, TContext>;
 
-    featuresPv?: FeaturesPvResolver<Maybe<string>, TypeParent, Context>;
+    featuresPv?: FeaturesPvResolver<Maybe<string>, TypeParent, TContext>;
 
-    flags?: FlagsResolver<string, TypeParent, Context>;
+    flags?: FlagsResolver<string, TypeParent, TContext>;
 
-    model?: ModelResolver<number, TypeParent, Context>;
+    model?: ModelResolver<number, TypeParent, TContext>;
 
-    speed?: SpeedResolver<number, TypeParent, Context>;
+    speed?: SpeedResolver<number, TypeParent, TContext>;
 
-    stepping?: SteppingResolver<number, TypeParent, Context>;
+    stepping?: SteppingResolver<number, TypeParent, TContext>;
   }
 
   export type CpuCountResolver<
     R = number,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ModelnameResolver<
     R = string,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type SocketCountResolver<
     R = number,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VendorResolver<
     R = string,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type FamilyResolver<
     R = number,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type FeaturesResolver<
     R = string,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type FeaturesHvmResolver<
     R = Maybe<string>,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type FeaturesPvResolver<
     R = Maybe<string>,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type FlagsResolver<
     R = string,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ModelResolver<
     R = number,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type SpeedResolver<
     R = number,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type SteppingResolver<
     R = number,
     Parent = CpuInfo,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace SoftwareVersionResolvers {
-  export interface Resolvers<Context = {}, TypeParent = SoftwareVersion> {
-    buildNumber?: BuildNumberResolver<string, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = SoftwareVersion> {
+    buildNumber?: BuildNumberResolver<string, TypeParent, TContext>;
 
-    date?: DateResolver<string, TypeParent, Context>;
+    date?: DateResolver<string, TypeParent, TContext>;
 
-    hostname?: HostnameResolver<string, TypeParent, Context>;
+    hostname?: HostnameResolver<string, TypeParent, TContext>;
     /** Linux kernel version */
-    linux?: LinuxResolver<string, TypeParent, Context>;
+    linux?: LinuxResolver<string, TypeParent, TContext>;
 
-    networkBackend?: NetworkBackendResolver<string, TypeParent, Context>;
+    networkBackend?: NetworkBackendResolver<string, TypeParent, TContext>;
 
-    platformName?: PlatformNameResolver<string, TypeParent, Context>;
+    platformName?: PlatformNameResolver<string, TypeParent, TContext>;
 
-    platformVersion?: PlatformVersionResolver<string, TypeParent, Context>;
+    platformVersion?: PlatformVersionResolver<string, TypeParent, TContext>;
 
     platformVersionText?: PlatformVersionTextResolver<
       string,
       TypeParent,
-      Context
+      TContext
     >;
 
     platformVersionTextShort?: PlatformVersionTextShortResolver<
       string,
       TypeParent,
-      Context
+      TContext
     >;
     /** XAPI version */
-    xapi?: XapiResolver<string, TypeParent, Context>;
+    xapi?: XapiResolver<string, TypeParent, TContext>;
     /** Xen version */
-    xen?: XenResolver<string, TypeParent, Context>;
+    xen?: XenResolver<string, TypeParent, TContext>;
 
-    productBrand?: ProductBrandResolver<string, TypeParent, Context>;
+    productBrand?: ProductBrandResolver<string, TypeParent, TContext>;
 
-    productVersion?: ProductVersionResolver<string, TypeParent, Context>;
+    productVersion?: ProductVersionResolver<string, TypeParent, TContext>;
 
     productVersionText?: ProductVersionTextResolver<
       string,
       TypeParent,
-      Context
+      TContext
     >;
   }
 
   export type BuildNumberResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type DateResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type HostnameResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type LinuxResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NetworkBackendResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PlatformNameResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PlatformVersionResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PlatformVersionTextResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PlatformVersionTextShortResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type XapiResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type XenResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ProductBrandResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ProductVersionResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ProductVersionTextResolver<
     R = string,
     Parent = SoftwareVersion,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTemplateResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GTemplate> {
+  export interface Resolvers<TContext = {}, TypeParent = GTemplate> {
     /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    nameLabel?: NameLabelResolver<string, TypeParent, TContext>;
     /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    nameDescription?: NameDescriptionResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (primary) */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (used in XenCenter) */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
 
     access?: AccessResolver<
       (Maybe<GTemplateAccessEntry>)[],
       TypeParent,
-      Context
+      TContext
     >;
     /** If a template supports auto-installation, here a distro name is provided */
-    osKind?: OsKindResolver<Maybe<string>, TypeParent, Context>;
+    osKind?: OsKindResolver<Maybe<string>, TypeParent, TContext>;
     /** True if this template works with hardware assisted virtualization */
-    hvm?: HvmResolver<boolean, TypeParent, Context>;
+    hvm?: HvmResolver<boolean, TypeParent, TContext>;
     /** True if this template is available for regular users */
-    enabled?: EnabledResolver<boolean, TypeParent, Context>;
+    enabled?: EnabledResolver<boolean, TypeParent, TContext>;
   }
 
   export type NameLabelResolver<
     R = string,
     Parent = GTemplate,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NameDescriptionResolver<
     R = string,
     Parent = GTemplate,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type RefResolver<
     R = string,
     Parent = GTemplate,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type UuidResolver<
     R = string,
     Parent = GTemplate,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type AccessResolver<
     R = (Maybe<GTemplateAccessEntry>)[],
     Parent = GTemplate,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type OsKindResolver<
     R = Maybe<string>,
     Parent = GTemplate,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type HvmResolver<
     R = boolean,
     Parent = GTemplate,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type EnabledResolver<
     R = boolean,
     Parent = GTemplate,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTemplateAccessEntryResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GTemplateAccessEntry> {
-    userId?: UserIdResolver<User, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = GTemplateAccessEntry> {
+    userId?: UserIdResolver<User, TypeParent, TContext>;
 
-    actions?: ActionsResolver<(Maybe<TemplateActions>)[], TypeParent, Context>;
+    actions?: ActionsResolver<(Maybe<TemplateActions>)[], TypeParent, TContext>;
   }
 
   export type UserIdResolver<
     R = User,
     Parent = GTemplateAccessEntry,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ActionsResolver<
     R = (Maybe<TemplateActions>)[],
     Parent = GTemplateAccessEntry,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GPoolResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GPool> {
+  export interface Resolvers<TContext = {}, TypeParent = GPool> {
     /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    nameLabel?: NameLabelResolver<string, TypeParent, TContext>;
     /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    nameDescription?: NameDescriptionResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (primary) */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (used in XenCenter) */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
     /** Pool master */
-    master?: MasterResolver<Maybe<GHost>, TypeParent, Context>;
+    master?: MasterResolver<Maybe<GHost>, TypeParent, TContext>;
     /** Default SR */
-    defaultSr?: DefaultSrResolver<Maybe<Gsr>, TypeParent, Context>;
+    defaultSr?: DefaultSrResolver<Maybe<Gsr>, TypeParent, TContext>;
   }
 
   export type NameLabelResolver<
     R = string,
     Parent = GPool,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NameDescriptionResolver<
     R = string,
     Parent = GPool,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type RefResolver<R = string, Parent = GPool, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = GPool, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type UuidResolver<R = string, Parent = GPool, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
+  export type UuidResolver<
+    R = string,
+    Parent = GPool,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MasterResolver<
     R = Maybe<GHost>,
     Parent = GPool,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type DefaultSrResolver<
     R = Maybe<Gsr>,
     Parent = GPool,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GPlaybookResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GPlaybook> {
+  export interface Resolvers<TContext = {}, TypeParent = GPlaybook> {
     /** Playbook ID */
-    id?: IdResolver<string, TypeParent, Context>;
+    id?: IdResolver<string, TypeParent, TContext>;
     /** Inventory file path */
-    inventory?: InventoryResolver<Maybe<string>, TypeParent, Context>;
+    inventory?: InventoryResolver<Maybe<string>, TypeParent, TContext>;
     /** Requirements for running this playbook */
     requires?: RequiresResolver<
       Maybe<PlaybookRequirements>,
       TypeParent,
-      Context
+      TContext
     >;
     /** Playbook name */
-    name?: NameResolver<string, TypeParent, Context>;
+    name?: NameResolver<string, TypeParent, TContext>;
     /** Playbook description */
-    description?: DescriptionResolver<Maybe<string>, TypeParent, Context>;
+    description?: DescriptionResolver<Maybe<string>, TypeParent, TContext>;
     /** Variables available for change to an user */
-    variables?: VariablesResolver<Maybe<JsonString>, TypeParent, Context>;
+    variables?: VariablesResolver<Maybe<JsonString>, TypeParent, TContext>;
   }
 
   export type IdResolver<
     R = string,
     Parent = GPlaybook,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type InventoryResolver<
     R = Maybe<string>,
     Parent = GPlaybook,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type RequiresResolver<
     R = Maybe<PlaybookRequirements>,
     Parent = GPlaybook,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NameResolver<
     R = string,
     Parent = GPlaybook,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type DescriptionResolver<
     R = Maybe<string>,
     Parent = GPlaybook,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type VariablesResolver<
     R = Maybe<JsonString>,
     Parent = GPlaybook,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace PlaybookRequirementsResolvers {
-  export interface Resolvers<Context = {}, TypeParent = PlaybookRequirements> {
+  export interface Resolvers<TContext = {}, TypeParent = PlaybookRequirements> {
     /** Minimal supported OS versions */
-    osVersion?: OsVersionResolver<(Maybe<OsVersion>)[], TypeParent, Context>;
+    osVersion?: OsVersionResolver<(Maybe<OsVersion>)[], TypeParent, TContext>;
   }
 
   export type OsVersionResolver<
     R = (Maybe<OsVersion>)[],
     Parent = PlaybookRequirements,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace PlaybookTaskResolvers {
-  export interface Resolvers<Context = {}, TypeParent = PlaybookTask> {
+  export interface Resolvers<TContext = {}, TypeParent = PlaybookTask> {
     /** Playbook task ID */
-    id?: IdResolver<string, TypeParent, Context>;
+    id?: IdResolver<string, TypeParent, TContext>;
     /** Playbook ID */
-    playbookId?: PlaybookIdResolver<string, TypeParent, Context>;
+    playbookId?: PlaybookIdResolver<string, TypeParent, TContext>;
     /** Playbook running state */
-    state?: StateResolver<PlaybookTaskState, TypeParent, Context>;
+    state?: StateResolver<PlaybookTaskState, TypeParent, TContext>;
     /** Human-readable message: error description or return code */
-    message?: MessageResolver<string, TypeParent, Context>;
+    message?: MessageResolver<string, TypeParent, TContext>;
   }
 
   export type IdResolver<
     R = string,
     Parent = PlaybookTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type PlaybookIdResolver<
     R = string,
     Parent = PlaybookTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type StateResolver<
     R = PlaybookTaskState,
     Parent = PlaybookTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type MessageResolver<
     R = string,
     Parent = PlaybookTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmSelectedIdListsResolvers {
-  export interface Resolvers<Context = {}, TypeParent = VmSelectedIdLists> {
-    start?: StartResolver<Maybe<(Maybe<string>)[]>, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = VmSelectedIdLists> {
+    start?: StartResolver<Maybe<(Maybe<string>)[]>, TypeParent, TContext>;
 
-    stop?: StopResolver<Maybe<(Maybe<string>)[]>, TypeParent, Context>;
+    stop?: StopResolver<Maybe<(Maybe<string>)[]>, TypeParent, TContext>;
 
-    trash?: TrashResolver<Maybe<(Maybe<string>)[]>, TypeParent, Context>;
+    trash?: TrashResolver<Maybe<(Maybe<string>)[]>, TypeParent, TContext>;
   }
 
   export type StartResolver<
     R = Maybe<(Maybe<string>)[]>,
     Parent = VmSelectedIdLists,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type StopResolver<
     R = Maybe<(Maybe<string>)[]>,
     Parent = VmSelectedIdLists,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type TrashResolver<
     R = Maybe<(Maybe<string>)[]>,
     Parent = VmSelectedIdLists,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace MutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = {}> {
+  export interface Resolvers<TContext = {}, TypeParent = {}> {
     /** Create a new VM */
-    createVm?: CreateVmResolver<Maybe<CreateVm>, TypeParent, Context>;
+    createVm?: CreateVmResolver<Maybe<CreateVm>, TypeParent, TContext>;
     /** Edit template options */
-    template?: TemplateResolver<Maybe<TemplateMutation>, TypeParent, Context>;
+    template?: TemplateResolver<Maybe<TemplateMutation>, TypeParent, TContext>;
     /** Edit VM options */
-    vm?: VmResolver<Maybe<VmMutation>, TypeParent, Context>;
+    vm?: VmResolver<Maybe<VmMutation>, TypeParent, TContext>;
     /** Start VM */
-    vmStart?: VmStartResolver<Maybe<VmStartMutation>, TypeParent, Context>;
+    vmStart?: VmStartResolver<Maybe<VmStartMutation>, TypeParent, TContext>;
     /** Shut down VM */
     vmShutdown?: VmShutdownResolver<
       Maybe<VmShutdownMutation>,
       TypeParent,
-      Context
+      TContext
     >;
     /** Reboot VM */
-    vmReboot?: VmRebootResolver<Maybe<VmRebootMutation>, TypeParent, Context>;
+    vmReboot?: VmRebootResolver<Maybe<VmRebootMutation>, TypeParent, TContext>;
     /** If VM is Running, pause VM. If Paused, unpause VM */
-    vmPause?: VmPauseResolver<Maybe<VmPauseMutation>, TypeParent, Context>;
+    vmPause?: VmPauseResolver<Maybe<VmPauseMutation>, TypeParent, TContext>;
     /** Delete a Halted VM */
-    vmDelete?: VmDeleteResolver<Maybe<VmDeleteMutation>, TypeParent, Context>;
+    vmDelete?: VmDeleteResolver<Maybe<VmDeleteMutation>, TypeParent, TContext>;
     /** Set VM access rights */
-    vmAccessSet?: VmAccessSetResolver<Maybe<VmAccessSet>, TypeParent, Context>;
+    vmAccessSet?: VmAccessSetResolver<Maybe<VmAccessSet>, TypeParent, TContext>;
     /** Launch an Ansible Playbook on specified VMs */
     playbookLaunch?: PlaybookLaunchResolver<
       Maybe<PlaybookLaunchMutation>,
       TypeParent,
-      Context
+      TContext
     >;
     /** Attach VM to a Network by creating a new Interface */
     netAttach?: NetAttachResolver<
       Maybe<AttachNetworkMutation>,
       TypeParent,
-      Context
+      TContext
     >;
     /** Attach VDI to a VM by creating a new virtual block device */
     vdiAttach?: VdiAttachResolver<
       Maybe<AttachVdiMutation>,
       TypeParent,
-      Context
+      TContext
     >;
 
-    selectedItems?: SelectedItemsResolver<Maybe<string[]>, TypeParent, Context>;
+    selectedItems?: SelectedItemsResolver<
+      Maybe<string[]>,
+      TypeParent,
+      TContext
+    >;
   }
 
   export type CreateVmResolver<
     R = Maybe<CreateVm>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, CreateVmArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, CreateVmArgs>;
   export interface CreateVmArgs {
     /** Number of created virtual CPUs */
     VCPUs?: number;
@@ -4952,8 +5028,8 @@ export namespace MutationResolvers {
   export type TemplateResolver<
     R = Maybe<TemplateMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, TemplateArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, TemplateArgs>;
   export interface TemplateArgs {
     /** Template to change */
     template?: Maybe<TemplateInput>;
@@ -4962,8 +5038,8 @@ export namespace MutationResolvers {
   export type VmResolver<
     R = Maybe<VmMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VmArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmArgs>;
   export interface VmArgs {
     /** VM to change */
     vm: VmInput;
@@ -4972,8 +5048,8 @@ export namespace MutationResolvers {
   export type VmStartResolver<
     R = Maybe<VmStartMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VmStartArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmStartArgs>;
   export interface VmStartArgs {
     options?: Maybe<VmStartInput>;
 
@@ -4983,8 +5059,8 @@ export namespace MutationResolvers {
   export type VmShutdownResolver<
     R = Maybe<VmShutdownMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VmShutdownArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmShutdownArgs>;
   export interface VmShutdownArgs {
     /** Force shutdown in a hard or clean way */
     force?: Maybe<ShutdownForce>;
@@ -4995,8 +5071,8 @@ export namespace MutationResolvers {
   export type VmRebootResolver<
     R = Maybe<VmRebootMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VmRebootArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmRebootArgs>;
   export interface VmRebootArgs {
     /** Force reboot in a hard or clean way. Default: clean */
     force?: Maybe<ShutdownForce>;
@@ -5007,8 +5083,8 @@ export namespace MutationResolvers {
   export type VmPauseResolver<
     R = Maybe<VmPauseMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VmPauseArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmPauseArgs>;
   export interface VmPauseArgs {
     ref: string;
   }
@@ -5016,8 +5092,8 @@ export namespace MutationResolvers {
   export type VmDeleteResolver<
     R = Maybe<VmDeleteMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VmDeleteArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmDeleteArgs>;
   export interface VmDeleteArgs {
     ref: string;
   }
@@ -5025,8 +5101,8 @@ export namespace MutationResolvers {
   export type VmAccessSetResolver<
     R = Maybe<VmAccessSet>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VmAccessSetArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmAccessSetArgs>;
   export interface VmAccessSetArgs {
     actions: (Maybe<VmActions>)[];
 
@@ -5040,8 +5116,8 @@ export namespace MutationResolvers {
   export type PlaybookLaunchResolver<
     R = Maybe<PlaybookLaunchMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, PlaybookLaunchArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, PlaybookLaunchArgs>;
   export interface PlaybookLaunchArgs {
     /** Playbook ID */
     id: string;
@@ -5054,8 +5130,8 @@ export namespace MutationResolvers {
   export type NetAttachResolver<
     R = Maybe<AttachNetworkMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, NetAttachArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, NetAttachArgs>;
   export interface NetAttachArgs {
     /** True if attach, False if detach */
     isAttach: boolean;
@@ -5068,8 +5144,8 @@ export namespace MutationResolvers {
   export type VdiAttachResolver<
     R = Maybe<AttachVdiMutation>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, VdiAttachArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VdiAttachArgs>;
   export interface VdiAttachArgs {
     /** True if attach, False if detach */
     isAttach: boolean;
@@ -5082,8 +5158,8 @@ export namespace MutationResolvers {
   export type SelectedItemsResolver<
     R = Maybe<string[]>,
     Parent = {},
-    Context = {}
-  > = Resolver<R, Parent, Context, SelectedItemsArgs>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext, SelectedItemsArgs>;
   export interface SelectedItemsArgs {
     tableId: Table;
 
@@ -5094,203 +5170,206 @@ export namespace MutationResolvers {
 }
 
 export namespace CreateVmResolvers {
-  export interface Resolvers<Context = {}, TypeParent = CreateVm> {
+  export interface Resolvers<TContext = {}, TypeParent = CreateVm> {
     /** Installation task ID */
-    taskId?: TaskIdResolver<string, TypeParent, Context>;
+    taskId?: TaskIdResolver<string, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = string,
     Parent = CreateVm,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace TemplateMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = TemplateMutation> {
-    success?: SuccessResolver<boolean, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = TemplateMutation> {
+    success?: SuccessResolver<boolean, TypeParent, TContext>;
   }
 
   export type SuccessResolver<
     R = boolean,
     Parent = TemplateMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** This class represents synchronous mutations for VM, i.e. you can change name_label, name_description, etc. */
 export namespace VmMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = VmMutation> {
-    success?: SuccessResolver<boolean, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = VmMutation> {
+    success?: SuccessResolver<boolean, TypeParent, TContext>;
   }
 
   export type SuccessResolver<
     R = boolean,
     Parent = VmMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmStartMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = VmStartMutation> {
+  export interface Resolvers<TContext = {}, TypeParent = VmStartMutation> {
     /** Start task ID */
-    taskId?: TaskIdResolver<string, TypeParent, Context>;
+    taskId?: TaskIdResolver<string, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = string,
     Parent = VmStartMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmShutdownMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = VmShutdownMutation> {
+  export interface Resolvers<TContext = {}, TypeParent = VmShutdownMutation> {
     /** Shutdown task ID */
-    taskId?: TaskIdResolver<string, TypeParent, Context>;
+    taskId?: TaskIdResolver<string, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = string,
     Parent = VmShutdownMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmRebootMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = VmRebootMutation> {
+  export interface Resolvers<TContext = {}, TypeParent = VmRebootMutation> {
     /** Reboot task ID */
-    taskId?: TaskIdResolver<string, TypeParent, Context>;
+    taskId?: TaskIdResolver<string, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = string,
     Parent = VmRebootMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmPauseMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = VmPauseMutation> {
+  export interface Resolvers<TContext = {}, TypeParent = VmPauseMutation> {
     /** Pause/unpause task ID */
-    taskId?: TaskIdResolver<string, TypeParent, Context>;
+    taskId?: TaskIdResolver<string, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = string,
     Parent = VmPauseMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmDeleteMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = VmDeleteMutation> {
+  export interface Resolvers<TContext = {}, TypeParent = VmDeleteMutation> {
     /** Deleting task ID */
-    taskId?: TaskIdResolver<string, TypeParent, Context>;
+    taskId?: TaskIdResolver<string, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = string,
     Parent = VmDeleteMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmAccessSetResolvers {
-  export interface Resolvers<Context = {}, TypeParent = VmAccessSet> {
-    success?: SuccessResolver<boolean, TypeParent, Context>;
+  export interface Resolvers<TContext = {}, TypeParent = VmAccessSet> {
+    success?: SuccessResolver<boolean, TypeParent, TContext>;
   }
 
   export type SuccessResolver<
     R = boolean,
     Parent = VmAccessSet,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace PlaybookLaunchMutationResolvers {
   export interface Resolvers<
-    Context = {},
+    TContext = {},
     TypeParent = PlaybookLaunchMutation
   > {
     /** Playbook execution task ID */
-    taskId?: TaskIdResolver<string, TypeParent, Context>;
+    taskId?: TaskIdResolver<string, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = string,
     Parent = PlaybookLaunchMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace AttachNetworkMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = AttachNetworkMutation> {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = AttachNetworkMutation
+  > {
     /** Attach/Detach task ID. If already attached/detached, returns null */
-    taskId?: TaskIdResolver<Maybe<string>, TypeParent, Context>;
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = Maybe<string>,
     Parent = AttachNetworkMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace AttachVdiMutationResolvers {
-  export interface Resolvers<Context = {}, TypeParent = AttachVdiMutation> {
+  export interface Resolvers<TContext = {}, TypeParent = AttachVdiMutation> {
     /** Attach/Detach task ID. If already attached/detached, returns null */
-    taskId?: TaskIdResolver<Maybe<string>, TypeParent, Context>;
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = Maybe<string>,
     Parent = AttachVdiMutation,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** All subscriptions must return  Observable */
 export namespace SubscriptionResolvers {
-  export interface Resolvers<Context = {}, TypeParent = {}> {
+  export interface Resolvers<TContext = {}, TypeParent = {}> {
     /** Updates for all VMs */
-    vms?: VmsResolver<GvMsSubscription, TypeParent, Context>;
+    vms?: VmsResolver<GvMsSubscription, TypeParent, TContext>;
     /** Updates for a particular VM */
-    vm?: VmResolver<Maybe<Gvm>, TypeParent, Context>;
+    vm?: VmResolver<Maybe<Gvm>, TypeParent, TContext>;
     /** Updates for all Hosts */
-    hosts?: HostsResolver<GHostsSubscription, TypeParent, Context>;
+    hosts?: HostsResolver<GHostsSubscription, TypeParent, TContext>;
     /** Updates for a particular Host */
-    host?: HostResolver<Maybe<GHost>, TypeParent, Context>;
+    host?: HostResolver<Maybe<GHost>, TypeParent, TContext>;
     /** Updates for all pools available in VMEmperor */
-    pools?: PoolsResolver<GPoolsSubscription, TypeParent, Context>;
+    pools?: PoolsResolver<GPoolsSubscription, TypeParent, TContext>;
     /** Updates for a particular Pool */
-    pool?: PoolResolver<Maybe<GPool>, TypeParent, Context>;
+    pool?: PoolResolver<Maybe<GPool>, TypeParent, TContext>;
     /** Updates for all user's tasks */
-    tasks?: TasksResolver<GTasksSubscription, TypeParent, Context>;
+    tasks?: TasksResolver<GTasksSubscription, TypeParent, TContext>;
     /** Updates for a particular XenServer Task */
-    task?: TaskResolver<Maybe<GTask>, TypeParent, Context>;
+    task?: TaskResolver<Maybe<GTask>, TypeParent, TContext>;
     /** Updates for a particular Playbook installation Task */
     playbookTask?: PlaybookTaskResolver<
       Maybe<PlaybookTask>,
       TypeParent,
-      Context
+      TContext
     >;
     /** Updates for all Playbook Tasks */
     playbookTasks?: PlaybookTasksResolver<
       PlaybookTasksSubscription,
       TypeParent,
-      Context
+      TContext
     >;
   }
 
   export type VmsResolver<
     R = GvMsSubscription,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext>;
   export type VmResolver<
     R = Maybe<Gvm>,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context, VmArgs>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, VmArgs>;
   export interface VmArgs {
     ref: string;
   }
@@ -5298,13 +5377,13 @@ export namespace SubscriptionResolvers {
   export type HostsResolver<
     R = GHostsSubscription,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext>;
   export type HostResolver<
     R = Maybe<GHost>,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context, HostArgs>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, HostArgs>;
   export interface HostArgs {
     ref: string;
   }
@@ -5312,13 +5391,13 @@ export namespace SubscriptionResolvers {
   export type PoolsResolver<
     R = GPoolsSubscription,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext>;
   export type PoolResolver<
     R = Maybe<GPool>,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context, PoolArgs>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, PoolArgs>;
   export interface PoolArgs {
     ref: string;
   }
@@ -5326,13 +5405,13 @@ export namespace SubscriptionResolvers {
   export type TasksResolver<
     R = GTasksSubscription,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext>;
   export type TaskResolver<
     R = Maybe<GTask>,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context, TaskArgs>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, TaskArgs>;
   export interface TaskArgs {
     ref: string;
   }
@@ -5340,8 +5419,8 @@ export namespace SubscriptionResolvers {
   export type PlaybookTaskResolver<
     R = Maybe<PlaybookTask>,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context, PlaybookTaskArgs>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, PlaybookTaskArgs>;
   export interface PlaybookTaskArgs {
     id: string;
   }
@@ -5349,212 +5428,260 @@ export namespace SubscriptionResolvers {
   export type PlaybookTasksResolver<
     R = PlaybookTasksSubscription,
     Parent = {},
-    Context = {}
-  > = SubscriptionResolver<R, Parent, Context>;
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext>;
 }
 
 export namespace GvMsSubscriptionResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GvMsSubscription> {
+  export interface Resolvers<TContext = {}, TypeParent = GvMsSubscription> {
     /** Change type */
-    changeType?: ChangeTypeResolver<Change, TypeParent, Context>;
+    changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<Gvm, TypeParent, Context>;
+    value?: ValueResolver<Maybe<Gvm>, TypeParent, TContext>;
+    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
     R = Change,
     Parent = GvMsSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = Gvm,
+    R = Maybe<Gvm>,
     Parent = GvMsSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DeletedResolver<
+    R = Maybe<Deleted>,
+    Parent = GvMsSubscription,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace DeletedResolvers {
+  export interface Resolvers<TContext = {}, TypeParent = Deleted> {
+    /** Deleted object's ref */
+    ref?: RefResolver<string, TypeParent, TContext>;
+  }
+
+  export type RefResolver<
+    R = string,
+    Parent = Deleted,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GHostsSubscriptionResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GHostsSubscription> {
+  export interface Resolvers<TContext = {}, TypeParent = GHostsSubscription> {
     /** Change type */
-    changeType?: ChangeTypeResolver<Change, TypeParent, Context>;
+    changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<GHost, TypeParent, Context>;
+    value?: ValueResolver<Maybe<GHost>, TypeParent, TContext>;
+    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
     R = Change,
     Parent = GHostsSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = GHost,
+    R = Maybe<GHost>,
     Parent = GHostsSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DeletedResolver<
+    R = Maybe<Deleted>,
+    Parent = GHostsSubscription,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GPoolsSubscriptionResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GPoolsSubscription> {
+  export interface Resolvers<TContext = {}, TypeParent = GPoolsSubscription> {
     /** Change type */
-    changeType?: ChangeTypeResolver<Change, TypeParent, Context>;
+    changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<GPool, TypeParent, Context>;
+    value?: ValueResolver<Maybe<GPool>, TypeParent, TContext>;
+    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
     R = Change,
     Parent = GPoolsSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = GPool,
+    R = Maybe<GPool>,
     Parent = GPoolsSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DeletedResolver<
+    R = Maybe<Deleted>,
+    Parent = GPoolsSubscription,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTasksSubscriptionResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GTasksSubscription> {
+  export interface Resolvers<TContext = {}, TypeParent = GTasksSubscription> {
     /** Change type */
-    changeType?: ChangeTypeResolver<Change, TypeParent, Context>;
+    changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<GTask, TypeParent, Context>;
+    value?: ValueResolver<Maybe<GTask>, TypeParent, TContext>;
+    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
     R = Change,
     Parent = GTasksSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = GTask,
+    R = Maybe<GTask>,
     Parent = GTasksSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DeletedResolver<
+    R = Maybe<Deleted>,
+    Parent = GTasksSubscription,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTaskResolvers {
-  export interface Resolvers<Context = {}, TypeParent = GTask> {
+  export interface Resolvers<TContext = {}, TypeParent = GTask> {
     /** a human-readable name */
-    nameLabel?: NameLabelResolver<string, TypeParent, Context>;
+    nameLabel?: NameLabelResolver<string, TypeParent, TContext>;
     /** a human-readable description */
-    nameDescription?: NameDescriptionResolver<string, TypeParent, Context>;
+    nameDescription?: NameDescriptionResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (primary) */
-    ref?: RefResolver<string, TypeParent, Context>;
+    ref?: RefResolver<string, TypeParent, TContext>;
     /** Unique constant identifier/object reference (used in XenCenter) */
-    uuid?: UuidResolver<string, TypeParent, Context>;
+    uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, Context>;
+    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, TContext>;
     /** Task creation time */
-    created?: CreatedResolver<DateTime, TypeParent, Context>;
+    created?: CreatedResolver<DateTime, TypeParent, TContext>;
     /** Task finish time */
-    finished?: FinishedResolver<DateTime, TypeParent, Context>;
+    finished?: FinishedResolver<DateTime, TypeParent, TContext>;
     /** Task progress */
-    progress?: ProgressResolver<number, TypeParent, Context>;
+    progress?: ProgressResolver<number, TypeParent, TContext>;
     /** Task result if available */
-    result?: ResultResolver<Maybe<string>, TypeParent, Context>;
+    result?: ResultResolver<Maybe<string>, TypeParent, TContext>;
     /** Task result type */
-    type?: TypeResolver<Maybe<string>, TypeParent, Context>;
+    type?: TypeResolver<Maybe<string>, TypeParent, TContext>;
     /** ref of a host that runs this task */
-    residentOn?: ResidentOnResolver<Maybe<string>, TypeParent, Context>;
+    residentOn?: ResidentOnResolver<Maybe<string>, TypeParent, TContext>;
     /** Error strings, if failed */
     errorInfo?: ErrorInfoResolver<
       Maybe<(Maybe<string>)[]>,
       TypeParent,
-      Context
+      TContext
     >;
     /** Task status */
-    status?: StatusResolver<Maybe<string>, TypeParent, Context>;
+    status?: StatusResolver<Maybe<string>, TypeParent, TContext>;
   }
 
   export type NameLabelResolver<
     R = string,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type NameDescriptionResolver<
     R = string,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
-  export type RefResolver<R = string, Parent = GTask, Context = {}> = Resolver<
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = GTask, TContext = {}> = Resolver<
     R,
     Parent,
-    Context
+    TContext
   >;
-  export type UuidResolver<R = string, Parent = GTask, Context = {}> = Resolver<
-    R,
-    Parent,
-    Context
-  >;
+  export type UuidResolver<
+    R = string,
+    Parent = GTask,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type AccessResolver<
     R = (Maybe<GAccessEntry>)[],
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type CreatedResolver<
     R = DateTime,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type FinishedResolver<
     R = DateTime,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ProgressResolver<
     R = number,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ResultResolver<
     R = Maybe<string>,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type TypeResolver<
     R = Maybe<string>,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ResidentOnResolver<
     R = Maybe<string>,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ErrorInfoResolver<
     R = Maybe<(Maybe<string>)[]>,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type StatusResolver<
     R = Maybe<string>,
     Parent = GTask,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace PlaybookTasksSubscriptionResolvers {
   export interface Resolvers<
-    Context = {},
+    TContext = {},
     TypeParent = PlaybookTasksSubscription
   > {
     /** Change type */
-    changeType?: ChangeTypeResolver<Change, TypeParent, Context>;
+    changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<PlaybookTask, TypeParent, Context>;
+    value?: ValueResolver<Maybe<PlaybookTask>, TypeParent, TContext>;
+    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
     R = Change,
     Parent = PlaybookTasksSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = PlaybookTask,
+    R = Maybe<PlaybookTask>,
     Parent = PlaybookTasksSubscription,
-    Context = {}
-  > = Resolver<R, Parent, Context>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DeletedResolver<
+    R = Maybe<Deleted>,
+    Parent = PlaybookTasksSubscription,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GAclXenObjectResolvers {
@@ -5564,8 +5691,8 @@ export namespace GAclXenObjectResolvers {
   export type ResolveType<
     R = "GVM" | "GNetwork" | "GVDI" | "GSR" | "GTemplate" | "GTask",
     Parent = Gvm | GNetwork | Gvdi | Gsr | GTemplate | GTask,
-    Context = {}
-  > = TypeResolveFn<R, Parent, Context>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GAccessEntryResolvers {
@@ -5575,8 +5702,8 @@ export namespace GAccessEntryResolvers {
   export type ResolveType<
     R = "GVMAccessEntry" | "GSRAccessEntry" | "GTemplateAccessEntry",
     Parent = GvmAccessEntry | GsrAccessEntry | GTemplateAccessEntry,
-    Context = {}
-  > = TypeResolveFn<R, Parent, Context>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GXenObjectResolvers {
@@ -5586,8 +5713,8 @@ export namespace GXenObjectResolvers {
   export type ResolveType<
     R = "GHost" | "GPool",
     Parent = GHost | GPool,
-    Context = {}
-  > = TypeResolveFn<R, Parent, Context>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 /** Directs the executor to skip this field or fragment when the `if` argument is true. */
@@ -5632,64 +5759,65 @@ export interface JSONStringScalarConfig
   name: "JSONString";
 }
 
-export interface IResolvers<Context = {}> {
-  Query?: QueryResolvers.Resolvers<Context>;
-  Gvm?: GvmResolvers.Resolvers<Context>;
-  User?: UserResolvers.Resolvers<Context>;
-  GvmAccessEntry?: GvmAccessEntryResolvers.Resolvers<Context>;
-  PvDriversVersion?: PvDriversVersionResolvers.Resolvers<Context>;
-  OsVersion?: OsVersionResolvers.Resolvers<Context>;
-  Gvif?: GvifResolvers.Resolvers<Context>;
-  GNetwork?: GNetworkResolvers.Resolvers<Context>;
-  Gvbd?: GvbdResolvers.Resolvers<Context>;
-  Gvdi?: GvdiResolvers.Resolvers<Context>;
-  Gsr?: GsrResolvers.Resolvers<Context>;
-  GsrAccessEntry?: GsrAccessEntryResolvers.Resolvers<Context>;
-  Gpbd?: GpbdResolvers.Resolvers<Context>;
-  GHost?: GHostResolvers.Resolvers<Context>;
-  CpuInfo?: CpuInfoResolvers.Resolvers<Context>;
-  SoftwareVersion?: SoftwareVersionResolvers.Resolvers<Context>;
-  GTemplate?: GTemplateResolvers.Resolvers<Context>;
-  GTemplateAccessEntry?: GTemplateAccessEntryResolvers.Resolvers<Context>;
-  GPool?: GPoolResolvers.Resolvers<Context>;
-  GPlaybook?: GPlaybookResolvers.Resolvers<Context>;
-  PlaybookRequirements?: PlaybookRequirementsResolvers.Resolvers<Context>;
-  PlaybookTask?: PlaybookTaskResolvers.Resolvers<Context>;
-  VmSelectedIdLists?: VmSelectedIdListsResolvers.Resolvers<Context>;
-  Mutation?: MutationResolvers.Resolvers<Context>;
-  CreateVm?: CreateVmResolvers.Resolvers<Context>;
-  TemplateMutation?: TemplateMutationResolvers.Resolvers<Context>;
-  VmMutation?: VmMutationResolvers.Resolvers<Context>;
-  VmStartMutation?: VmStartMutationResolvers.Resolvers<Context>;
-  VmShutdownMutation?: VmShutdownMutationResolvers.Resolvers<Context>;
-  VmRebootMutation?: VmRebootMutationResolvers.Resolvers<Context>;
-  VmPauseMutation?: VmPauseMutationResolvers.Resolvers<Context>;
-  VmDeleteMutation?: VmDeleteMutationResolvers.Resolvers<Context>;
-  VmAccessSet?: VmAccessSetResolvers.Resolvers<Context>;
-  PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers.Resolvers<Context>;
-  AttachNetworkMutation?: AttachNetworkMutationResolvers.Resolvers<Context>;
-  AttachVdiMutation?: AttachVdiMutationResolvers.Resolvers<Context>;
-  Subscription?: SubscriptionResolvers.Resolvers<Context>;
-  GvMsSubscription?: GvMsSubscriptionResolvers.Resolvers<Context>;
-  GHostsSubscription?: GHostsSubscriptionResolvers.Resolvers<Context>;
-  GPoolsSubscription?: GPoolsSubscriptionResolvers.Resolvers<Context>;
-  GTasksSubscription?: GTasksSubscriptionResolvers.Resolvers<Context>;
-  GTask?: GTaskResolvers.Resolvers<Context>;
+export type IResolvers<TContext = {}> = {
+  Query?: QueryResolvers.Resolvers<TContext>;
+  Gvm?: GvmResolvers.Resolvers<TContext>;
+  User?: UserResolvers.Resolvers<TContext>;
+  GvmAccessEntry?: GvmAccessEntryResolvers.Resolvers<TContext>;
+  PvDriversVersion?: PvDriversVersionResolvers.Resolvers<TContext>;
+  OsVersion?: OsVersionResolvers.Resolvers<TContext>;
+  Gvif?: GvifResolvers.Resolvers<TContext>;
+  GNetwork?: GNetworkResolvers.Resolvers<TContext>;
+  Gvbd?: GvbdResolvers.Resolvers<TContext>;
+  Gvdi?: GvdiResolvers.Resolvers<TContext>;
+  Gsr?: GsrResolvers.Resolvers<TContext>;
+  GsrAccessEntry?: GsrAccessEntryResolvers.Resolvers<TContext>;
+  Gpbd?: GpbdResolvers.Resolvers<TContext>;
+  GHost?: GHostResolvers.Resolvers<TContext>;
+  CpuInfo?: CpuInfoResolvers.Resolvers<TContext>;
+  SoftwareVersion?: SoftwareVersionResolvers.Resolvers<TContext>;
+  GTemplate?: GTemplateResolvers.Resolvers<TContext>;
+  GTemplateAccessEntry?: GTemplateAccessEntryResolvers.Resolvers<TContext>;
+  GPool?: GPoolResolvers.Resolvers<TContext>;
+  GPlaybook?: GPlaybookResolvers.Resolvers<TContext>;
+  PlaybookRequirements?: PlaybookRequirementsResolvers.Resolvers<TContext>;
+  PlaybookTask?: PlaybookTaskResolvers.Resolvers<TContext>;
+  VmSelectedIdLists?: VmSelectedIdListsResolvers.Resolvers<TContext>;
+  Mutation?: MutationResolvers.Resolvers<TContext>;
+  CreateVm?: CreateVmResolvers.Resolvers<TContext>;
+  TemplateMutation?: TemplateMutationResolvers.Resolvers<TContext>;
+  VmMutation?: VmMutationResolvers.Resolvers<TContext>;
+  VmStartMutation?: VmStartMutationResolvers.Resolvers<TContext>;
+  VmShutdownMutation?: VmShutdownMutationResolvers.Resolvers<TContext>;
+  VmRebootMutation?: VmRebootMutationResolvers.Resolvers<TContext>;
+  VmPauseMutation?: VmPauseMutationResolvers.Resolvers<TContext>;
+  VmDeleteMutation?: VmDeleteMutationResolvers.Resolvers<TContext>;
+  VmAccessSet?: VmAccessSetResolvers.Resolvers<TContext>;
+  PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers.Resolvers<TContext>;
+  AttachNetworkMutation?: AttachNetworkMutationResolvers.Resolvers<TContext>;
+  AttachVdiMutation?: AttachVdiMutationResolvers.Resolvers<TContext>;
+  Subscription?: SubscriptionResolvers.Resolvers<TContext>;
+  GvMsSubscription?: GvMsSubscriptionResolvers.Resolvers<TContext>;
+  Deleted?: DeletedResolvers.Resolvers<TContext>;
+  GHostsSubscription?: GHostsSubscriptionResolvers.Resolvers<TContext>;
+  GPoolsSubscription?: GPoolsSubscriptionResolvers.Resolvers<TContext>;
+  GTasksSubscription?: GTasksSubscriptionResolvers.Resolvers<TContext>;
+  GTask?: GTaskResolvers.Resolvers<TContext>;
   PlaybookTasksSubscription?: PlaybookTasksSubscriptionResolvers.Resolvers<
-    Context
+    TContext
   >;
   GAclXenObject?: GAclXenObjectResolvers.Resolvers;
   GAccessEntry?: GAccessEntryResolvers.Resolvers;
   GXenObject?: GXenObjectResolvers.Resolvers;
   DateTime?: GraphQLScalarType;
   JsonString?: GraphQLScalarType;
-}
+} & { [typeName: string]: never };
 
-export interface IDirectiveResolvers<Result> {
+export type IDirectiveResolvers<Result> = {
   skip?: SkipDirectiveResolver<Result>;
   include?: IncludeDirectiveResolver<Result>;
   deprecated?: DeprecatedDirectiveResolver<Result>;
-}
+} & { [directiveName: string]: never };
 
 // ====================================================
 // Scalars
@@ -5824,7 +5952,7 @@ export interface Gvm extends GAclXenObject {
 
   powerState: PowerState;
 
-  startTime: DateTime;
+  startTime?: Maybe<DateTime>;
 
   VIFs: (Maybe<Gvif>)[];
   /** Virtual block devices */
@@ -5947,6 +6075,8 @@ export interface Gvdi extends GAclXenObject {
   VBDs: (Maybe<Gvbd>)[];
 
   contentType: SrContentType;
+
+  type: VdiType;
 }
 
 export interface Gsr extends GAclXenObject {
@@ -6305,28 +6435,41 @@ export interface GvMsSubscription {
   /** Change type */
   changeType: Change;
 
-  value: Gvm;
+  value?: Maybe<Gvm>;
+  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+  deleted?: Maybe<Deleted>;
+}
+
+export interface Deleted {
+  /** Deleted object's ref */
+  ref: string;
 }
 
 export interface GHostsSubscription {
   /** Change type */
   changeType: Change;
 
-  value: GHost;
+  value?: Maybe<GHost>;
+  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+  deleted?: Maybe<Deleted>;
 }
 
 export interface GPoolsSubscription {
   /** Change type */
   changeType: Change;
 
-  value: GPool;
+  value?: Maybe<GPool>;
+  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+  deleted?: Maybe<Deleted>;
 }
 
 export interface GTasksSubscription {
   /** Change type */
   changeType: Change;
 
-  value: GTask;
+  value?: Maybe<GTask>;
+  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+  deleted?: Maybe<Deleted>;
 }
 
 export interface GTask extends GAclXenObject {
@@ -6362,7 +6505,9 @@ export interface PlaybookTasksSubscription {
   /** Change type */
   changeType: Change;
 
-  value: PlaybookTask;
+  value?: Maybe<PlaybookTask>;
+  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
+  deleted?: Maybe<Deleted>;
 }
 
 // ====================================================

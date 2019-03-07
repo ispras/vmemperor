@@ -102,7 +102,7 @@
             try {
               return JSON.parse(responseBody);
             } catch (error) {
-              return responseBody;
+              return JSON.parse(responseBody);
             }
           });
       }

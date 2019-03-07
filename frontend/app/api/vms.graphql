@@ -15,6 +15,9 @@ subscription VMListUpdate {
     value {
       ...VMListFragment
     }
+    deleted {
+      ref
+    }
     changeType
   }
 }

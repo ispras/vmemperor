@@ -37,5 +37,8 @@ subscription HostListUpdate {
       ...HostListFragment
     }
     changeType
+    deleted {
+      ref
+    }
   }
 }

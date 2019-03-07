@@ -22,7 +22,8 @@ export interface CacheWatcher<T> {
 
 interface ValueChange {
   changeType: Change,
-  value: Value,
+  value?: Value,
+  deleted?: Value,
 }
 
 interface Value {
@@ -34,7 +35,6 @@ export function handleRemoveOfValueByRef<QueryType>(client: DataProxy,
                                                     listQueryDocument: DocumentNode,
                                                     listFieldName: string,
                                                     value: Value) {
-  console.log("Removal of value: ", value.ref);
   const query = client.readQuery<QueryType>({
     query: listQueryDocument
   });
@@ -76,7 +76,8 @@ export function handleAddRemove(client: DataProxy,
       handleAddOfValue(client, listQueryDocument, listFieldName, change.value);
       break;
     case Change.Remove:
-      handleRemoveOfValueByRef(client, listQueryDocument, listFieldName, change.value);
+      console.log("Remove value: ", change)
+      handleRemoveOfValueByRef(client, listQueryDocument, listFieldName, change.value ? change.value : change.deleted);
       break;
     default:
       break;

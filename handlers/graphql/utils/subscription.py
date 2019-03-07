@@ -11,6 +11,7 @@ from enum import Enum
 import constants.re as re
 from authentication import BasicAuthenticator
 from connman import ReDBConnection
+from handlers.graphql.types.deleted import Deleted
 from handlers.graphql.utils.querybuilder.changefeedbuilder import ChangefeedBuilder
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
 from xenadapter.xenobject import ACLXenObject, XenObject
@@ -64,6 +65,13 @@ async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, use
                     if task_counter.count == 0:
                         if not task_counter.task.done():
                             task_counter.task.cancel()
+                        await queue.put({
+                            'type': 'remove',
+                            'old_val':
+                                {
+                                    'ref' : value['ref']
+                                }
+                        })
                         del tasks[value['ref']]
 
 
@@ -76,7 +84,8 @@ async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, use
                                                 info=info,
                                                 queue=queue,
                                                 additional_string=additional_string,
-                                                select_subfield=['value']) # { value : {...} <-- this is what we need in info
+                                                select_subfield=['value'],  # { value : {...} <-- this is what we need in info
+                                                status=change['type'])
                     if not value['ref'] in tasks:
                         tasks[value['ref']] = TaskCounter(task=asyncio.create_task(builder.put_values_in_queue()))
                     else:
@@ -99,7 +108,8 @@ def MakeSubscriptionWithChangeType(_class : type) -> type:
                 (ObjectType, ),
                 {
                     'change_type': graphene.Field(Change, required=True, description="Change type"),
-                    'value': graphene.Field(_class, required=True)
+                    'value': graphene.Field(_class),
+                    'deleted': graphene.Field(Deleted, description="This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object")
                 })
 
 def MakeSubscription(_class : type) -> type:
@@ -187,10 +197,12 @@ def resolve_all_xen_items_changes(item_class: type):
                     change = await queue.get()
                     if change['type'] == 'remove':
                         value = change['old_val']
+                        yield MakeSubscriptionWithChangeType(item_class)(change_type=str_to_changetype(change['type']),
+                                                                         deleted=value)
                     else:
                         value = change['new_val']
-                    yield MakeSubscriptionWithChangeType(item_class)(change_type=str_to_changetype(change['type']),
-                                                                     value=value)
+                        yield MakeSubscriptionWithChangeType(item_class)(change_type=str_to_changetype(change['type']),
+                                                                         value=value)
             except asyncio.CancelledError:
                 creator_task.cancel()
                 return

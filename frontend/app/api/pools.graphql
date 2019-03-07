@@ -19,6 +19,9 @@ subscription PoolListUpdate{
     value{
       ...PoolListFragment
     }
+    deleted {
+      ref
+    }
     changeType
   }
 }

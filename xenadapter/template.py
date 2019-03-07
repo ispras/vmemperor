@@ -43,7 +43,7 @@ class Template(AbstractVM):
 
     @classmethod
     def filter_record(cls, xen, record, ref):
-        return record['is_a_template']
+        return record['is_a_template'] and not record['is_a_snapshot']
 
     @classmethod
     def process_record(cls, xen, ref, record):

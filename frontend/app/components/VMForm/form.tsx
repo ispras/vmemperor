@@ -12,7 +12,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Select from '../Select';
 import {
-  IsoList,
+  IsosCreateVmList,
+
   NetworkList,
   PoolList,
   SrContentType,
@@ -58,8 +59,8 @@ const VMForm = (props: FormikPropsValues) => {
   const {data: {networks}} = useQuery<NetworkList.Query>(NetworkList.Document);
   const networkOptions = useReactSelectFromRecord(networks);
 
-  const {data: isoData} = useQuery<IsoList.Query>(IsoList.Document);
-  const isos = useMemo(() => isoData.isos.filter(iso =>
+  const {data: isoData} = useQuery<IsosCreateVmList.Query>(IsosCreateVmList.Document);
+  const isos = useMemo(() => isoData.vdis.filter(iso =>
     !iso.SR.isToolsSr && !iso.SR.PBDs.every(pbd => !pbd.currentlyAttached)),
     [isoData]);
   const isoOptions = useReactSelectFromRecord(isos);

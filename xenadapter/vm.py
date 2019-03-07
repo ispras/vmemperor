@@ -209,7 +209,7 @@ class VM (AbstractVM):
                                   f"failed to start VM for installation (low resources?). State: {state}")
             return
 
-        cur = self.db.table('vms').get(self.ref).changes().run()
+        cur = re.db.table('vms').get(self.ref).changes().run()
         other_config = self.get_other_config()
 
         self.log.debug(f"Waiting for {self} to finish installing")
@@ -276,7 +276,6 @@ class VM (AbstractVM):
         :return:
         '''
         from xenadapter.vbd import VBD
-        from xenadapter.disk import VDIorISO
         from xenadapter.disk import VDI
         i = 0
         specs = provision.ProvisionSpec()
@@ -316,59 +315,13 @@ class VM (AbstractVM):
 
             for item in self.get_VBDs():
                 vbd = VBD(self.xen, ref=item)
-                vdi = VDIorISO(self.xen, ref=vbd.get_VDI())
-                if isinstance(vdi, VDI):
+                vdi = VDI(self.xen, ref=vbd.get_VDI())
+                if vdi.get_content_type() != 'iso':
 
-                    vdi.set_name_description(f"Created by VMEmperor for VM with UUID {self.get_uuid()}")
+                    vdi.set_name_description(f"Created by VMEmperor for VM {self.ref} (UUID {self.get_uuid()})")
                     # After provision. manage disks actions
                     vdi.manage_actions(VDI.Actions.ALL, user=self.user)
 
-
-
-    @use_logger
-    def create_VBD(self, vdi : Optional[XenObject] = None, type : Optional[VBDType] = None, mode : Optional[
-        VBDMode] = None, bootable : bool = True) -> XenObject:
-        from xenadapter.vbd import VBD
-        from xenadapter.disk import ISO
-        userdevice_max = -1
-        if vdi:
-            vdi_vbds = vdi.get_VBDs()
-            if not type:
-                type = VBDType.CD if isinstance(vdi, ISO) else VBDType.Disk
-            if not mode:
-                mode = VBDMode.RO if isinstance(vdi, ISO) else VBDMode.RW
-        else:
-            vdi_vbds = []
-            assert mode is not None
-            assert mode is not None
-        for vbd in self.get_VBDs():
-            vbd_obj = VBD(self.xen, vbd)
-            if vbd in vdi_vbds:
-
-                self.log.warning(f"Disk {vdi} is already attached to VBD {vbd_obj}")
-                return vbd_obj
-            try:
-                userdevice = int(vbd_obj.get_userdevice())
-            except ValueError:
-                userdevice = -1
-
-            if userdevice_max < userdevice:
-                userdevice_max = userdevice
-
-        userdevice_max += 1
-
-
-        args = {'VM': self.ref, 'VDI': vdi.ref if vdi else self.REF_NULL,
-                'userdevice': str(userdevice_max),
-                'bootable' : bootable, 'mode' : str(mode), 'type' : str(type), 'empty' : vdi is None,
-                'other_config' : {},'qos_algorithm_type': '', 'qos_algorithm_params': {}}
-
-        try:
-            new_vbd = VBD.create(self.xen, args)
-        except XenAPI.Failure as f:
-            raise XenAdapterAPIError(self.log, "Failed to create VBD", f.details)
-
-        return VBD(self.xen, new_vbd)
 
     @use_logger
     def os_detect(self, os_kind, guest_device, net_conf, hostname, install_url, override_pv_args, fullname, username, password, partition):
@@ -419,13 +372,13 @@ class VM (AbstractVM):
         Inserts Guest CD and returns Unix device name for this CD
         :return:
         '''
-        from .disk import ISO
+        from .disk import VDI
         from xenadapter.sr import SR
         for ref in SR.get_all(self.xen):
             sr = SR(ref=ref, xen=self.xen)
             if sr.get_is_tools_sr():
                 for vdi_ref in sr.get_VDIs():
-                    vdi = ISO(ref=vdi_ref, xen=self.xen)
+                    vdi = VDI(ref=vdi_ref, xen=self.xen)
                     if vdi.get_is_tools_iso():
                         vbd = vdi.attach(self, sync=True)
                         #get_device won't work here so we'll hack based on our vdi.attach implementation

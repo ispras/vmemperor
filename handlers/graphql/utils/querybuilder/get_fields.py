@@ -28,7 +28,12 @@ from graphql.utils.get_field_def import get_field_def
 def underscore(string : str):
     l = list()
     for n, symbol in enumerate(string):
+
         if symbol.isupper() and n > 0 and  not string[n-1].isupper():
+            if string[n:] == 'Vms': # VMs may be camelCased that way
+                l.append('_VMs')
+                break
+
             l.extend(['_', symbol.lower()])
         else:
             l.append(symbol)

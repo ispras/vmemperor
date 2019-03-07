@@ -108,7 +108,7 @@ class CreateVM(graphene.Mutation):
     def mutate(root, info, *args, **kwargs):
         task_id  = str(uuid.uuid4())
         ctx :ContextProtocol = info.context
-        if 'VDI' not in kwargs or kwargs['VDI'].type != 'iso':
+        if 'VDI' in kwargs and kwargs['VDI'].type != 'iso':
             raise TypeError("VDI argument is not ISO image")
         tornado.ioloop.IOLoop.current().run_in_executor(ctx.executor,
         lambda: createvm(ctx, task_id, user=ctx.user_authenticator.get_id(), *args, **kwargs))

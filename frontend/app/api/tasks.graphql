@@ -11,6 +11,9 @@ subscription Tasks{
       result
       residentOn
     }
+    deleted{
+      ref
+    }
     changeType
   }
 }
