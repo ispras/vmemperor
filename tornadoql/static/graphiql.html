@@ -73,7 +73,7 @@
      var match = document.cookie.match(RegExp('(?:^|;\\s*)' + escape(name) + '=([^;]*)'));
      return match ? match[1] : null;
    }
-      var subscriptionsClient = new window.SubscriptionsTransportWs.SubscriptionClient('ws://localhost:8889/subscriptions', {
+      var subscriptionsClient = new window.SubscriptionsTransportWs.SubscriptionClient(`${window.location.protocol === 'https' ? 'wss' : 'ws'}://${window.location.hostname}:${window.location.port}/api/subscriptions`, {
         reconnect: true,
         connectionParams: {
           authToken: getCookie('user')
