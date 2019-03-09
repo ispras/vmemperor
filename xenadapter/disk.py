@@ -180,7 +180,7 @@ class VDI(ACLXenObject, Attachable):
             if 'only_isos' in kwargs and kwargs['only_isos'] is not None:
                 operator = "==" if kwargs['only_isos'] else '!='
                 additional_string = f".filter(lambda item: item['content_type'] {operator} 'iso')"
-            builder = QueryBuilder(id=None, info=info,additional_string=additional_string)
+            builder = QueryBuilder(id=None, info=info,additional_string=additional_string, user_authenticator=info.context.user_authenticator)
             return builder.run_query()
 
 

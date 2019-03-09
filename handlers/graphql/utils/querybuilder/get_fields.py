@@ -20,8 +20,8 @@ SOFTWARE.
 """
 from typing import Optional, List
 
-from graphql import GraphQLList, ResolveInfo
-from graphql.language.ast import Field, FragmentSpread
+from graphql import GraphQLList, ResolveInfo, GraphQLUnionType
+from graphql.language.ast import Field, FragmentSpread, FragmentDefinition
 from graphql.utils.ast_to_dict import ast_to_dict
 from graphql.utils.get_field_def import get_field_def
 
@@ -60,10 +60,19 @@ def collect_fields(node : Field , fragments, return_type, get_field_type):
 
     field = {}
     if node.selection_set:
+        if isinstance(node, FragmentDefinition) and isinstance(return_type[0], GraphQLUnionType):
+            for type in return_type[0].types:
+                if type.name == node.type_condition.name.value:
+                    my_return_type = type
+                    break
+            else:
+                raise TypeError(f"Unable to find type by type condition for fragment {node}")
+        else:
+            my_return_type = return_type[0]
         for leaf in node.selection_set.selections:
             if isinstance(leaf, Field):
                 field.update({
-                    underscore(leaf.name.value): collect_fields(leaf, fragments, get_field_type(return_type[0], leaf), get_field_type)
+                    underscore(leaf.name.value): collect_fields(leaf, fragments, get_field_type(my_return_type, leaf), get_field_type)
                 })
             elif isinstance(leaf, FragmentSpread):
                 field.update(collect_fields(fragments[leaf.name.value],
@@ -97,6 +106,7 @@ def get_fields(info : ResolveInfo, select_subfield : Optional[List] = None ):
             if isinstance(type, GraphQLList):
                 is_list = True
             type = type.of_type
+
         return type, is_list
 
     operation_type = info.parent_type

@@ -375,20 +375,12 @@ export namespace HostListUpdate {
   export type Hosts = {
     __typename?: "GHostsSubscription";
 
-    value: Maybe<Value>;
+    value: Value;
 
     changeType: Change;
-
-    deleted: Maybe<Deleted>;
   };
 
-  export type Value = HostListFragment.Fragment;
-
-  export type Deleted = {
-    __typename?: "Deleted";
-
-    ref: string;
-  };
+  export type Value = HostListFragment.Fragment | DeletedFragment.Fragment;
 }
 
 export namespace IsosCreateVmList {
@@ -707,20 +699,12 @@ export namespace PoolListUpdate {
   export type Pools = {
     __typename?: "GPoolsSubscription";
 
-    value: Maybe<Value>;
-
-    deleted: Maybe<Deleted>;
+    value: Value;
 
     changeType: Change;
   };
 
-  export type Value = PoolListFragment.Fragment;
-
-  export type Deleted = {
-    __typename?: "Deleted";
-
-    ref: string;
-  };
+  export type Value = PoolListFragment.Fragment | DeletedFragment.Fragment;
 }
 
 export namespace RebootVm {
@@ -803,40 +787,12 @@ export namespace Tasks {
   export type Tasks = {
     __typename?: "GTasksSubscription";
 
-    value: Maybe<Value>;
-
-    deleted: Maybe<Deleted>;
+    value: Value;
 
     changeType: Change;
   };
 
-  export type Value = {
-    __typename?: "GTask";
-
-    ref: string;
-
-    status: Maybe<string>;
-
-    created: DateTime;
-
-    nameLabel: string;
-
-    nameDescription: string;
-
-    finished: DateTime;
-
-    progress: number;
-
-    result: Maybe<string>;
-
-    residentOn: Maybe<string>;
-  };
-
-  export type Deleted = {
-    __typename?: "Deleted";
-
-    ref: string;
-  };
+  export type Value = TaskFragment.Fragment | DeletedFragment.Fragment;
 }
 
 export namespace TemplateList {
@@ -927,16 +883,16 @@ export namespace VmListUpdate {
   export type Vms = {
     __typename?: "GVMsSubscription";
 
-    value: Maybe<Value>;
-
-    deleted: Maybe<Deleted>;
+    value: Value;
 
     changeType: Change;
   };
 
-  export type Value = VmListFragment.Fragment;
+  export type Value = VmListFragment.Fragment | DeletedFragment.Fragment;
+}
 
-  export type Deleted = {
+export namespace DeletedFragment {
+  export type Fragment = {
     __typename?: "Deleted";
 
     ref: string;
@@ -1082,6 +1038,30 @@ export namespace StorageListFragment {
     __typename?: "GPBD";
 
     currentlyAttached: boolean;
+  };
+}
+
+export namespace TaskFragment {
+  export type Fragment = {
+    __typename?: "GTask";
+
+    ref: string;
+
+    status: Maybe<string>;
+
+    created: DateTime;
+
+    nameLabel: string;
+
+    nameDescription: string;
+
+    finished: DateTime;
+
+    progress: number;
+
+    result: Maybe<string>;
+
+    residentOn: Maybe<string>;
   };
 }
 
@@ -1247,6 +1227,14 @@ import * as ReactApollo from "react-apollo";
 // Fragments
 // ====================================================
 
+export namespace DeletedFragment {
+  export const FragmentDoc = gql`
+    fragment DeletedFragment on Deleted {
+      ref
+    }
+  `;
+}
+
 export namespace HostListFragment {
   export const FragmentDoc = gql`
     fragment HostListFragment on GHost {
@@ -1327,6 +1315,22 @@ export namespace StorageListFragment {
       PBDs {
         currentlyAttached
       }
+    }
+  `;
+}
+
+export namespace TaskFragment {
+  export const FragmentDoc = gql`
+    fragment TaskFragment on GTask {
+      ref
+      status
+      created
+      nameLabel
+      nameDescription
+      finished
+      progress
+      result
+      residentOn
     }
   `;
 }
@@ -1836,15 +1840,14 @@ export namespace HostListUpdate {
       hosts {
         value {
           ...HostListFragment
+          ...DeletedFragment
         }
         changeType
-        deleted {
-          ref
-        }
       }
     }
 
     ${HostListFragment.FragmentDoc}
+    ${DeletedFragment.FragmentDoc}
   `;
   export class Component extends React.Component<
     Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
@@ -2668,15 +2671,14 @@ export namespace PoolListUpdate {
       pools {
         value {
           ...PoolListFragment
-        }
-        deleted {
-          ref
+          ...DeletedFragment
         }
         changeType
       }
     }
 
     ${PoolListFragment.FragmentDoc}
+    ${DeletedFragment.FragmentDoc}
   `;
   export class Component extends React.Component<
     Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
@@ -2882,22 +2884,15 @@ export namespace Tasks {
     subscription Tasks {
       tasks {
         value {
-          ref
-          status
-          created
-          nameLabel
-          nameDescription
-          finished
-          progress
-          result
-          residentOn
-        }
-        deleted {
-          ref
+          ...TaskFragment
+          ...DeletedFragment
         }
         changeType
       }
     }
+
+    ${TaskFragment.FragmentDoc}
+    ${DeletedFragment.FragmentDoc}
   `;
   export class Component extends React.Component<
     Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
@@ -3193,15 +3188,14 @@ export namespace VmListUpdate {
       vms {
         value {
           ...VMListFragment
-        }
-        deleted {
-          ref
+          ...DeletedFragment
         }
         changeType
       }
     }
 
     ${VmListFragment.FragmentDoc}
+    ${DeletedFragment.FragmentDoc}
   `;
   export class Component extends React.Component<
     Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
@@ -5437,9 +5431,7 @@ export namespace GvMsSubscriptionResolvers {
     /** Change type */
     changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<Maybe<Gvm>, TypeParent, TContext>;
-    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
+    value?: ValueResolver<GvmOrDeleted, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
@@ -5448,12 +5440,7 @@ export namespace GvMsSubscriptionResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = Maybe<Gvm>,
-    Parent = GvMsSubscription,
-    TContext = {}
-  > = Resolver<R, Parent, TContext>;
-  export type DeletedResolver<
-    R = Maybe<Deleted>,
+    R = GvmOrDeleted,
     Parent = GvMsSubscription,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5477,9 +5464,7 @@ export namespace GHostsSubscriptionResolvers {
     /** Change type */
     changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<Maybe<GHost>, TypeParent, TContext>;
-    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
+    value?: ValueResolver<GHostOrDeleted, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
@@ -5488,12 +5473,7 @@ export namespace GHostsSubscriptionResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = Maybe<GHost>,
-    Parent = GHostsSubscription,
-    TContext = {}
-  > = Resolver<R, Parent, TContext>;
-  export type DeletedResolver<
-    R = Maybe<Deleted>,
+    R = GHostOrDeleted,
     Parent = GHostsSubscription,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5504,9 +5484,7 @@ export namespace GPoolsSubscriptionResolvers {
     /** Change type */
     changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<Maybe<GPool>, TypeParent, TContext>;
-    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
+    value?: ValueResolver<GPoolOrDeleted, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
@@ -5515,12 +5493,7 @@ export namespace GPoolsSubscriptionResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = Maybe<GPool>,
-    Parent = GPoolsSubscription,
-    TContext = {}
-  > = Resolver<R, Parent, TContext>;
-  export type DeletedResolver<
-    R = Maybe<Deleted>,
+    R = GPoolOrDeleted,
     Parent = GPoolsSubscription,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5531,9 +5504,7 @@ export namespace GTasksSubscriptionResolvers {
     /** Change type */
     changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<Maybe<GTask>, TypeParent, TContext>;
-    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
+    value?: ValueResolver<GTaskOrDeleted, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
@@ -5542,12 +5513,7 @@ export namespace GTasksSubscriptionResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = Maybe<GTask>,
-    Parent = GTasksSubscription,
-    TContext = {}
-  > = Resolver<R, Parent, TContext>;
-  export type DeletedResolver<
-    R = Maybe<Deleted>,
+    R = GTaskOrDeleted,
     Parent = GTasksSubscription,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5662,9 +5628,7 @@ export namespace PlaybookTasksSubscriptionResolvers {
     /** Change type */
     changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
-    value?: ValueResolver<Maybe<PlaybookTask>, TypeParent, TContext>;
-    /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-    deleted?: DeletedResolver<Maybe<Deleted>, TypeParent, TContext>;
+    value?: ValueResolver<PlaybookTaskOrDeleted, TypeParent, TContext>;
   }
 
   export type ChangeTypeResolver<
@@ -5673,12 +5637,7 @@ export namespace PlaybookTasksSubscriptionResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type ValueResolver<
-    R = Maybe<PlaybookTask>,
-    Parent = PlaybookTasksSubscription,
-    TContext = {}
-  > = Resolver<R, Parent, TContext>;
-  export type DeletedResolver<
-    R = Maybe<Deleted>,
+    R = PlaybookTaskOrDeleted,
     Parent = PlaybookTasksSubscription,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5713,6 +5672,61 @@ export namespace GXenObjectResolvers {
   export type ResolveType<
     R = "GHost" | "GPool",
     Parent = GHost | GPool,
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
+}
+
+export namespace GvmOrDeletedResolvers {
+  export interface Resolvers {
+    __resolveType: ResolveType;
+  }
+  export type ResolveType<
+    R = "GVM" | "Deleted",
+    Parent = Gvm | Deleted,
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
+}
+
+export namespace GHostOrDeletedResolvers {
+  export interface Resolvers {
+    __resolveType: ResolveType;
+  }
+  export type ResolveType<
+    R = "GHost" | "Deleted",
+    Parent = GHost | Deleted,
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
+}
+
+export namespace GPoolOrDeletedResolvers {
+  export interface Resolvers {
+    __resolveType: ResolveType;
+  }
+  export type ResolveType<
+    R = "GPool" | "Deleted",
+    Parent = GPool | Deleted,
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
+}
+
+export namespace GTaskOrDeletedResolvers {
+  export interface Resolvers {
+    __resolveType: ResolveType;
+  }
+  export type ResolveType<
+    R = "GTask" | "Deleted",
+    Parent = GTask | Deleted,
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
+}
+
+export namespace PlaybookTaskOrDeletedResolvers {
+  export interface Resolvers {
+    __resolveType: ResolveType;
+  }
+  export type ResolveType<
+    R = "PlaybookTask" | "Deleted",
+    Parent = PlaybookTask | Deleted,
     TContext = {}
   > = TypeResolveFn<R, Parent, TContext>;
 }
@@ -5809,6 +5823,11 @@ export type IResolvers<TContext = {}> = {
   GAclXenObject?: GAclXenObjectResolvers.Resolvers;
   GAccessEntry?: GAccessEntryResolvers.Resolvers;
   GXenObject?: GXenObjectResolvers.Resolvers;
+  GvmOrDeleted?: GvmOrDeletedResolvers.Resolvers;
+  GHostOrDeleted?: GHostOrDeletedResolvers.Resolvers;
+  GPoolOrDeleted?: GPoolOrDeletedResolvers.Resolvers;
+  GTaskOrDeleted?: GTaskOrDeletedResolvers.Resolvers;
+  PlaybookTaskOrDeleted?: PlaybookTaskOrDeletedResolvers.Resolvers;
   DateTime?: GraphQLScalarType;
   JsonString?: GraphQLScalarType;
 } & { [typeName: string]: never };
@@ -6435,9 +6454,7 @@ export interface GvMsSubscription {
   /** Change type */
   changeType: Change;
 
-  value?: Maybe<Gvm>;
-  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-  deleted?: Maybe<Deleted>;
+  value: GvmOrDeleted;
 }
 
 export interface Deleted {
@@ -6449,27 +6466,21 @@ export interface GHostsSubscription {
   /** Change type */
   changeType: Change;
 
-  value?: Maybe<GHost>;
-  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-  deleted?: Maybe<Deleted>;
+  value: GHostOrDeleted;
 }
 
 export interface GPoolsSubscription {
   /** Change type */
   changeType: Change;
 
-  value?: Maybe<GPool>;
-  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-  deleted?: Maybe<Deleted>;
+  value: GPoolOrDeleted;
 }
 
 export interface GTasksSubscription {
   /** Change type */
   changeType: Change;
 
-  value?: Maybe<GTask>;
-  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-  deleted?: Maybe<Deleted>;
+  value: GTaskOrDeleted;
 }
 
 export interface GTask extends GAclXenObject {
@@ -6505,9 +6516,7 @@ export interface PlaybookTasksSubscription {
   /** Change type */
   changeType: Change;
 
-  value?: Maybe<PlaybookTask>;
-  /** This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object */
-  deleted?: Maybe<Deleted>;
+  value: PlaybookTaskOrDeleted;
 }
 
 // ====================================================
@@ -6660,3 +6669,17 @@ export interface TaskSubscriptionArgs {
 export interface PlaybookTaskSubscriptionArgs {
   id: string;
 }
+
+// ====================================================
+// Unions
+// ====================================================
+
+export type GvmOrDeleted = Gvm | Deleted;
+
+export type GHostOrDeleted = GHost | Deleted;
+
+export type GPoolOrDeleted = GPool | Deleted;
+
+export type GTaskOrDeleted = GTask | Deleted;
+
+export type PlaybookTaskOrDeleted = PlaybookTask | Deleted;

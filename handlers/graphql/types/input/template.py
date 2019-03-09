@@ -20,7 +20,8 @@ def set_enabled(ctx : ContextProtocol, template : Template, changes : TemplateIn
 
 
 class TemplateMutation(graphene.Mutation):
-    success = graphene.Field(graphene.Boolean, required=True)
+    granted = graphene.Field(graphene.Boolean, required=True, description="If access is granted")
+    reason = graphene.Field(graphene.String, required=False, description="If access is not granted, return reason why")
 
     class Arguments:
         template = graphene.Argument(TemplateInput, description="Template to change")
@@ -38,13 +39,18 @@ class TemplateMutation(graphene.Mutation):
 
         mutations = [
             MutationMethod(func=set_enabled, action_name=None)
-
-
         ]
-        helper = MutationHelper(mutations, ctx, t)
-        helper.perform_mutations(template)
 
-        return TemplateMutation(success=True)
+        def reason(method):
+            if method.func == set_enabled:
+                return "Not an administrator"
+
+        helper = MutationHelper(mutations, ctx, t)
+        granted, method = helper.perform_mutations(template)
+        if not granted:
+            return TemplateMutation(granted=False, reason=reason(method))
+
+        return TemplateMutation(granted=True)
 
 
 

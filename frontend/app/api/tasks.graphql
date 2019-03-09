@@ -1,18 +1,22 @@
+# import DeletedFragment from "deleted.graphql"
+
+fragment TaskFragment on GTask {
+  ref
+  status
+  created
+  nameLabel
+  nameDescription
+  finished
+  progress
+  result
+  residentOn
+}
+
 subscription Tasks{
   tasks {
     value{
-      ref
-      status
-      created
-      nameLabel
-      nameDescription
-      finished
-      progress
-      result
-      residentOn
-    }
-    deleted{
-      ref
+      ...TaskFragment
+      ...DeletedFragment
     }
     changeType
   }

@@ -4,6 +4,7 @@ from typing import Dict, Type
 
 import graphene
 from graphene import ObjectType
+from graphene.types.resolver import dict_resolver
 from graphql import ResolveInfo
 from rethinkdb import RethinkDB
 from rethinkdb.errors import ReqlOpFailedError
@@ -108,15 +109,26 @@ async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, use
 
 
 def MakeSubscriptionWithChangeType(_class : type) -> type:
+    """
+    Create a subscription type with change tracking. If an object is deleted and it's a XenObject, only its ref is returned
+    :param _class: GraphQL type to track changes on
+    :return: GraphQL Union type: _class OR Deleted
+    """
     class Meta:
         types = (_class, Deleted, )
+
+
+    change_type = type(f'{_class.__name__}OrDeleted', (graphene.Union, ), {
+                        "Meta": Meta,
+                    })
+    class Meta:
+        default_resolver = dict_resolver
     return type(f'{_class.__name__}sSubscription',
                 (ObjectType, ),
                 {
                     'change_type': graphene.Field(Change, required=True, description="Change type"),
-                    'value': type(f'{_class.__name__}OrDeleted', (graphene.Union, ), {
-                        "Meta": Meta
-                    })
+                    'value': graphene.Field(change_type, required=True),
+                    'Meta': Meta
                 })
 
 def MakeSubscription(_class : type) -> type:
@@ -204,12 +216,12 @@ def resolve_all_xen_items_changes(item_class: type):
                     change = await queue.get()
                     if change['type'] == 'remove':
                         value = change['old_val']
-                        yield MakeSubscriptionWithChangeType(item_class)(change_type=str_to_changetype(change['type']),
-                                                                         deleted=value)
+                        value['__typename'] = 'Deleted'
                     else:
                         value = change['new_val']
-                        yield MakeSubscriptionWithChangeType(item_class)(change_type=str_to_changetype(change['type']),
-                                                                         value=value)
+                        value['__typename'] = item_class.__name__
+                    yield dict(change_type=str_to_changetype(change['type']),
+                               value=value)
             except asyncio.CancelledError:
                 creator_task.cancel()
                 return

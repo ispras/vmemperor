@@ -1,3 +1,5 @@
+# import DeletedFragment from "deleted.graphql"
+
 fragment PoolListFragment on GPool {
   master{
     ref
@@ -18,9 +20,7 @@ subscription PoolListUpdate{
   pools {
     value{
       ...PoolListFragment
-    }
-    deleted {
-      ref
+      ...DeletedFragment
     }
     changeType
   }

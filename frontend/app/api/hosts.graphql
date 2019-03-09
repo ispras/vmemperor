@@ -1,3 +1,5 @@
+# import DeletedFragment from "deleted.graphql"
+
 fragment HostListFragment on GHost {
   softwareVersion {
     platformVersion
@@ -35,10 +37,8 @@ subscription HostListUpdate {
   hosts {
     value {
       ...HostListFragment
+      ...DeletedFragment
     }
     changeType
-    deleted {
-      ref
-    }
   }
 }

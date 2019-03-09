@@ -35,7 +35,8 @@ class VMMutation(graphene.Mutation):
     '''
     This class represents synchronous mutations for VM, i.e. you can change name_label, name_description, etc.
     '''
-    success = graphene.Field(graphene.Boolean, required=True)
+    granted = graphene.Field(graphene.Boolean, required=True)
+    reason = graphene.Field(graphene.String)
 
     class Arguments:
         vm = graphene.Argument(VMInput, description="VM to change", required=True)
@@ -54,10 +55,16 @@ class VMMutation(graphene.Mutation):
             MutationMethod(func=set_name_description, access_action=VM.Actions.rename),
             MutationMethod(func=set_domain_type, access_action=VM.Actions.change_domain_type)
         ]
-        helper = MutationHelper(mutations, ctx, mutable)
-        helper.perform_mutations(vm)
 
-        return VMMutation(success=True)
+        def reason(method: MutationMethod):
+            return f"Action {method.access_ˆaction} is required to perform mutation on VM {mutable.ref}"
+
+        helper = MutationHelper(mutations, ctx, mutable)
+        granted, method = helper.perform_mutations(vm)
+        if not granted:
+            return VMMutation(granted=False, reason=reason(method))
+
+        return VMMutation(granted=True)
 
 
 class VMStartInput(InputObjectType):
@@ -67,7 +74,8 @@ class VMStartInput(InputObjectType):
 
 
 class VMStartMutation(graphene.Mutation):
-    taskId = graphene.ID(required=True, description="Start task ID")
+    taskId = graphene.ID(required=False, description="Start task ID")
+    granted = graphene.Boolean(required=True, description="Shows if access to start is granted")
 
     class Arguments:
         ref = graphene.ID(required=True)
@@ -78,9 +86,12 @@ class VMStartMutation(graphene.Mutation):
     def mutate(root, info, ref, options : VMStartInput = None, **kwargs):
         ctx :ContextProtocol = info.context
         vm = kwargs['VM']
+        if not vm:
+            return VMStartMutation(granted=False)
+
         paused = options.paused if options else False
         force = options.force if options else False
-        return VMStartMutation(taskId=vm.async_start(paused, force))
+        return VMStartMutation(granted=True, taskId=vm.async_start(paused, force))
 
 
 class ShutdownForce(graphene.Enum):
@@ -89,7 +100,8 @@ class ShutdownForce(graphene.Enum):
 
 
 class VMShutdownMutation(graphene.Mutation):
-    taskId = graphene.ID(required=True, description="Shutdown task ID")
+    taskId = graphene.ID(required=False, description="Shutdown task ID")
+    granted = graphene.Boolean(required=True, description="Shows if access to shutdown is granted")
 
     class Arguments:
         ref = graphene.ID(required=True)
@@ -112,13 +124,15 @@ class VMShutdownMutation(graphene.Mutation):
             return kwargs['VM']
 
         vm = get_vm(root, info, ref, force)
+        if not vm:
+            return VMShutdownMutation(granted=False)
         call = getattr(vm, method)
-        return VMShutdownMutation(taskId=call())
+        return VMShutdownMutation(taskId=call(), granted=True)
 
 
 class VMRebootMutation(graphene.Mutation):
-    taskId = graphene.ID(required=True, description="Reboot task ID")
-
+    taskId = graphene.ID(required=False, description="Reboot task ID")
+    granted = graphene.Boolean(required=True, description="Shows if access to reboot is granted")
     class Arguments:
         ref = graphene.ID(required=True)
         force = graphene.Argument(ShutdownForce, description="Force reboot in a hard or clean way. Default: clean")
@@ -137,12 +151,17 @@ class VMRebootMutation(graphene.Mutation):
             return kwargs['VM']
 
         vm = get_vm(root, info, ref, force)
+        if not vm:
+            return VMRebootMutation(granted=False)
+
         call = getattr(vm, method)
-        return VMRebootMutation(taskId=call())
+        return VMRebootMutation(taskId=call(), granted=True)
 
 
 class VMPauseMutation(graphene.Mutation):
-    taskId = graphene.ID(required=True, description="Pause/unpause task ID")
+    taskId = graphene.ID(required=False, description="Pause/unpause task ID")
+    granted = graphene.Boolean(required=True, description="Shows if access to pause is granted")
+    reason = graphene.String()
 
     class Arguments:
         ref = graphene.ID(required=True)
@@ -153,22 +172,27 @@ class VMPauseMutation(graphene.Mutation):
         ctx: ContextProtocol = info.context
 
         vm = VM(ctx.xen, ref)
-        if vm.get_power_state() == "Running":
+        power_state = vm.get_power_state()
+        if power_state == "Running":
             access_action = VM.Actions.pause
             method = 'async_pause'
-        elif vm.get_power_state() == "Paused":
+        elif power_state == "Paused":
             access_action = VM.Actions.unpause
             method = 'async_unpause'
         else:
-            raise ValueError(f"Pause mutation requires powerState 'Running' or 'Paused'. Got: {vm.get_power_state()}")
+            return VMPauseMutation(granted=False, reason=f"Power state is {power_state}, expected: Running or Paused")
 
-        vm.check_access(ctx.user_authenticator, access_action)
 
-        return VMPauseMutation(taskId=getattr(vm, method)())
+        if not vm.check_access(ctx.user_authenticator, access_action):
+            return VMPauseMutation(granted=False, reason=f"Access to action {access_action} for VM {vm.ref} is not granted")
+
+        return VMPauseMutation(taskId=getattr(vm, method)(), granted=True)
 
 
 class VMDeleteMutation(graphene.Mutation):
-    taskId = graphene.ID(required=True, description="Deleting task ID")
+    taskId = graphene.ID(required=False, description="Deleting task ID")
+    granted = graphene.Boolean(required=True, description="Shows if access to delete is granted")
+    reason = graphene.String()
 
     class Arguments:
         ref = graphene.ID(required=True)
@@ -176,8 +200,11 @@ class VMDeleteMutation(graphene.Mutation):
     @staticmethod
     @with_authentication(access_class=VM, access_action=VM.Actions.destroy)
     def mutate(root, info, ref, VM):
+        if not VM:
+            return VMDeleteMutation(granted=False, reason=f"Access action 'destroy' is not granted for VM {VM.ref}, unable to delete")
         if VM.get_power_state() == "Halted":
-            return VMDeleteMutation(taskId=VM.async_destroy())
+            return VMDeleteMutation(taskId=VM.async_destroy(), granted=True)
         else:
-            raise ValueError(f"Delete mutation requires powerState 'Halted'. Got: {VM.get_power_state()}")
+            return VMDeleteMutation(granted=False, reason=f"Power state of VM {VM.ref} is not Halted, unable to delete")
+
 

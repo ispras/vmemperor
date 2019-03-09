@@ -1,8 +1,11 @@
+# import DeletedFragment from "deleted.graphql"
 fragment VMListFragment on GVM {
   ref
   nameLabel
   powerState
 }
+
+
 
 query VMList {
   vms {
@@ -14,9 +17,7 @@ subscription VMListUpdate {
   vms {
     value {
       ...VMListFragment
-    }
-    deleted {
-      ref
+      ...DeletedFragment
     }
     changeType
   }
