@@ -21,16 +21,12 @@ const VNCView = ({vm: {ref, nameLabel, powerState}}: Props) => {
     }
   });
   if (!data.console) {
-    return (<h1>Turn VM on</h1>)
+    return (<h1>Access denied! Ask your administrator</h1>)
   }
   const url = `ws://${window.location.hostname}:${window.location.port}/api${data.console}`;
 
   return (
     <Fragment>
-      {nameLabel &&
-      <h2>{
-        nameLabel
-      }</h2>}
       <VncDisplay url={url} onDisconnect={() => refetch()}/>
     </Fragment>
   );

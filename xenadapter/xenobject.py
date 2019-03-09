@@ -177,7 +177,7 @@ class XenObject(metaclass=XenObjectMeta):
 
             if event['operation'] in ('mod', 'add'):
                 new_rec = cls.process_record(xen, event['ref'], record)
-                CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='replace').run())
+                CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
 
                 if 'current_operations' in record and isinstance(record['current_operations'], Mapping):
                     task_docs = [{

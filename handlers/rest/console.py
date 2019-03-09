@@ -80,7 +80,11 @@ class ConsoleHandler(BaseWSHandler):
     async def on_message(self, message):
         assert (isinstance(message, bytes))
         self.writer.write(message)
-        await self.writer.drain()
+        try:
+            await self.writer.drain()
+        except (ConnectionResetError, BrokenPipeError):
+            self.halt = True
+            return
 
     def select_subprotocol(self, subprotocols):
         if 'binary' in subprotocols:
@@ -121,7 +125,8 @@ class ConsoleHandler(BaseWSHandler):
                     self.write_message(data, binary=True)
                 except WebSocketClosedError as e:
                     return
-
+                if self.reader.at_eof():
+                    return
 
         except Exception as e:
             self.log.error(f"Exception: {e}")

@@ -5,15 +5,15 @@
  */
 
 import React, {useCallback, useState} from 'react';
-import {PowerState, VmAccessFragment, VmActions, VmInfo} from "../../generated-models";
+import {PowerState, VmActions, VmInfo} from "../../generated-models";
 import Power from './subforms/power';
 import {Badge, Col, Nav, NavItem, NavLink, Row, TabContent, TabPane} from 'reactstrap';
 import classnames from 'classnames';
 import Vncview from '../../containers/Vncview';
-import Vm = VmInfo.Vm;
 import Network from "./subforms/network";
 import Storage from "./subforms/storage";
 import AccessView from '../../components/AccessView';
+import Vm = VmInfo.Vm;
 
 
 interface Props {
@@ -43,7 +43,11 @@ const VmsettingsForm = ({vm}: Props) => {
     }
   }, [activeTab, vncActivated]);
 
-
+  if (activeTab === Tab.VNC && vm.powerState !== PowerState.Running)
+  {
+    setVncActivated(false);
+    setActiveTab(Tab.Power);
+  }
   return (
     <div>
       <h3 className="text-center">{vm.nameLabel} <Badge color="primary">{vm.powerState}</Badge>

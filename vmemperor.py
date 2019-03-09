@@ -13,8 +13,7 @@ import constants.re as re
 import constants
 import constants.auth
 from connman import ReDBConnection
-
-
+import constants.user_table_hooks as uth
 import handlers.graphql.graphql_handler as gql_handler
 from datetimeencoder import DateTimeEncoder
 from handlers.rest.base import RESTHandler, auth_required, admin_required
@@ -305,23 +304,23 @@ class EventLoop(Loggable):
                                     log.error(f"broken table {table_user}:  Object {ref} has {rec_len} entries for user {k}, while only 0 or 1 is allowed")
                                 else:
                                     CHECK_ER(re.db.table(table_user).insert({'ref': ref, 'userid': k, 'actions': v}, conflict='replace').run())
-
-
                         if 'old_val' in record and record['old_val']: # Delete values in old_val but not in new_val
                             old_access_list = record['old_val'].get('access')
                             if not old_access_list:
                                 old_access_list = {}
 
-                            access_to_delete = set(old_access_list).difference(access.keys())
-                            items = [[ref, item] for item in access_to_delete]
-                            log.info(f"Deleting access rights for {ref} (table {table}): {items}")
-                            CHECK_ER(re.db.table(table_user).get_all(*items, index='ref_and_userid').delete().run())
+                            users_to_delete = set(old_access_list).difference(access.keys())
+                            if users_to_delete:
+                                items = [[ref, user] for user in users_to_delete]
+                                log.info(f"Deleting access rights for one user in table {table}: ref {items[0]}, user {items[1]}")
+                                CHECK_ER(re.db.table(table_user).get_all(*items, index='ref_and_userid').delete().run())
+
 
                     else:
                         ref = record['old_val']['ref']
                         table = record['old_val']['table']
                         table_user = table + '_user'
-                        log.info(f"Deleting access rights for {ref} (table {table})")
+                        log.info(f"Deleting all access rights for {ref} (table {table})")
                         CHECK_ER(re.db.table(table_user).get_all(ref, index='ref').delete().run())
         except Exception as e:
             self.log.error(f"Exception in access_monitor: {e}")
