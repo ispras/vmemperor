@@ -108,12 +108,15 @@ async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, use
 
 
 def MakeSubscriptionWithChangeType(_class : type) -> type:
+    class Meta:
+        types = (_class, Deleted, )
     return type(f'{_class.__name__}sSubscription',
                 (ObjectType, ),
                 {
                     'change_type': graphene.Field(Change, required=True, description="Change type"),
-                    'value': graphene.Field(_class),
-                    'deleted': graphene.Field(Deleted, description="This object is provided instead of Value if a) underlying object is a Xen object, and b) it's been deleted. It only contains ref of a previously deleted object")
+                    'value': type(f'{_class.__name__}OrDeleted', (graphene.Union, ), {
+                        "Meta": Meta
+                    })
                 })
 
 def MakeSubscription(_class : type) -> type:
