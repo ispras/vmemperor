@@ -13,7 +13,6 @@ import constants.re as re
 import constants
 import constants.auth
 from connman import ReDBConnection
-import constants.user_table_hooks as uth
 import handlers.graphql.graphql_handler as gql_handler
 from datetimeencoder import DateTimeEncoder
 from handlers.rest.base import RESTHandler, auth_required, admin_required

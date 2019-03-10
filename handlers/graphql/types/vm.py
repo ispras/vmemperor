@@ -67,6 +67,7 @@ class DomainType(graphene.Enum):
 
 class VMActions(SerFlag):
     attach_vdi = auto()
+    attach_network = auto()
     rename = auto()
     change_domain_type = auto()
     VNC = auto()

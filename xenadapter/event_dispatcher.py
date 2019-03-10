@@ -9,7 +9,7 @@ import logging
 EVENT_DISPATCHER = {}
 '''
 Key: XenAPI Event class: e.g. 'vdi'
-Value: XenObject classes: e.g. [VDI, ISO] (see xenadapter/disk.py on these particular classes)
+Value: XenObject classes: e.g. [VDI, ISO] (see xenadapter/vdi.py on these particular classes)
 '''
 
 def add_to_event_dispatcher(cl: Type):

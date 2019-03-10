@@ -1,6 +1,4 @@
-from enum import auto
-
-from handlers.graphql.types.network import GNetwork
+from handlers.graphql.types.network import GNetwork, NetworkActions
 from xenadapter.vif import VIF
 from .xenobject import *
 from xenadapter.helpers import use_logger
@@ -12,9 +10,9 @@ class Network(ACLXenObject):
     db_table_name = 'nets'
     EVENT_CLASSES = ['network']
     GraphQLType = GNetwork
+    Actions = NetworkActions
 
-    class Actions(SerFlag):
-        Attaching = auto()
+
 
     def __init__(self, xen, ref):
         super().__init__(xen, ref)

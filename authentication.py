@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from functools import wraps
 import logging
-from typing import Union, Sequence
+from typing import Union, Sequence, Tuple, List, Type
 
 from serflag import SerFlag
 
@@ -125,8 +125,6 @@ class AdministratorAuthenticator(BasicAuthenticator):
         except XenAdapterConnectionError as e:
             raise AuthenticationPasswordException(e.log, self)
 
-
-
     def get_id(self):
         return self.id
 
@@ -224,6 +222,38 @@ def with_authentication(access_class : type = None, access_action : SerFlag = No
             return method(root, info, *args, **kwargs)
         return wrapper
     return decorator
+
+
+def return_if_access_is_not_granted(args: List[Tuple[str, str, SerFlag]]):
+    """
+    Helper that calls the underlying method is access to the particular Xen objects was granted by with_authentication
+    :param args: List of tuples of the following format:
+    1st item: - class name (and argument name as filled in by with_authentication)
+    2nd item: - keyword argument name containing id
+    3rd item: - access action that is denied/granted
+    :return: wrapped method if access granted, type(dict=dict(granted=False, reason="String-whats-not-granted")) otherwise
+    """
+    def decorator(method):
+        @wraps(method)
+        def wrapper(root, info, *_args, **kwargs):
+            granted = True
+            reason = []
+            for name, id, flag in args:
+                if name not in kwargs:
+                    continue
+
+                if not kwargs[name]:
+                    granted = False
+                    reason.append(f"Action {flag} is not granted on {name} '{kwargs[id] if id in kwargs else _args[0]}' for"
+                                  f"user '{info.context.user_authenticator.get_id()}'")
+
+            if not granted:
+                return type("AccessNotGranted", (), dict(granted=False, reason='\n'.join(reason)))
+            else:
+                return method(root, info, *_args, **kwargs)
+        return wrapper
+    return decorator
+
 
 with_default_authentication = with_authentication()
 

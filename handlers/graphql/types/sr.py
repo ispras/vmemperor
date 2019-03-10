@@ -46,11 +46,14 @@ class SRActions(SerFlag):
     vdi_clone = auto()
 
 
+GSRActions = graphene.Enum.from_enum(SRActions)
+
+
 class GSRAccessEntry(ObjectType):
     class Meta:
         interfaces = (GAccessEntry, )
 
-    actions = graphene.Field(graphene.Enum.from_enum(SRActions), required=True)
+    actions = graphene.Field(GSRActions, required=True)
 
 
 class GSR(GXenObjectType):
@@ -71,3 +74,4 @@ class GSR(GXenObjectType):
     is_tools_sr = graphene.Field(graphene.Boolean, required=True, description="This SR contains XenServer Tools")
     physical_utilisation = graphene.Field(graphene.Float, required=True, description="Physical utilisation in bytes")
     space_available = graphene.Field(graphene.Float, required=True, description="Available space in bytes")
+

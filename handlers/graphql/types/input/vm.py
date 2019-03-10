@@ -2,7 +2,7 @@ from typing import Optional
 
 import graphene
 
-from authentication import with_authentication, with_default_authentication
+from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils.base import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
@@ -57,7 +57,7 @@ class VMMutation(graphene.Mutation):
         ]
 
         def reason(method: MutationMethod):
-            return f"Action {method.access_ˆaction} is required to perform mutation on VM {mutable.ref}"
+            return f"Action {method.access_action} is required to perform mutation on VM {mutable.ref}"
 
         helper = MutationHelper(mutations, ctx, mutable)
         granted, method = helper.perform_mutations(vm)
@@ -76,6 +76,7 @@ class VMStartInput(InputObjectType):
 class VMStartMutation(graphene.Mutation):
     taskId = graphene.ID(required=False, description="Start task ID")
     granted = graphene.Boolean(required=True, description="Shows if access to start is granted")
+    reason = graphene.String()
 
     class Arguments:
         ref = graphene.ID(required=True)
@@ -83,12 +84,10 @@ class VMStartMutation(graphene.Mutation):
 
     @staticmethod
     @with_authentication(access_class=VM, access_action=VM.Actions.start)
+    @return_if_access_is_not_granted([("VM", "ref", VM.Actions.start)])
     def mutate(root, info, ref, options : VMStartInput = None, **kwargs):
         ctx :ContextProtocol = info.context
         vm = kwargs['VM']
-        if not vm:
-            return VMStartMutation(granted=False)
-
         paused = options.paused if options else False
         force = options.force if options else False
         return VMStartMutation(granted=True, taskId=vm.async_start(paused, force))
@@ -199,9 +198,8 @@ class VMDeleteMutation(graphene.Mutation):
 
     @staticmethod
     @with_authentication(access_class=VM, access_action=VM.Actions.destroy)
+    @return_if_access_is_not_granted([("VM", "ref", VM.Actions.destroy)])
     def mutate(root, info, ref, VM):
-        if not VM:
-            return VMDeleteMutation(granted=False, reason=f"Access action 'destroy' is not granted for VM {VM.ref}, unable to delete")
         if VM.get_power_state() == "Halted":
             return VMDeleteMutation(taskId=VM.async_destroy(), granted=True)
         else:

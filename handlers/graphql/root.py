@@ -13,17 +13,18 @@ from handlers.graphql.types.input.attachvdi import AttachVDIMutation
 from handlers.graphql.types.input.createvm import CreateVM
 from handlers.graphql.types.input.vm import VMMutation, VMStartMutation, VMShutdownMutation, VMRebootMutation, \
     VMPauseMutation, VMDeleteMutation
-from handlers.graphql.types.input.vmaccessset import VMAccessSet
+from handlers.graphql.types.input.accessset import VMAccessSet
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
 from handlers.graphql.types.user import User
-from xenadapter.disk import VDI
+from xenadapter.vdi import VDI
 from handlers.graphql.types.vdi import GVDI
 from xenadapter.host import Host, GHost
 from xenadapter.pool import GPool, Pool
 from xenadapter.task import GTask
-from xenadapter.template import Template, GTemplate
+from xenadapter.template import Template
+from handlers.graphql.types.template import GTemplate
 from xenadapter.sr import SR
 from handlers.graphql.types.sr import GSR
 from xenadapter.vm import VM

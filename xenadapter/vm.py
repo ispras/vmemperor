@@ -276,7 +276,7 @@ class VM (AbstractVM):
         :return:
         '''
         from xenadapter.vbd import VBD
-        from xenadapter.disk import VDI
+        from xenadapter.vdi import VDI
         i = 0
         specs = provision.ProvisionSpec()
         for entry in provision_config:
@@ -372,7 +372,7 @@ class VM (AbstractVM):
         Inserts Guest CD and returns Unix device name for this CD
         :return:
         '''
-        from .disk import VDI
+        from .vdi import VDI
         from xenadapter.sr import SR
         for ref in SR.get_all(self.xen):
             sr = SR(ref=ref, xen=self.xen)
@@ -464,7 +464,7 @@ class VM (AbstractVM):
 
     @use_logger
     def destroy_vm(self):
-        from .disk import VDI
+        from .vdi import VDI
         from xenadapter.vbd import VBD
 
         self.start_stop_vm(False)

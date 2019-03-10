@@ -5,12 +5,12 @@ import graphene
 from rethinkdb import RethinkDB
 
 from connman import ReDBConnection
-from xenadapter.disk import VDI
+from xenadapter.vdi import VDI
 from xenadapter.network import Network
 
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.resolvers import with_connection
-from authentication import with_authentication, with_default_authentication
+from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
 from handlers.graphql.types.input.createvdi import NewVDI
 from handlers.graphql.types.tasks.createvm import CreateVMTask, CreateVMTaskList
 from xenadapter.sr import SR
@@ -41,7 +41,7 @@ class AutoInstall(graphene.InputObjectType):
 
 def createvm(ctx : ContextProtocol, task_id : str, user: str,
              template: str, VCPUs : int, disks : Sequence[NewVDI], ram : int, name_label : str, name_description : str, network : str, iso : str =None, install_params : AutoInstall=None,
-             Template: Template = None, VDI: VDI = None ):
+             Template: Template = None, VDI: VDI = None, Network: Network = None):
 
     with ReDBConnection().get_connection():
         xen = XenAdapterPool().get()
@@ -57,7 +57,6 @@ def createvm(ctx : ContextProtocol, task_id : str, user: str,
 
             task_list.upsert_task(user, CreateVMTask(id=task_id, ref=template, state='cloning',
                                                      message=f'cloning template'))
-            net = Network(xen, network)
             # TODO: Check quotas here as well as in create vdi method
             provision_config = list(disk_entries())
 
@@ -68,7 +67,7 @@ def createvm(ctx : ContextProtocol, task_id : str, user: str,
                 insert_log_entry=lambda ref, state, message: task_list.upsert_task(user, CreateVMTask(id=task_id, ref=ref, state=state, message=message)),
                 provision_config=provision_config,
                 ram_size=ram,
-                net=net,
+                net=Network,
                 template=Template,
                 iso=VDI,
                 hostname=install_params.hostname if install_params else None,
@@ -86,7 +85,9 @@ def createvm(ctx : ContextProtocol, task_id : str, user: str,
 
 
 class CreateVM(graphene.Mutation):
-    task_id = graphene.Field(graphene.ID, required=True, description="Installation task ID")
+    task_id = graphene.Field(graphene.ID, required=False, description="Installation task ID")
+    granted = graphene.Field(graphene.Boolean, required=True)
+    reason = graphene.Field(graphene.String)
 
     class Arguments:
         template = graphene.Argument(graphene.ID, required=True, description="Template ID")
@@ -104,7 +105,10 @@ class CreateVM(graphene.Mutation):
     @with_connection
     @with_authentication(access_class=Template, access_action=Template.Actions.clone, id_field="template")
     @with_authentication(access_class=VDI, access_action=VDI.Actions.plug, id_field="iso")
-    #@with_authentication(access_class=Network, access_action=Network.Actions.)
+    @with_authentication(access_class=Network, access_action=Network.Actions.attaching, id_field="network")
+    @return_if_access_is_not_granted([("Template", "template", Template.Actions.clone),
+                                      ("VDI", "iso", VDI.Actions.plug),
+                                      ("Network", "network", Network.Actions.attaching)])
     def mutate(root, info, *args, **kwargs):
         task_id  = str(uuid.uuid4())
         ctx :ContextProtocol = info.context
@@ -112,4 +116,4 @@ class CreateVM(graphene.Mutation):
             raise TypeError("VDI argument is not ISO image")
         tornado.ioloop.IOLoop.current().run_in_executor(ctx.executor,
         lambda: createvm(ctx, task_id, user=ctx.user_authenticator.get_id(), *args, **kwargs))
-        return CreateVM(task_id=task_id)
+        return CreateVM(task_id=task_id, granted=True)
