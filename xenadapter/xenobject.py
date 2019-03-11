@@ -133,7 +133,10 @@ class XenObject(metaclass=XenObjectMeta):
 
         if isinstance(ref, str):
             self.ref = ref
-            self.uuid = self.get_uuid()
+            try:
+                self.uuid = self.get_uuid() #  Test that object ID is good
+            except XenAdapterAPIError:
+                raise ValueError(f"{self.__class__} identifier {ref} is invalid")
         else:
             raise ValueError(
                              f"XenObject:Failed to initialize object of type {self.__class__.__name__}"
@@ -314,7 +317,7 @@ class XenObject(metaclass=XenObjectMeta):
 
                 return ret
             except XenAPI.Failure as f:
-                raise XenAdapterAPIError(self.log, f"Failed to execute {self.api_class}::{name} asynchronously", f.details)
+                raise XenAdapterAPIError(self.log, f"Failed to execute {self.api_class}::{name}", f.details)
 
         return method
 
@@ -428,6 +431,15 @@ class ACLXenObject(XenObject):
                     return {}
 
         return read_other_config_access_rights(other_config)
+
+    def get_other_config(self):
+        ret = self._get_other_config()
+        if isinstance(ret, dict):
+            return ret
+        else:
+            return {}
+
+
 
     def manage_actions(self, action : SerFlag, revoke=False, clear=False, user : str = None):
         '''

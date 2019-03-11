@@ -13,7 +13,7 @@ from handlers.graphql.types.input.attachvdi import AttachVDIMutation
 from handlers.graphql.types.input.createvm import CreateVM
 from handlers.graphql.types.input.vm import VMMutation, VMStartMutation, VMShutdownMutation, VMRebootMutation, \
     VMPauseMutation, VMDeleteMutation
-from handlers.graphql.types.input.accessset import VMAccessSet
+from handlers.graphql.types.input.accessset import VMAccessSet, NetAccessSet, VDIAccessSet, SRAccessSet
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
@@ -98,7 +98,13 @@ class Mutation(ObjectType):
 
 
     net_attach = AttachNetworkMutation.Field(description="Attach VM to a Network by creating a new Interface")
+    net_access_set = NetAccessSet.Field(description="Set network access rights")
+
+
     vdi_attach = AttachVDIMutation.Field(description="Attach VDI to a VM by creating a new virtual block device")
+    vdi_access_set = VDIAccessSet.Field(description="Set VDI access rights")
+
+    sr_access_set = SRAccessSet.Field(description="Set SR access rights")
 
 
 

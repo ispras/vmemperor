@@ -281,7 +281,7 @@ class VM (AbstractVM):
         specs = provision.ProvisionSpec()
         for entry in provision_config:
             size = str(1048576 * int(entry.size))
-            specs.disks.append(provision.Disk(f'{i}', size, entry.SR.uuid, True))
+            specs.disks.append(provision.Disk(f'{i}', size, entry.SR.get_uuid(), True))
             i += 1
         try:
             provision.setProvisionSpec(self.xen.session, self.ref, specs)
@@ -439,48 +439,4 @@ class VM (AbstractVM):
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(self.log, "Failed to start/stop VM", f.details)
 
-    @use_logger
-    def get_vnc(self):
-        self.start_stop_vm(True)
-        consoles = self.get_consoles()  # references
-        if (len(consoles) == 0):
-            self.log.error('Failed to find console')
-            return
-        try:
-            url = None
-            for console in consoles:
-                proto = self.xen.api.console.get_protocol(console)
-                if proto == 'rfb':
-                    url = self.xen.api.console.get_location(console)
-                    break
-            if not url:
-                raise XenAdapterAPIError(self.log, "No RFB console, VM UUID in details", self.uuid)
 
-            self.xen.log.info("Console location: {0}".format(url))
-        except XenAPI.Failure as f:
-            raise XenAdapterAPIError(self.log, "Failed to get console location",f.details)
-
-        return url
-
-    @use_logger
-    def destroy_vm(self):
-        from .vdi import VDI
-        from xenadapter.vbd import VBD
-
-        self.start_stop_vm(False)
-
-        vbds = self.get_VBDs()
-        vdis = [VBD(self.xen, ref=vbd_ref).get_VDI() for vbd_ref in vbds]
-
-        try:
-            for vdi_ref in vdis:
-                vdi = VDI(self.xen, vdi_ref)
-                if len(vdi.get_VBDs()) < 2:
-                    vdi.destroy()
-            self.destroy()
-
-
-        except XenAPI.Failure as f:
-            raise XenAdapterAPIError(self.log, "Failed to destroy VM",f.details)
-
-        return
