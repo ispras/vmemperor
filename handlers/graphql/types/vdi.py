@@ -8,7 +8,7 @@ from handlers.graphql.resolvers.sr import srType, srContentType
 from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.vbd import GVBD
-from handlers.graphql.utils.query import resolve_one
+from handlers.graphql.utils.query import resolve_one, resolve_many
 
 
 class VDIActions(SerFlag):
@@ -34,6 +34,6 @@ class GVDI(GXenObjectType):
 
     SR = graphene.Field(srType, resolver=resolve_one())
     virtual_size = graphene.Field(graphene.Float, required=True)
-    VBDs = graphene.List(GVBD, required=True, resolver=resolve_one())
+    VBDs = graphene.List(GVBD, required=True, resolver=resolve_many())
     content_type = graphene.Field(srContentType, required=True)
     type = graphene.Field(VDIType, required=True)

@@ -39,6 +39,55 @@ class QueryBuilder:
                 yield f'groups/{group}'
 
 
+        def group_by_ref(table_name):
+            query = [".group('ref').",
+                     "reduce(lambda left, right: left['actions'].set_union(right['actions'])).ungroup().map(",
+                     f"lambda value: value.merge(re.db.table('{table_name}').get(value['group'])",
+                     ".merge({'my_actions': value['reduction']})).without('group', 'reduction'))"]
+            return ''.join(query)
+
+        def get_all_user_items(table_name):
+            query = [f"re.db.table('{table_name}_user').get_all("]
+            query.append(f','.join([f"'{item}'" for item in user_entities()]))
+            query.append(",index='userid')")
+            return ''.join(query)
+
+        def get_some_user_items(table_name, item_name, list=False):
+            '''
+            Get items from table_name_user, which has the following structure:
+            >>> [{'actions': ['ALL'],
+            >>> 'id': '39fd1bac-14fd-44d5-b839-444b04c54529',
+            >>> 'ref': 'OpaqueRef:922c7bf1-0676-4c8e-a202-9cfa09c08e09',
+            >>> 'userid': 'groups/{841a3f55-b249-407e-9740-cddcc1ef18f4}'}]
+
+            Get values by ref and userid, group by ref (collecting all actions from all user's groups and user itself)
+            put collected actions in my_actions, reduce to one item if list=False
+
+            :param table_name:
+            :param item_name: where in parent query the items are contained
+            :param list: should this verb return list of values (i.e. is value[item_name] a list)
+            :return:
+            '''
+            query = [
+                f"re.db.table('{table_name}_user')"
+            ]
+            if list:
+                query.append(f".get_all(re.r.args(value['{item_name}'].concat_map(lambda value: [")
+                query.append(','.join((f"[value, '{entity}']" for entity in user_entities())))
+                query.append("]))")
+            else:
+                query.append(f".get_all(")
+                query.append(','.join((f"[value['{item_name}'], '{entity}']" for entity in user_entities())))
+
+            query.append(", index='ref_and_userid')")
+
+            query.append(group_by_ref(table_name))
+            if not list:
+                query.append(".reduce(lambda left, right: left).default(None)")
+            return ''.join(query)
+
+
+
 
         def add_fields(fields, prefix=""):
             '''
@@ -63,17 +112,29 @@ class QueryBuilder:
                 xentype = fields[item]['_xenobject_type_']
                 if xentype:
                     new_prefix = ''.join((prefix, item))
-
+                    admin_query = not self.authenticator or not issubclass(xentype, ACLXenObject) or self.authenticator.is_admin()
                     if fields[item]['_list_']:
-                        query.append(f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
-                          f".get_all(re.r.args(value['{item}'])).coerce_to('array')")
-                        add_fields(fields[item], prefix=''.join((new_prefix, "[*].")))
-                        query.append("})")
+                        if admin_query:
+                            query.append(f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
+                              f".get_all(re.r.args(value['{item}'])).coerce_to('array')")
+                            add_fields(fields[item], prefix=''.join((new_prefix, "[*].")))
+                            query.append("})")
+                        else:
+                            query.append(f".merge(lambda value: {{'{item}' : ")
+                            query.append(get_some_user_items(xentype.db_table_name, item, list=True))
+                            add_fields(fields[item], prefix=''.join((new_prefix, '.')))
+                            query.append('})')
                     else:
-                        query.append(f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
-                            f".get(value['{item}'])")
-                        add_fields(fields[item], prefix=''.join((new_prefix, '.')))
-                        query.append("})")
+                        if admin_query:
+                            query.append(f".merge(lambda value: {{'{item}': re.db.table('{xentype.db_table_name}')" \
+                                f".get(value['{item}'])")
+                            add_fields(fields[item], prefix=''.join((new_prefix, '.')))
+                            query.append("})")
+                        else:
+                            query.append(f".merge(lambda value: {{'{item}':")
+                            query.append(get_some_user_items(xentype.db_table_name, item))
+                            add_fields(fields[item], prefix=''.join((new_prefix, '.')))
+                            query.append('})')
 
         xenobject_type = self.fields['_xenobject_type_']
         if not self.authenticator or not issubclass(xenobject_type, ACLXenObject) or self.authenticator.is_admin():
@@ -84,10 +145,10 @@ class QueryBuilder:
                 query.append(".get_all(")
                 query.append(','.join((f"'{item}'" for item in self.id)))
         else:
-            query = [f"re.db.table('{xenobject_type.db_table_name}_user').get_all("]
-            query.append(f','.join([f"'{item}'" for item in user_entities()]))
-            query.append(",index='userid').pluck('ref')")
-            query.append(f".merge(lambda value: re.db.table('{xenobject_type.db_table_name}').get(value['ref']).without('ref'))")
+            query = []
+            query.append(get_all_user_items(xenobject_type.db_table_name))
+            query.append(group_by_ref(xenobject_type.db_table_name))
+
 
         add_fields(self.fields)
         if additional_string:

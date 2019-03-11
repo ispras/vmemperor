@@ -22,7 +22,7 @@ def check_access_of_return_value(ctx : ContextProtocol, ret, type : Type["XenObj
     :param type: value type
     :return:
     '''
-    if ctx.user_authenticator.is_admin():
+    if ctx.user_authenticator.is_admin() or not ret:
         return ret
     type_object = type(xen=ctx.xen, ref=ret['ref'])
 

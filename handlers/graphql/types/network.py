@@ -28,7 +28,7 @@ class GNetwork(GXenObjectType):
     class Meta:
         interfaces = (GAclXenObject,)
 
-    GAclXenObject = graphene.Field(graphene.List(GNetworkAccessEntry), required=True,
+    access = graphene.Field(graphene.List(GNetworkAccessEntry), required=True,
                             resolver=resolve_accessentries(NetworkActions, GNetworkAccessEntry))
 
     VIFs = graphene.List(GVIF, resolver=resolve_many())
