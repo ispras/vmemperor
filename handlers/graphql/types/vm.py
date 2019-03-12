@@ -112,7 +112,7 @@ class GVM(GXenObjectType):
 
     access = graphene.Field(graphene.List(GVMAccessEntry), required=True,
                             resolver=resolve_accessentries(VMActions, GVMAccessEntry))
-
+    my_actions = graphene.Field(graphene.List(GVMActions), required=True)
     # from http://xapi-project.github.io/xen-api/classes/vm_guest_metrics.html
     PV_drivers_up_to_date = graphene.Field(graphene.Boolean, description="True if PV drivers are up to date, reported if Guest Additions are installed")
     PV_drivers_version = graphene.Field(PvDriversVersion,description="PV drivers version, if available")

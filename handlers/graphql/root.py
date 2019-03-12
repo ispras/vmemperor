@@ -20,9 +20,11 @@ from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
 from handlers.graphql.types.user import User
 from xenadapter.vdi import VDI
 from handlers.graphql.types.vdi import GVDI
-from xenadapter.host import Host, GHost
-from xenadapter.pool import GPool, Pool
-from xenadapter.task import GTask
+from xenadapter.host import Host
+from handlers.graphql.types.host import GHost
+from xenadapter.pool import Pool
+from handlers.graphql.types.pool import GPool
+from handlers.graphql.types.task import GTask
 from xenadapter.template import Template
 from handlers.graphql.types.template import GTemplate
 from xenadapter.sr import SR

@@ -62,6 +62,7 @@ class GSR(GXenObjectType):
 
     access = graphene.Field(graphene.List(GSRAccessEntry), required=True,
                             resolver=resolve_accessentries(SRActions, GSRAccessEntry))
+    my_actions = graphene.Field(graphene.List(GSRActions), required=True)
     PBDs = graphene.Field(graphene.List(GPBD),
                                  required=True, resolver=resolve_many(),
                                  description="Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI")

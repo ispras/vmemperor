@@ -8,7 +8,7 @@ from loggable import Loggable
 
 from tornado.options import options as opts
 
-from xenadapter import XenAdapterPool
+from xentools.xenadapterpool import XenAdapterPool
 from xenadapter.event_dispatcher import EVENT_DISPATCHER
 import json
 from datetimeencoder import DateTimeEncoder

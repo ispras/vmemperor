@@ -4,13 +4,12 @@ from tornadoql.tornadoql import GraphQLSubscriptionHandler as BaseGQLSubscriptio
 import pickle
 
 from authentication import BasicAuthenticator
-from connman import ReDBConnection
 from handlers.base import BaseHandler, BaseWSHandler
-from xenadapter import XenAdapter, XenAdapterPool
-from tornado.options import options as opts
-from typing import _Protocol, Mapping, Any, ContextManager
+from xentools.xenadapter import XenAdapter
+from typing import _Protocol
 from logging import Logger
-from tornado.web import get_signature_key_version
+
+
 class ContextProtocol(_Protocol):
     def async_run(self, task_ref : str) -> None:
         '''

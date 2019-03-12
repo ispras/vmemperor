@@ -32,8 +32,9 @@ class GVDI(GXenObjectType):
     class Meta:
         interfaces = (GAclXenObject,)
 
-    SR = graphene.Field(srType, resolver=resolve_one())
-    virtual_size = graphene.Field(graphene.Float, required=True)
+    my_actions = graphene.Field(graphene.List(GVDIActions), required=True)
+    SR = graphene.Field(srType, resolver=resolve_one()) #
+    virtual_size = graphene.Field(graphene.Float, required=True) #
     VBDs = graphene.List(GVBD, required=True, resolver=resolve_many())
     content_type = graphene.Field(srContentType, required=True)
     type = graphene.Field(VDIType, required=True)

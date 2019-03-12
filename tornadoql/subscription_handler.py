@@ -18,7 +18,7 @@ import asyncio
 
 from loggable import Loggable
 from tornadoql.middlewares import MIDDLEWARE
-from utils import print_graphql_exception
+from tornadoql.print_graphql_exception import print_graphql_exception
 
 GRAPHQL_WS = 'graphql-ws'
 WS_PROTOCOL = GRAPHQL_WS

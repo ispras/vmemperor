@@ -1,19 +1,16 @@
-import json
 import pickle
 from typing import Optional
 
 from rethinkdb import RethinkDB
 
-from xenadapter import XenAdapterPool
+from xentools.xenadapterpool import XenAdapterPool
 
 r = RethinkDB()
-import tornado.ioloop
 import tornado.web
 from tornado.options import options as opts
 from tornado.websocket import WebSocketHandler
 
 from authentication import BasicAuthenticator
-from connman import ReDBConnection
 from constants import first_batch_of_events
 from loggable import Loggable
 

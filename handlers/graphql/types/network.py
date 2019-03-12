@@ -30,6 +30,7 @@ class GNetwork(GXenObjectType):
 
     access = graphene.Field(graphene.List(GNetworkAccessEntry), required=True,
                             resolver=resolve_accessentries(NetworkActions, GNetworkAccessEntry))
+    my_actions = graphene.Field(graphene.List(GNetworkActions), required=True)
 
     VIFs = graphene.List(GVIF, resolver=resolve_many())
     other_config = graphene.JSONString()

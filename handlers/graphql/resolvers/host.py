@@ -1,3 +1,3 @@
 def hostType():
-    from xenadapter.host import GHost
+    from handlers.graphql.types.host import GHost
     return GHost

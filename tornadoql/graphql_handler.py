@@ -18,7 +18,6 @@ from tornadoql.middlewares import MIDDLEWARE
 
 from datetime import  datetime
 
-from utils import print_graphql_exception
 
 
 def error_status(exception):

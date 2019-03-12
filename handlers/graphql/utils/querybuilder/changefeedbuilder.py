@@ -64,7 +64,7 @@ class ChangefeedBuilder:
          :param select_subfield. A list representing path to subfield that is supposed to be analyzed in info
         '''
         self.queue = queue
-        self.builder = QueryBuilder(id, info, None, additional_string, select_subfield)
+        self.builder = QueryBuilder(id, info, info.context.user_authenticator, additional_string, select_subfield)
         self.status = status
 
 

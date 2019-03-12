@@ -1,7 +1,8 @@
 from typing import Optional, Union, Collection
+from collections.abc import Iterable
 
 from graphql import ResolveInfo
-
+import itertools
 from authentication import BasicAuthenticator
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
 from xenadapter.xenobject import ACLXenObject
@@ -40,8 +41,9 @@ class QueryBuilder:
 
 
         def group_by_ref(table_name):
-            query = [".group('ref').",
-                     "reduce(lambda left, right: left['actions'].set_union(right['actions'])).ungroup().map(",
+            query = [".group('ref')",
+                     ".map(lambda value: value['actions'])"
+                     ".reduce(lambda left, right: left.set_union(right)).ungroup().map(",
                      f"lambda value: value.merge(re.db.table('{table_name}').get(value['group'])",
                      ".merge({'my_actions': value['reduction']})).without('group', 'reduction'))"]
             return ''.join(query)
@@ -50,7 +52,10 @@ class QueryBuilder:
             query = [f"re.db.table('{table_name}_user').get_all("]
             query.append(f','.join([f"'{item}'" for item in user_entities()]))
             query.append(",index='userid')")
+            query.append(group_by_ref(xenobject_type.db_table_name))
             return ''.join(query)
+
+
 
         def get_some_user_items(table_name, item_name, list=False):
             '''
@@ -86,8 +91,42 @@ class QueryBuilder:
                 query.append(".reduce(lambda left, right: left).default(None)")
             return ''.join(query)
 
+        def get_one_user_item_by_id(table_name):
+            query = [
+                f"re.db.table('{table_name}_user')"
+            ]
+            query.append(f".get_all(")
+            query.append(','.join((f"['{self.id}', '{entity}']" for entity in user_entities())))
+            query.append(", index='ref_and_userid')")
+            query.append(group_by_ref(table_name))
+            query.append(".reduce(lambda left, right: left).default(None)")
+            return ''.join(query)
 
+        def get_some_user_items_by_id(table_name):
+            query = [
+                f"re.db.table('{table_name}_user')"
+            ]
+            query.append(f".get_all(")
+            query.append(','.join((f"['{id}', '{entity}']" for id, entity in itertools.product(self.id, user_entities()))))
+            query.append(", index='ref_and_userid')")
 
+            query.append(group_by_ref(table_name))
+            return ''.join(query)
+
+        def add_my_actions_for_admin(xentype, list=False):
+            '''
+            Add field my_actions for ACLXenObjects that are queried from admin.
+            :param xentype:
+            :param list:
+            :return:
+            '''
+            if not issubclass(xentype, ACLXenObject):
+                return ""
+            all_actions = [f'"{action}"' for action in xentype.Actions.ALL.serialize()]
+            if list:
+                return f".map(lambda item: item.merge({{'my_actions' :[{','.join(all_actions)}]}}))"
+            else:
+                return f".merge({{'my_actions' :[{','.join(all_actions)}]}})"
 
         def add_fields(fields, prefix=""):
             '''
@@ -119,6 +158,7 @@ class QueryBuilder:
                               f".get_all(re.r.args(value['{item}'])).coerce_to('array')")
                             add_fields(fields[item], prefix=''.join((new_prefix, "[*].")))
                             query.append("})")
+                            query.append(add_my_actions_for_admin(xentype, list=True))
                         else:
                             query.append(f".merge(lambda value: {{'{item}' : ")
                             query.append(get_some_user_items(xentype.db_table_name, item, list=True))
@@ -130,6 +170,8 @@ class QueryBuilder:
                                 f".get(value['{item}'])")
                             add_fields(fields[item], prefix=''.join((new_prefix, '.')))
                             query.append("})")
+                            query.append(add_my_actions_for_admin(xentype))
+
                         else:
                             query.append(f".merge(lambda value: {{'{item}':")
                             query.append(get_some_user_items(xentype.db_table_name, item))
@@ -141,13 +183,20 @@ class QueryBuilder:
             query = [f"re.db.table('{xenobject_type.db_table_name}')"]
             if isinstance(self.id, str):
                 query.append(f".get('{self.id}')")
+                query.append(add_my_actions_for_admin(xenobject_type))
             elif isinstance(self.id, Collection):
                 query.append(".get_all(")
                 query.append(','.join((f"'{item}'" for item in self.id)))
+                query.append(add_my_actions_for_admin(xenobject_type, list=True))
         else:
             query = []
-            query.append(get_all_user_items(xenobject_type.db_table_name))
-            query.append(group_by_ref(xenobject_type.db_table_name))
+            if not self.id:
+                query.append(get_all_user_items(xenobject_type.db_table_name))
+            elif isinstance(self.id, str):
+                query.append(get_one_user_item_by_id(xenobject_type.db_table_name))
+            elif isinstance(self.id, Iterable):
+                query.append(get_some_user_items_by_id(xenobject_type.db_table_name))
+
 
 
         add_fields(self.fields)

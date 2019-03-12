@@ -1,14 +1,10 @@
-import json
-from functools import partial
 from rethinkdb import RethinkDB
-from rethinkdb.ast import ReQLEncoder
 from sentry_sdk import capture_exception
-from serflag import SerFlag
 
 import threading
 
 import constants.re as re
-from xenadapter import singleton
+import singleton
 from loggable import Loggable
 import asyncio
 

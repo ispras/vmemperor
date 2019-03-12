@@ -23,7 +23,7 @@ class GTemplate(GXenObjectType):
 
     access = graphene.Field(graphene.List(GTemplateAccessEntry), required=True,
                             resolver=resolve_accessentries(TemplateActions, GTemplateAccessEntry))
-
+    my_actions = graphene.Field(graphene.List(GTemplateActions), required=True)
     os_kind = graphene.Field(graphene.String, description="If a template supports auto-installation, here a distro name is provided")
     hvm = graphene.Field(graphene.Boolean, required=True, description="True if this template works with hardware assisted virtualization")
     enabled = graphene.Field(graphene.Boolean, required=True, description="True if this template is available for regular users")

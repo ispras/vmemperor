@@ -2,7 +2,6 @@ import uuid
 from typing import Sequence
 
 import graphene
-from rethinkdb import RethinkDB
 
 from connman import ReDBConnection
 from xenadapter.vdi import VDI
@@ -10,13 +9,13 @@ from xenadapter.network import Network
 
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.resolvers import with_connection
-from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
+from authentication import with_authentication, return_if_access_is_not_granted
 from handlers.graphql.types.input.createvdi import NewVDI
 from handlers.graphql.types.tasks.createvm import CreateVMTask, CreateVMTaskList
 from xenadapter.sr import SR
 from xenadapter.template import Template
 import tornado.ioloop
-from xenadapter import XenAdapterPool
+from xentools.xenadapterpool import XenAdapterPool
 from handlers.graphql.types.vm import SetDisksEntry
 
 

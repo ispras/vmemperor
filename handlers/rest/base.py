@@ -5,7 +5,7 @@ from tornado.options import options as opts
 
 from authentication import AdministratorAuthenticator
 from handlers.base import BaseHandler, HandlerMethods
-from xenadapter import XenAdapter
+from xentools.xenadapter import XenAdapter
 
 
 class RESTHandler(BaseHandler):

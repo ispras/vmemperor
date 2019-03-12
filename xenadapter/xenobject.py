@@ -1,6 +1,7 @@
 import collections
 import json
 from collections import Mapping
+
 from serflag import SerFlag
 
 import XenAPI
@@ -16,7 +17,7 @@ from authentication import BasicAuthenticator
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
 from handlers.graphql.utils.graphql_xenobject import assign_xenobject_type_for_graphql_type
-from xenadapter import XenAdapter
+from xentools.xenadapter import XenAdapter
 import logging
 from typing import Optional, Type, Collection, Dict
 from xenadapter.helpers import use_logger
@@ -129,8 +130,6 @@ class XenObject(metaclass=XenObjectMeta):
         self.xen = xen
         self.log = xen.log
 
-
-
         if isinstance(ref, str):
             self.ref = ref
             try:
@@ -142,17 +141,8 @@ class XenObject(metaclass=XenObjectMeta):
                              f"XenObject:Failed to initialize object of type {self.__class__.__name__}"
                              f": invalid type of ref. Expected: str, got {ref.__class__.__name__}")
 
-
-
-
-
-        self.access_prefix = 'vm-data/vmemperor/access'
-
-
-
     def check_access(self, auth: BasicAuthenticator,  action):
         return True
-
 
     def manage_actions(self, actions: Collection, revoke=False, user: str = None):
         pass
@@ -182,13 +172,39 @@ class XenObject(metaclass=XenObjectMeta):
                 new_rec = cls.process_record(xen, event['ref'], record)
                 CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
 
+                def get_access_for_task(task_type):
+                    '''
+                    Returns access rights for task so that only those who have the following access action can view and cancel it
+                    :param task_ref:
+                    :param task_type - access action to check
+                    :return:
+                    '''
+
+                    if task_type not in Task.Actions._value2member_map_:
+                        return {} # Ignore access for "destroy" - no one gets updates on task destroy except admin
+
+                    userids = re.db.table(cls.db_table_name + '_user')\
+                                    .get_all(event['ref'], index='ref')\
+                                    .filter(lambda value: value['actions'].set_intersection(['ALL', task_type]) != [])\
+                                    .pluck('userid')['userid']\
+                                    .coerce_to('array').run()
+
+
+                    return {user: ['cancel'] for user in userids}
+
+
                 if 'current_operations' in record and isinstance(record['current_operations'], Mapping):
                     task_docs = [{
                         "ref": k,
                         "object": cls.__name__,
-                        "type": v
+                        "type": v,
+                        "access" : get_access_for_task(v)
                     } for k, v in record['current_operations'].items()]
-                    CHECK_ER(re.db.table(Task.db_table_name).insert(task_docs, conflict='replace').run())
+                    if task_docs:
+                        CHECK_ER(re.db.table(Task.db_table_name).insert(task_docs, conflict='update').run())
+
+
+
 
     @classmethod
     def create_db(cls, indexes=None):
@@ -290,10 +306,16 @@ class XenObject(metaclass=XenObjectMeta):
 
                 if field_name in self.GraphQLType._meta.fields:
                     try:
-                        data = re.db.table(self.db_table_name).get(self.ref).pluck(field_name).run()[field_name]
-                        return lambda: data
-                    except re.r.ReqlNonExistenceError as e:
-                        pass
+                        data = re.db.table(self.db_table_name).get(self.ref).pluck(field_name)
+
+                        def method():
+                            try:
+                                return data.run()[field_name]
+                            except re.r.ReqlNonExistenceError as e:
+                                return getattr(self, f'_{name}')()
+
+                        return method
+
                     except KeyError: # Returning a db-only field (i.e. not that of XenAPI) that is not computed (yet or purposefully)
                         return lambda: None
 

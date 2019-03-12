@@ -79,7 +79,7 @@ def resolve_one():
         type : "XenObject"  = get_xentype(info.return_type)
         ctx : ContextProtocol = info.context
         if not root:
-            builder = QueryBuilder(id=kwargs['ref'], info=info)
+            builder = QueryBuilder(id=kwargs['ref'], info=info, user_authenticator=ctx.user_authenticator)
             ret = builder.run_query()
         else:
             ret = resolve_from_root(root, info, **kwargs)
@@ -112,7 +112,7 @@ def resolve_many():
             ret = resolve_from_root(root, info, **kwargs)
         else:
             refs = kwargs['refs']
-            builder = QueryBuilder(id=refs, info=info)
+            builder = QueryBuilder(id=refs, info=info, user_authenticator=ctx.user_authenticator)
             ret = builder.run_query()
 
         return [check_access_of_return_value(ctx, item, type) for item in ret]
