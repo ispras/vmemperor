@@ -6,6 +6,7 @@ from graphene.types.resolver import dict_resolver
 from serflag import SerFlag
 
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
+from handlers.graphql.resolvers.myactions import resolve_myactions
 from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.query import resolve_many
@@ -111,8 +112,8 @@ class GVM(GXenObjectType):
 
 
     access = graphene.Field(graphene.List(GVMAccessEntry), required=True,
-                            resolver=resolve_accessentries(VMActions, GVMAccessEntry))
-    my_actions = graphene.Field(graphene.List(GVMActions), required=True)
+                            resolver=resolve_accessentries(VMActions))
+    my_actions = graphene.Field(graphene.List(GVMActions), required=True, resolver=resolve_myactions(VMActions))
     # from http://xapi-project.github.io/xen-api/classes/vm_guest_metrics.html
     PV_drivers_up_to_date = graphene.Field(graphene.Boolean, description="True if PV drivers are up to date, reported if Guest Additions are installed")
     PV_drivers_version = graphene.Field(PvDriversVersion,description="PV drivers version, if available")

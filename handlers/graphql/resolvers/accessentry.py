@@ -6,7 +6,7 @@ from handlers.graphql.utils.query import resolve_from_root
 from handlers.graphql.types.objecttype import ObjectType
 
 
-def resolve_accessentries(actions_type : Type[SerFlag], access_type : Type[ObjectType]):
+def resolve_accessentries(actions_type: Type[SerFlag]):
     def resolver(root, info, **args):
 
         access = resolve_from_root(root, info, **args)

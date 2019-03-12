@@ -122,11 +122,11 @@ class QueryBuilder:
             '''
             if not issubclass(xentype, ACLXenObject):
                 return ""
-            all_actions = [f'"{action}"' for action in xentype.Actions.ALL.serialize()]
+
             if list:
-                return f".map(lambda item: item.merge({{'my_actions' :[{','.join(all_actions)}]}}))"
+                return ".map(lambda item: item.merge({'my_actions': ['ALL']}))"
             else:
-                return f".merge({{'my_actions' :[{','.join(all_actions)}]}})"
+                return ".merge({'my_actions': ['ALL']})"
 
         def add_fields(fields, prefix=""):
             '''
@@ -187,6 +187,8 @@ class QueryBuilder:
             elif isinstance(self.id, Collection):
                 query.append(".get_all(")
                 query.append(','.join((f"'{item}'" for item in self.id)))
+                query.append(add_my_actions_for_admin(xenobject_type, list=True))
+            else:
                 query.append(add_my_actions_for_admin(xenobject_type, list=True))
         else:
             query = []

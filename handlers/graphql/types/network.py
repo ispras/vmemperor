@@ -5,6 +5,7 @@ from serflag import SerFlag
 
 from handlers.graphql.interfaces.xenobject import GAclXenObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
+from handlers.graphql.resolvers.myactions import resolve_myactions
 from handlers.graphql.types.accessentry import GAccessEntry
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.objecttype import ObjectType
@@ -29,8 +30,8 @@ class GNetwork(GXenObjectType):
         interfaces = (GAclXenObject,)
 
     access = graphene.Field(graphene.List(GNetworkAccessEntry), required=True,
-                            resolver=resolve_accessentries(NetworkActions, GNetworkAccessEntry))
-    my_actions = graphene.Field(graphene.List(GNetworkActions), required=True)
+                            resolver=resolve_accessentries(NetworkActions))
+    my_actions = graphene.Field(graphene.List(GNetworkActions), required=True, resolver=resolve_myactions(NetworkActions))
 
     VIFs = graphene.List(GVIF, resolver=resolve_many())
     other_config = graphene.JSONString()

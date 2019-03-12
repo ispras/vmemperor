@@ -5,6 +5,7 @@ from serflag import SerFlag
 
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.diskimage import vdiType
+from handlers.graphql.resolvers.myactions import resolve_myactions
 from handlers.graphql.types.accessentry import GAccessEntry
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.objecttype import ObjectType
@@ -61,8 +62,8 @@ class GSR(GXenObjectType):
         interfaces = (GAclXenObject,)
 
     access = graphene.Field(graphene.List(GSRAccessEntry), required=True,
-                            resolver=resolve_accessentries(SRActions, GSRAccessEntry))
-    my_actions = graphene.Field(graphene.List(GSRActions), required=True)
+                            resolver=resolve_accessentries(SRActions))
+    my_actions = graphene.Field(graphene.List(GSRActions), required=True, resolver=resolve_myactions(SRActions))
     PBDs = graphene.Field(graphene.List(GPBD),
                                  required=True, resolver=resolve_many(),
                                  description="Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI")
