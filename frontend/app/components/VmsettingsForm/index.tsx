@@ -54,7 +54,7 @@ const VmsettingsForm = ({vm}: Props) => {
         (<Badge color="success">{vm.osVersion.name}</Badge>)}
       </h3>
 
-      <Nav tabs>
+      <Nav tabs={true}>
         <NavItem>
           <NavLink
             className={classnames({active: activeTab === Tab.Power})}
@@ -119,8 +119,7 @@ const VmsettingsForm = ({vm}: Props) => {
           <Row>
             <Col sm="12">
               {<AccessView
-                accessList={vm.access}
-                allActions={VmActions}
+                data={vm}
               />}
             </Col>
           </Row>

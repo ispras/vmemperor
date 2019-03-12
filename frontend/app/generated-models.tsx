@@ -1215,6 +1215,8 @@ export namespace VmInfoFragment {
     access: (Maybe<Access>)[];
 
     myActions: (Maybe<VmActions>)[];
+
+    isOwner: boolean;
   };
 
   export type ViFs = VmvifFragment.Fragment;
@@ -1449,6 +1451,7 @@ export namespace VmInfoFragment {
         ...VMAccessFragment
       }
       myActions
+      isOwner
     }
 
     ${VmvifFragment.FragmentDoc}
@@ -3566,6 +3569,8 @@ export namespace GvmResolvers {
     access?: AccessResolver<(Maybe<GvmAccessEntry>)[], TypeParent, TContext>;
 
     myActions?: MyActionsResolver<(Maybe<VmActions>)[], TypeParent, TContext>;
+
+    isOwner?: IsOwnerResolver<boolean, TypeParent, TContext>;
     /** True if PV drivers are up to date, reported if Guest Additions are installed */
     PVDriversUpToDate?: PvDriversUpToDateResolver<
       Maybe<boolean>,
@@ -3639,6 +3644,11 @@ export namespace GvmResolvers {
   > = Resolver<R, Parent, TContext>;
   export type MyActionsResolver<
     R = (Maybe<VmActions>)[],
+    Parent = Gvm,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = Gvm,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -3948,6 +3958,8 @@ export namespace GNetworkResolvers {
       TContext
     >;
 
+    isOwner?: IsOwnerResolver<boolean, TypeParent, TContext>;
+
     VIFs?: ViFsResolver<Maybe<(Maybe<Gvif>)[]>, TypeParent, TContext>;
 
     otherConfig?: OtherConfigResolver<Maybe<JsonString>, TypeParent, TContext>;
@@ -3980,6 +3992,11 @@ export namespace GNetworkResolvers {
   > = Resolver<R, Parent, TContext>;
   export type MyActionsResolver<
     R = (Maybe<NetworkActions>)[],
+    Parent = GNetwork,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = GNetwork,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -4102,6 +4119,8 @@ export namespace GvdiResolvers {
 
     myActions?: MyActionsResolver<(Maybe<VdiActions>)[], TypeParent, TContext>;
 
+    isOwner?: IsOwnerResolver<boolean, TypeParent, TContext>;
+
     SR?: SrResolver<Maybe<Gsr>, TypeParent, TContext>;
 
     virtualSize?: VirtualSizeResolver<number, TypeParent, TContext>;
@@ -4140,6 +4159,11 @@ export namespace GvdiResolvers {
   > = Resolver<R, Parent, TContext>;
   export type MyActionsResolver<
     R = (Maybe<VdiActions>)[],
+    Parent = Gvdi,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = Gvdi,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -4184,6 +4208,8 @@ export namespace GsrResolvers {
     access?: AccessResolver<(Maybe<GsrAccessEntry>)[], TypeParent, TContext>;
 
     myActions?: MyActionsResolver<(Maybe<SrActions>)[], TypeParent, TContext>;
+
+    isOwner?: IsOwnerResolver<boolean, TypeParent, TContext>;
     /** Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI */
     PBDs?: PbDsResolver<(Maybe<Gpbd>)[], TypeParent, TContext>;
 
@@ -4235,6 +4261,11 @@ export namespace GsrResolvers {
   > = Resolver<R, Parent, TContext>;
   export type MyActionsResolver<
     R = (Maybe<SrActions>)[],
+    Parent = Gsr,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = Gsr,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -4787,6 +4818,8 @@ export namespace GTemplateResolvers {
       TypeParent,
       TContext
     >;
+
+    isOwner?: IsOwnerResolver<boolean, TypeParent, TContext>;
     /** If a template supports auto-installation, here a distro name is provided */
     osKind?: OsKindResolver<Maybe<string>, TypeParent, TContext>;
     /** True if this template works with hardware assisted virtualization */
@@ -4822,6 +4855,11 @@ export namespace GTemplateResolvers {
   > = Resolver<R, Parent, TContext>;
   export type MyActionsResolver<
     R = (Maybe<TemplateActions>)[],
+    Parent = GTemplate,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = GTemplate,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5832,6 +5870,8 @@ export namespace GTaskResolvers {
     access?: AccessResolver<(Maybe<GTaskAccessEntry>)[], TypeParent, TContext>;
 
     myActions?: MyActionsResolver<(Maybe<TaskActions>)[], TypeParent, TContext>;
+
+    isOwner?: IsOwnerResolver<boolean, TypeParent, TContext>;
     /** Task creation time */
     created?: CreatedResolver<DateTime, TypeParent, TContext>;
     /** Task finish time */
@@ -5881,6 +5921,11 @@ export namespace GTaskResolvers {
   > = Resolver<R, Parent, TContext>;
   export type MyActionsResolver<
     R = (Maybe<TaskActions>)[],
+    Parent = GTask,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = GTask,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -6282,6 +6327,8 @@ export interface Gvm extends GAclXenObject {
   access: (Maybe<GvmAccessEntry>)[];
 
   myActions: (Maybe<VmActions>)[];
+
+  isOwner: boolean;
   /** True if PV drivers are up to date, reported if Guest Additions are installed */
   PVDriversUpToDate?: Maybe<boolean>;
   /** PV drivers version, if available */
@@ -6393,6 +6440,8 @@ export interface GNetwork extends GAclXenObject {
 
   myActions: (Maybe<NetworkActions>)[];
 
+  isOwner: boolean;
+
   VIFs?: Maybe<(Maybe<Gvif>)[]>;
 
   otherConfig?: Maybe<JsonString>;
@@ -6439,6 +6488,8 @@ export interface Gvdi extends GAclXenObject {
 
   myActions: (Maybe<VdiActions>)[];
 
+  isOwner: boolean;
+
   SR?: Maybe<Gsr>;
 
   virtualSize: number;
@@ -6463,6 +6514,8 @@ export interface Gsr extends GAclXenObject {
   access: (Maybe<GsrAccessEntry>)[];
 
   myActions: (Maybe<SrActions>)[];
+
+  isOwner: boolean;
   /** Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI */
   PBDs: (Maybe<Gpbd>)[];
 
@@ -6627,6 +6680,8 @@ export interface GTemplate extends GAclXenObject {
   access: (Maybe<GTemplateAccessEntry>)[];
 
   myActions: (Maybe<TemplateActions>)[];
+
+  isOwner: boolean;
   /** If a template supports auto-installation, here a distro name is provided */
   osKind?: Maybe<string>;
   /** True if this template works with hardware assisted virtualization */
@@ -6903,6 +6958,8 @@ export interface GTask extends GAclXenObject {
   access: (Maybe<GTaskAccessEntry>)[];
 
   myActions: (Maybe<TaskActions>)[];
+
+  isOwner: boolean;
   /** Task creation time */
   created: DateTime;
   /** Task finish time */
