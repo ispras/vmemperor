@@ -5,7 +5,7 @@ from serflag import SerFlag
 
 from handlers.graphql.interfaces.xenobject import GAclXenObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
-from handlers.graphql.resolvers.myactions import resolve_myactions
+from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
 from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 
@@ -23,6 +23,8 @@ class GTask(GXenObjectType):
     access = graphene.Field(graphene.List(GTaskAccessEntry), required=True,
                             resolver=resolve_accessentries(TaskActions))
     my_actions = graphene.Field(graphene.List(GTaskActions), required=True, resolver=resolve_myactions(TaskActions))
+    is_owner = graphene.Field(graphene.Boolean, required=True, resolver=resolve_owner(TaskActions))
+
     created = graphene.Field(graphene.DateTime, required=True, description="Task creation time")
     finished = graphene.Field(graphene.DateTime, required=True, description="Task finish time")
     progress = graphene.Field(graphene.Float, required=True, description="Task progress")

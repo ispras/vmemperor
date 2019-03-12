@@ -5,7 +5,7 @@ from serflag import SerFlag
 
 from handlers.graphql.interfaces.xenobject import GAclXenObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
-from handlers.graphql.resolvers.myactions import resolve_myactions
+from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
 from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 
@@ -25,6 +25,7 @@ class GTemplate(GXenObjectType):
     access = graphene.Field(graphene.List(GTemplateAccessEntry), required=True,
                             resolver=resolve_accessentries(TemplateActions))
     my_actions = graphene.Field(graphene.List(GTemplateActions), required=True, resolver=resolve_myactions(TemplateActions))
+    is_owner = graphene.Field(graphene.Boolean, required=True, resolver=resolve_owner(TemplateActions))
     os_kind = graphene.Field(graphene.String, description="If a template supports auto-installation, here a distro name is provided")
     hvm = graphene.Field(graphene.Boolean, required=True, description="True if this template works with hardware assisted virtualization")
     enabled = graphene.Field(graphene.Boolean, required=True, description="True if this template is available for regular users")

@@ -1,4 +1,5 @@
 from functools import reduce
+from typing import Union
 
 from graphql import ResolveInfo
 
@@ -39,8 +40,13 @@ def resolve_table(graphql_type : ObjectType, table_name : str):
     return resolver
 
 
-def resolve_from_root(root, info : ResolveInfo, **kwargs):
-    if not info.field_name:
+def resolve_from_root(root, info : Union[ResolveInfo, str], **kwargs):
+    if isinstance(info, ResolveInfo):
+        field_name = info.field_name
+    else:
+        field_name = info
+
+    if not field_name:
         raise ValueError("Cannot find field_name")
 
     def reducer(object, key):
@@ -54,7 +60,7 @@ def resolve_from_root(root, info : ResolveInfo, **kwargs):
         else:
             raise ValueError(object)
 
-    return reduce(reducer, [info.field_name], root)
+    return reduce(reducer, [field_name], root)
 
 
 def resolve_one():
