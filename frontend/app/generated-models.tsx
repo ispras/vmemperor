@@ -63,6 +63,7 @@ export interface VmStartInput {
 /** An enumeration. */
 export enum VmActions {
   AttachVdi = "attach_vdi",
+  AttachNetwork = "attach_network",
   Rename = "rename",
   ChangeDomainType = "change_domain_type",
   Vnc = "VNC",
@@ -105,6 +106,18 @@ export enum PowerState {
   Paused = "Paused",
   Running = "Running",
   Suspended = "Suspended"
+}
+/** An enumeration. */
+export enum NetworkActions {
+  Attaching = "attaching",
+  None = "NONE",
+  All = "ALL"
+}
+/** An enumeration. */
+export enum VdiActions {
+  Plug = "plug",
+  None = "NONE",
+  All = "ALL"
 }
 /** An enumeration. */
 export enum SrActions {
@@ -189,6 +202,12 @@ export enum Change {
   Add = "Add",
   Remove = "Remove",
   Change = "Change"
+}
+/** An enumeration. */
+export enum TaskActions {
+  Cancel = "cancel",
+  None = "NONE",
+  All = "ALL"
 }
 
 /** The `DateTime` scalar type represents a DateTime value as specified by [iso8601](https://en.wikipedia.org/wiki/ISO_8601). */
@@ -311,7 +330,7 @@ export namespace CreateVm {
   export type CreateVm = {
     __typename?: "CreateVM";
 
-    taskId: string;
+    taskId: Maybe<string>;
   };
 }
 
@@ -329,7 +348,7 @@ export namespace DeleteVm {
   export type VmDelete = {
     __typename?: "VMDeleteMutation";
 
-    taskId: string;
+    taskId: Maybe<string>;
   };
 }
 
@@ -347,7 +366,9 @@ export namespace VmEditOptions {
   export type Vm = {
     __typename?: "VMMutation";
 
-    success: boolean;
+    reason: Maybe<string>;
+
+    granted: boolean;
   };
 }
 
@@ -722,7 +743,7 @@ export namespace RebootVm {
   export type VmReboot = {
     __typename?: "VMRebootMutation";
 
-    taskId: string;
+    taskId: Maybe<string>;
   };
 }
 
@@ -741,7 +762,7 @@ export namespace ShutdownVm {
   export type VmShutdown = {
     __typename?: "VMShutdownMutation";
 
-    taskId: string;
+    taskId: Maybe<string>;
   };
 }
 
@@ -759,7 +780,7 @@ export namespace StartVm {
   export type VmStart = {
     __typename?: "VMStartMutation";
 
-    taskId: string;
+    taskId: Maybe<string>;
   };
 }
 
@@ -1192,6 +1213,8 @@ export namespace VmInfoFragment {
     domainType: DomainType;
 
     access: (Maybe<Access>)[];
+
+    myActions: (Maybe<VmActions>)[];
   };
 
   export type ViFs = VmvifFragment.Fragment;
@@ -1425,6 +1448,7 @@ export namespace VmInfoFragment {
       access {
         ...VMAccessFragment
       }
+      myActions
     }
 
     ${VmvifFragment.FragmentDoc}
@@ -1755,7 +1779,8 @@ export namespace VmEditOptions {
   export const Document = gql`
     mutation VMEditOptions($vm: VMInput!) {
       vm(vm: $vm) {
-        success
+        reason
+        granted
       }
     }
   `;
@@ -3539,6 +3564,8 @@ export namespace GvmResolvers {
     uuid?: UuidResolver<string, TypeParent, TContext>;
 
     access?: AccessResolver<(Maybe<GvmAccessEntry>)[], TypeParent, TContext>;
+
+    myActions?: MyActionsResolver<(Maybe<VmActions>)[], TypeParent, TContext>;
     /** True if PV drivers are up to date, reported if Guest Additions are installed */
     PVDriversUpToDate?: PvDriversUpToDateResolver<
       Maybe<boolean>,
@@ -3607,6 +3634,11 @@ export namespace GvmResolvers {
   >;
   export type AccessResolver<
     R = (Maybe<GvmAccessEntry>)[],
+    Parent = Gvm,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<VmActions>)[],
     Parent = Gvm,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -3904,7 +3936,17 @@ export namespace GNetworkResolvers {
     /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, TContext>;
+    access?: AccessResolver<
+      (Maybe<GNetworkAccessEntry>)[],
+      TypeParent,
+      TContext
+    >;
+
+    myActions?: MyActionsResolver<
+      (Maybe<NetworkActions>)[],
+      TypeParent,
+      TContext
+    >;
 
     VIFs?: ViFsResolver<Maybe<(Maybe<Gvif>)[]>, TypeParent, TContext>;
 
@@ -3932,7 +3974,12 @@ export namespace GNetworkResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type AccessResolver<
-    R = (Maybe<GAccessEntry>)[],
+    R = (Maybe<GNetworkAccessEntry>)[],
+    Parent = GNetwork,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<NetworkActions>)[],
     Parent = GNetwork,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -3944,6 +3991,25 @@ export namespace GNetworkResolvers {
   export type OtherConfigResolver<
     R = Maybe<JsonString>,
     Parent = GNetwork,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace GNetworkAccessEntryResolvers {
+  export interface Resolvers<TContext = {}, TypeParent = GNetworkAccessEntry> {
+    userId?: UserIdResolver<User, TypeParent, TContext>;
+
+    actions?: ActionsResolver<NetworkActions, TypeParent, TContext>;
+  }
+
+  export type UserIdResolver<
+    R = User,
+    Parent = GNetworkAccessEntry,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ActionsResolver<
+    R = NetworkActions,
+    Parent = GNetworkAccessEntry,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
 }
@@ -4034,6 +4100,8 @@ export namespace GvdiResolvers {
 
     access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, TContext>;
 
+    myActions?: MyActionsResolver<(Maybe<VdiActions>)[], TypeParent, TContext>;
+
     SR?: SrResolver<Maybe<Gsr>, TypeParent, TContext>;
 
     virtualSize?: VirtualSizeResolver<number, TypeParent, TContext>;
@@ -4067,6 +4135,11 @@ export namespace GvdiResolvers {
   >;
   export type AccessResolver<
     R = (Maybe<GAccessEntry>)[],
+    Parent = Gvdi,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<VdiActions>)[],
     Parent = Gvdi,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -4109,6 +4182,8 @@ export namespace GsrResolvers {
     uuid?: UuidResolver<string, TypeParent, TContext>;
 
     access?: AccessResolver<(Maybe<GsrAccessEntry>)[], TypeParent, TContext>;
+
+    myActions?: MyActionsResolver<(Maybe<SrActions>)[], TypeParent, TContext>;
     /** Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI */
     PBDs?: PbDsResolver<(Maybe<Gpbd>)[], TypeParent, TContext>;
 
@@ -4155,6 +4230,11 @@ export namespace GsrResolvers {
   >;
   export type AccessResolver<
     R = (Maybe<GsrAccessEntry>)[],
+    Parent = Gsr,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<SrActions>)[],
     Parent = Gsr,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -4701,6 +4781,12 @@ export namespace GTemplateResolvers {
       TypeParent,
       TContext
     >;
+
+    myActions?: MyActionsResolver<
+      (Maybe<TemplateActions>)[],
+      TypeParent,
+      TContext
+    >;
     /** If a template supports auto-installation, here a distro name is provided */
     osKind?: OsKindResolver<Maybe<string>, TypeParent, TContext>;
     /** True if this template works with hardware assisted virtualization */
@@ -4731,6 +4817,11 @@ export namespace GTemplateResolvers {
   > = Resolver<R, Parent, TContext>;
   export type AccessResolver<
     R = (Maybe<GTemplateAccessEntry>)[],
+    Parent = GTemplate,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<TemplateActions>)[],
     Parent = GTemplate,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -4979,12 +5070,26 @@ export namespace MutationResolvers {
       TypeParent,
       TContext
     >;
+    /** Set network access rights */
+    netAccessSet?: NetAccessSetResolver<
+      Maybe<NetAccessSet>,
+      TypeParent,
+      TContext
+    >;
     /** Attach VDI to a VM by creating a new virtual block device */
     vdiAttach?: VdiAttachResolver<
       Maybe<AttachVdiMutation>,
       TypeParent,
       TContext
     >;
+    /** Set VDI access rights */
+    vdiAccessSet?: VdiAccessSetResolver<
+      Maybe<VdiAccessSet>,
+      TypeParent,
+      TContext
+    >;
+    /** Set SR access rights */
+    srAccessSet?: SrAccessSetResolver<Maybe<SrAccessSet>, TypeParent, TContext>;
 
     selectedItems?: SelectedItemsResolver<
       Maybe<string[]>,
@@ -5135,6 +5240,21 @@ export namespace MutationResolvers {
     vmRef: string;
   }
 
+  export type NetAccessSetResolver<
+    R = Maybe<NetAccessSet>,
+    Parent = {},
+    TContext = {}
+  > = Resolver<R, Parent, TContext, NetAccessSetArgs>;
+  export interface NetAccessSetArgs {
+    actions: (Maybe<NetworkActions>)[];
+
+    ref: string;
+
+    revoke?: Maybe<boolean>;
+
+    user: string;
+  }
+
   export type VdiAttachResolver<
     R = Maybe<AttachVdiMutation>,
     Parent = {},
@@ -5147,6 +5267,36 @@ export namespace MutationResolvers {
     vdiRef: string;
 
     vmRef: string;
+  }
+
+  export type VdiAccessSetResolver<
+    R = Maybe<VdiAccessSet>,
+    Parent = {},
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VdiAccessSetArgs>;
+  export interface VdiAccessSetArgs {
+    actions: (Maybe<VdiActions>)[];
+
+    ref: string;
+
+    revoke?: Maybe<boolean>;
+
+    user: string;
+  }
+
+  export type SrAccessSetResolver<
+    R = Maybe<SrAccessSet>,
+    Parent = {},
+    TContext = {}
+  > = Resolver<R, Parent, TContext, SrAccessSetArgs>;
+  export interface SrAccessSetArgs {
+    actions: (Maybe<SrActions>)[];
+
+    ref: string;
+
+    revoke?: Maybe<boolean>;
+
+    user: string;
   }
 
   export type SelectedItemsResolver<
@@ -5166,11 +5316,25 @@ export namespace MutationResolvers {
 export namespace CreateVmResolvers {
   export interface Resolvers<TContext = {}, TypeParent = CreateVm> {
     /** Installation task ID */
-    taskId?: TaskIdResolver<string, TypeParent, TContext>;
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
-    R = string,
+    R = Maybe<string>,
+    Parent = CreateVm,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
+    Parent = CreateVm,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = CreateVm,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5178,11 +5342,19 @@ export namespace CreateVmResolvers {
 
 export namespace TemplateMutationResolvers {
   export interface Resolvers<TContext = {}, TypeParent = TemplateMutation> {
-    success?: SuccessResolver<boolean, TypeParent, TContext>;
+    /** If access is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+    /** If access is not granted, return reason why */
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type SuccessResolver<
+  export type GrantedResolver<
     R = boolean,
+    Parent = TemplateMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = TemplateMutation,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5190,11 +5362,18 @@ export namespace TemplateMutationResolvers {
 /** This class represents synchronous mutations for VM, i.e. you can change name_label, name_description, etc. */
 export namespace VmMutationResolvers {
   export interface Resolvers<TContext = {}, TypeParent = VmMutation> {
-    success?: SuccessResolver<boolean, TypeParent, TContext>;
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type SuccessResolver<
+  export type GrantedResolver<
     R = boolean,
+    Parent = VmMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = VmMutation,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5203,11 +5382,25 @@ export namespace VmMutationResolvers {
 export namespace VmStartMutationResolvers {
   export interface Resolvers<TContext = {}, TypeParent = VmStartMutation> {
     /** Start task ID */
-    taskId?: TaskIdResolver<string, TypeParent, TContext>;
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+    /** Shows if access to start is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
-    R = string,
+    R = Maybe<string>,
+    Parent = VmStartMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
+    Parent = VmStartMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = VmStartMutation,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5216,11 +5409,18 @@ export namespace VmStartMutationResolvers {
 export namespace VmShutdownMutationResolvers {
   export interface Resolvers<TContext = {}, TypeParent = VmShutdownMutation> {
     /** Shutdown task ID */
-    taskId?: TaskIdResolver<string, TypeParent, TContext>;
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+    /** Shows if access to shutdown is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
-    R = string,
+    R = Maybe<string>,
+    Parent = VmShutdownMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = VmShutdownMutation,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5229,11 +5429,18 @@ export namespace VmShutdownMutationResolvers {
 export namespace VmRebootMutationResolvers {
   export interface Resolvers<TContext = {}, TypeParent = VmRebootMutation> {
     /** Reboot task ID */
-    taskId?: TaskIdResolver<string, TypeParent, TContext>;
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+    /** Shows if access to reboot is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
-    R = string,
+    R = Maybe<string>,
+    Parent = VmRebootMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = VmRebootMutation,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5242,11 +5449,25 @@ export namespace VmRebootMutationResolvers {
 export namespace VmPauseMutationResolvers {
   export interface Resolvers<TContext = {}, TypeParent = VmPauseMutation> {
     /** Pause/unpause task ID */
-    taskId?: TaskIdResolver<string, TypeParent, TContext>;
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+    /** Shows if access to pause is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
-    R = string,
+    R = Maybe<string>,
+    Parent = VmPauseMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
+    Parent = VmPauseMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = VmPauseMutation,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5255,11 +5476,25 @@ export namespace VmPauseMutationResolvers {
 export namespace VmDeleteMutationResolvers {
   export interface Resolvers<TContext = {}, TypeParent = VmDeleteMutation> {
     /** Deleting task ID */
-    taskId?: TaskIdResolver<string, TypeParent, TContext>;
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+    /** Shows if access to delete is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
-    R = string,
+    R = Maybe<string>,
+    Parent = VmDeleteMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
+    Parent = VmDeleteMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = VmDeleteMutation,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5300,11 +5535,37 @@ export namespace AttachNetworkMutationResolvers {
   > {
     /** Attach/Detach task ID. If already attached/detached, returns null */
     taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = Maybe<string>,
     Parent = AttachNetworkMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
+    Parent = AttachNetworkMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
+    Parent = AttachNetworkMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace NetAccessSetResolvers {
+  export interface Resolvers<TContext = {}, TypeParent = NetAccessSet> {
+    success?: SuccessResolver<boolean, TypeParent, TContext>;
+  }
+
+  export type SuccessResolver<
+    R = boolean,
+    Parent = NetAccessSet,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
 }
@@ -5313,11 +5574,49 @@ export namespace AttachVdiMutationResolvers {
   export interface Resolvers<TContext = {}, TypeParent = AttachVdiMutation> {
     /** Attach/Detach task ID. If already attached/detached, returns null */
     taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+    /** Returns True if access is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+    /** If access is not granted, return the reason */
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
   export type TaskIdResolver<
     R = Maybe<string>,
     Parent = AttachVdiMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
+    Parent = AttachVdiMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
+    Parent = AttachVdiMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace VdiAccessSetResolvers {
+  export interface Resolvers<TContext = {}, TypeParent = VdiAccessSet> {
+    success?: SuccessResolver<boolean, TypeParent, TContext>;
+  }
+
+  export type SuccessResolver<
+    R = boolean,
+    Parent = VdiAccessSet,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace SrAccessSetResolvers {
+  export interface Resolvers<TContext = {}, TypeParent = SrAccessSet> {
+    success?: SuccessResolver<boolean, TypeParent, TContext>;
+  }
+
+  export type SuccessResolver<
+    R = boolean,
+    Parent = SrAccessSet,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
 }
@@ -5530,7 +5829,9 @@ export namespace GTaskResolvers {
     /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    access?: AccessResolver<(Maybe<GAccessEntry>)[], TypeParent, TContext>;
+    access?: AccessResolver<(Maybe<GTaskAccessEntry>)[], TypeParent, TContext>;
+
+    myActions?: MyActionsResolver<(Maybe<TaskActions>)[], TypeParent, TContext>;
     /** Task creation time */
     created?: CreatedResolver<DateTime, TypeParent, TContext>;
     /** Task finish time */
@@ -5574,7 +5875,12 @@ export namespace GTaskResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type AccessResolver<
-    R = (Maybe<GAccessEntry>)[],
+    R = (Maybe<GTaskAccessEntry>)[],
+    Parent = GTask,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<TaskActions>)[],
     Parent = GTask,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -5620,6 +5926,25 @@ export namespace GTaskResolvers {
   > = Resolver<R, Parent, TContext>;
 }
 
+export namespace GTaskAccessEntryResolvers {
+  export interface Resolvers<TContext = {}, TypeParent = GTaskAccessEntry> {
+    userId?: UserIdResolver<User, TypeParent, TContext>;
+
+    actions?: ActionsResolver<(Maybe<TaskActions>)[], TypeParent, TContext>;
+  }
+
+  export type UserIdResolver<
+    R = User,
+    Parent = GTaskAccessEntry,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ActionsResolver<
+    R = (Maybe<TaskActions>)[],
+    Parent = GTaskAccessEntry,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
 export namespace PlaybookTasksSubscriptionResolvers {
   export interface Resolvers<
     TContext = {},
@@ -5659,8 +5984,18 @@ export namespace GAccessEntryResolvers {
     __resolveType: ResolveType;
   }
   export type ResolveType<
-    R = "GVMAccessEntry" | "GSRAccessEntry" | "GTemplateAccessEntry",
-    Parent = GvmAccessEntry | GsrAccessEntry | GTemplateAccessEntry,
+    R =
+      | "GVMAccessEntry"
+      | "GNetworkAccessEntry"
+      | "GSRAccessEntry"
+      | "GTemplateAccessEntry"
+      | "GTaskAccessEntry",
+    Parent =
+      | GvmAccessEntry
+      | GNetworkAccessEntry
+      | GsrAccessEntry
+      | GTemplateAccessEntry
+      | GTaskAccessEntry,
     TContext = {}
   > = TypeResolveFn<R, Parent, TContext>;
 }
@@ -5782,6 +6117,7 @@ export type IResolvers<TContext = {}> = {
   OsVersion?: OsVersionResolvers.Resolvers<TContext>;
   Gvif?: GvifResolvers.Resolvers<TContext>;
   GNetwork?: GNetworkResolvers.Resolvers<TContext>;
+  GNetworkAccessEntry?: GNetworkAccessEntryResolvers.Resolvers<TContext>;
   Gvbd?: GvbdResolvers.Resolvers<TContext>;
   Gvdi?: GvdiResolvers.Resolvers<TContext>;
   Gsr?: GsrResolvers.Resolvers<TContext>;
@@ -5809,7 +6145,10 @@ export type IResolvers<TContext = {}> = {
   VmAccessSet?: VmAccessSetResolvers.Resolvers<TContext>;
   PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers.Resolvers<TContext>;
   AttachNetworkMutation?: AttachNetworkMutationResolvers.Resolvers<TContext>;
+  NetAccessSet?: NetAccessSetResolvers.Resolvers<TContext>;
   AttachVdiMutation?: AttachVdiMutationResolvers.Resolvers<TContext>;
+  VdiAccessSet?: VdiAccessSetResolvers.Resolvers<TContext>;
+  SrAccessSet?: SrAccessSetResolvers.Resolvers<TContext>;
   Subscription?: SubscriptionResolvers.Resolvers<TContext>;
   GvMsSubscription?: GvMsSubscriptionResolvers.Resolvers<TContext>;
   Deleted?: DeletedResolvers.Resolvers<TContext>;
@@ -5817,6 +6156,7 @@ export type IResolvers<TContext = {}> = {
   GPoolsSubscription?: GPoolsSubscriptionResolvers.Resolvers<TContext>;
   GTasksSubscription?: GTasksSubscriptionResolvers.Resolvers<TContext>;
   GTask?: GTaskResolvers.Resolvers<TContext>;
+  GTaskAccessEntry?: GTaskAccessEntryResolvers.Resolvers<TContext>;
   PlaybookTasksSubscription?: PlaybookTasksSubscriptionResolvers.Resolvers<
     TContext
   >;
@@ -5940,6 +6280,8 @@ export interface Gvm extends GAclXenObject {
   uuid: string;
 
   access: (Maybe<GvmAccessEntry>)[];
+
+  myActions: (Maybe<VmActions>)[];
   /** True if PV drivers are up to date, reported if Guest Additions are installed */
   PVDriversUpToDate?: Maybe<boolean>;
   /** PV drivers version, if available */
@@ -6047,11 +6389,19 @@ export interface GNetwork extends GAclXenObject {
   /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
 
-  access: (Maybe<GAccessEntry>)[];
+  access: (Maybe<GNetworkAccessEntry>)[];
+
+  myActions: (Maybe<NetworkActions>)[];
 
   VIFs?: Maybe<(Maybe<Gvif>)[]>;
 
   otherConfig?: Maybe<JsonString>;
+}
+
+export interface GNetworkAccessEntry extends GAccessEntry {
+  userId: User;
+
+  actions: NetworkActions;
 }
 
 export interface Gvbd {
@@ -6087,6 +6437,8 @@ export interface Gvdi extends GAclXenObject {
 
   access: (Maybe<GAccessEntry>)[];
 
+  myActions: (Maybe<VdiActions>)[];
+
   SR?: Maybe<Gsr>;
 
   virtualSize: number;
@@ -6109,6 +6461,8 @@ export interface Gsr extends GAclXenObject {
   uuid: string;
 
   access: (Maybe<GsrAccessEntry>)[];
+
+  myActions: (Maybe<SrActions>)[];
   /** Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI */
   PBDs: (Maybe<Gpbd>)[];
 
@@ -6271,6 +6625,8 @@ export interface GTemplate extends GAclXenObject {
   uuid: string;
 
   access: (Maybe<GTemplateAccessEntry>)[];
+
+  myActions: (Maybe<TemplateActions>)[];
   /** If a template supports auto-installation, here a distro name is provided */
   osKind?: Maybe<string>;
   /** True if this template works with hardware assisted virtualization */
@@ -6362,49 +6718,80 @@ export interface Mutation {
   playbookLaunch?: Maybe<PlaybookLaunchMutation>;
   /** Attach VM to a Network by creating a new Interface */
   netAttach?: Maybe<AttachNetworkMutation>;
+  /** Set network access rights */
+  netAccessSet?: Maybe<NetAccessSet>;
   /** Attach VDI to a VM by creating a new virtual block device */
   vdiAttach?: Maybe<AttachVdiMutation>;
+  /** Set VDI access rights */
+  vdiAccessSet?: Maybe<VdiAccessSet>;
+  /** Set SR access rights */
+  srAccessSet?: Maybe<SrAccessSet>;
 
   selectedItems?: Maybe<string[]>;
 }
 
 export interface CreateVm {
   /** Installation task ID */
-  taskId: string;
+  taskId?: Maybe<string>;
+
+  granted: boolean;
+
+  reason?: Maybe<string>;
 }
 
 export interface TemplateMutation {
-  success: boolean;
+  /** If access is granted */
+  granted: boolean;
+  /** If access is not granted, return reason why */
+  reason?: Maybe<string>;
 }
 
 /** This class represents synchronous mutations for VM, i.e. you can change name_label, name_description, etc. */
 export interface VmMutation {
-  success: boolean;
+  granted: boolean;
+
+  reason?: Maybe<string>;
 }
 
 export interface VmStartMutation {
   /** Start task ID */
-  taskId: string;
+  taskId?: Maybe<string>;
+  /** Shows if access to start is granted */
+  granted: boolean;
+
+  reason?: Maybe<string>;
 }
 
 export interface VmShutdownMutation {
   /** Shutdown task ID */
-  taskId: string;
+  taskId?: Maybe<string>;
+  /** Shows if access to shutdown is granted */
+  granted: boolean;
 }
 
 export interface VmRebootMutation {
   /** Reboot task ID */
-  taskId: string;
+  taskId?: Maybe<string>;
+  /** Shows if access to reboot is granted */
+  granted: boolean;
 }
 
 export interface VmPauseMutation {
   /** Pause/unpause task ID */
-  taskId: string;
+  taskId?: Maybe<string>;
+  /** Shows if access to pause is granted */
+  granted: boolean;
+
+  reason?: Maybe<string>;
 }
 
 export interface VmDeleteMutation {
   /** Deleting task ID */
-  taskId: string;
+  taskId?: Maybe<string>;
+  /** Shows if access to delete is granted */
+  granted: boolean;
+
+  reason?: Maybe<string>;
 }
 
 export interface VmAccessSet {
@@ -6419,11 +6806,31 @@ export interface PlaybookLaunchMutation {
 export interface AttachNetworkMutation {
   /** Attach/Detach task ID. If already attached/detached, returns null */
   taskId?: Maybe<string>;
+
+  granted: boolean;
+
+  reason?: Maybe<string>;
+}
+
+export interface NetAccessSet {
+  success: boolean;
 }
 
 export interface AttachVdiMutation {
   /** Attach/Detach task ID. If already attached/detached, returns null */
   taskId?: Maybe<string>;
+  /** Returns True if access is granted */
+  granted: boolean;
+  /** If access is not granted, return the reason */
+  reason?: Maybe<string>;
+}
+
+export interface VdiAccessSet {
+  success: boolean;
+}
+
+export interface SrAccessSet {
+  success: boolean;
 }
 
 /** All subscriptions must return  Observable */
@@ -6493,7 +6900,9 @@ export interface GTask extends GAclXenObject {
   /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: string;
 
-  access: (Maybe<GAccessEntry>)[];
+  access: (Maybe<GTaskAccessEntry>)[];
+
+  myActions: (Maybe<TaskActions>)[];
   /** Task creation time */
   created: DateTime;
   /** Task finish time */
@@ -6510,6 +6919,12 @@ export interface GTask extends GAclXenObject {
   errorInfo?: Maybe<(Maybe<string>)[]>;
   /** Task status */
   status?: Maybe<string>;
+}
+
+export interface GTaskAccessEntry extends GAccessEntry {
+  userId: User;
+
+  actions: (Maybe<TaskActions>)[];
 }
 
 export interface PlaybookTasksSubscription {
@@ -6639,6 +7054,15 @@ export interface NetAttachMutationArgs {
 
   vmRef: string;
 }
+export interface NetAccessSetMutationArgs {
+  actions: (Maybe<NetworkActions>)[];
+
+  ref: string;
+
+  revoke?: Maybe<boolean>;
+
+  user: string;
+}
 export interface VdiAttachMutationArgs {
   /** True if attach, False if detach */
   isAttach: boolean;
@@ -6646,6 +7070,24 @@ export interface VdiAttachMutationArgs {
   vdiRef: string;
 
   vmRef: string;
+}
+export interface VdiAccessSetMutationArgs {
+  actions: (Maybe<VdiActions>)[];
+
+  ref: string;
+
+  revoke?: Maybe<boolean>;
+
+  user: string;
+}
+export interface SrAccessSetMutationArgs {
+  actions: (Maybe<SrActions>)[];
+
+  ref: string;
+
+  revoke?: Maybe<boolean>;
+
+  user: string;
 }
 export interface SelectedItemsMutationArgs {
   tableId: Table;

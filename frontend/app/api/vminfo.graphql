@@ -55,6 +55,7 @@ fragment VMInfoFragment on GVM {
   access {
     ...VMAccessFragment
   }
+  myActions
 }
 
 query VMInfo ($ref: ID!) {

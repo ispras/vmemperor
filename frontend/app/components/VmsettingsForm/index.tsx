@@ -43,8 +43,7 @@ const VmsettingsForm = ({vm}: Props) => {
     }
   }, [activeTab, vncActivated]);
 
-  if (activeTab === Tab.VNC && vm.powerState !== PowerState.Running)
-  {
+  if (activeTab === Tab.VNC && vm.powerState !== PowerState.Running) {
     setVncActivated(false);
     setActiveTab(Tab.Power);
   }
@@ -72,7 +71,7 @@ const VmsettingsForm = ({vm}: Props) => {
             onClick={() => {
               toggleTab(Tab.VNC);
             }}
-            disabled={vm.powerState !== PowerState.Running}
+            disabled={vm.powerState !== PowerState.Running || !vm.myActions.includes(VmActions.Vnc)}
           >
             VNC
           </NavLink>

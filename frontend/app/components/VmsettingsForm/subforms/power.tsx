@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, Fragment} from 'react';
+import React, {Fragment, useMemo} from 'react';
 import {Button, Card, CardBody, CardFooter, CardSubtitle, CardText, CardTitle, Col, Label, Row} from 'reactstrap';
 import FullHeightCard from '../../../components/FullHeightCard';
 import {VM_STATE_RUNNING} from "../../../containers/App/constants";
@@ -12,12 +12,14 @@ import {
   ShutdownForce,
   ShutdownVm,
   StartVm,
+  VmActions,
   VmEditOptions,
   VmInfo
 } from "../../../generated-models";
 import {useMutation} from "react-apollo-hooks";
 import Vm = VmInfo.Vm;
 
+import ActionButton from "../../../components/ActionButton";
 
 interface Props {
   vm: Vm
@@ -88,20 +90,38 @@ const Power = ({vm}: Props) => {
               <div>
                 {vm.powerState !== PowerState.Halted && (
 
-                  <Button size="lg" color="danger" onClick={() => onReboot()}>
+                  <ActionButton size="lg"
+                                color="danger"
+                                onClick={() => onReboot()}
+                                action={VmActions.HardReboot}
+                                data={vm}
+                                id="button-hard-reboot">
                     Reboot
-                  </Button>
+                  </ActionButton>
                 )
                 }
                 {' '}
                 {(vm.powerState !== 'Halted') ? (
-                  <Button size="lg" color="primary" onClick={() => onShutdown()}>
+                  <ActionButton size="lg"
+                                id="button-hard-shutdown"
+                                color="primary"
+                                onClick={() => onShutdown()}
+                                action={VmActions.HardShutdown}
+                                data={vm}
+
+                  >
                     <FormattedMessage {...messages.halt}/>
-                  </Button>
+                  </ActionButton>
                 ) : (
-                  <Button size="lg" color="primary" onClick={() => onStart()}>
+                  <ActionButton size="lg"
+                                id="button-start"
+                                color="primary"
+                                onClick={() => onStart()}
+                                action={VmActions.Start}
+                                data={vm}
+                  >
                     <FormattedMessage {...messages.turnon}/>
-                  </Button>
+                  </ActionButton>
                 )}
               </div>
             </CardFooter>
