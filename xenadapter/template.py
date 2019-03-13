@@ -58,11 +58,11 @@ class Template(AbstractVM):
         return new_rec
 
     @classmethod
-    def get_access_data(cls, record):
+    def get_access_data(cls, record,  new_rec, ref):
         if cls.is_enabled(record):
-            return super().get_access_data(record)
+            return super().get_access_data(record, new_rec, ref)
         else:
-            return []
+            return {}
 
     @classmethod
     def is_enabled(cls, record):

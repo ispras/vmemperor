@@ -147,7 +147,7 @@ class EventLoop(Loggable):
                             users_to_delete = set(old_access_list).difference(access.keys())
                             if users_to_delete:
                                 items = [[ref, user] for user in users_to_delete]
-                                log.info(f"Deleting access rights for one user in table {table}: ref {items[0]}, user {items[1]}")
+                                log.info(f"Deleting access rights for one user in table {table}: {items}")
                                 CHECK_ER(re.db.table(table_user).get_all(*items, index='ref_and_userid').delete().run())
 
 

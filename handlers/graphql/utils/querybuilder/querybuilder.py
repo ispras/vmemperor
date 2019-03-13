@@ -30,7 +30,10 @@ class QueryBuilder:
         self.authenticator = user_authenticator
         self.id = id
         self.paths = {} # Key - JSONPath expression, value - database table name. Contains dependent paths
-        self.query = self.build_query(additional_string)
+        self.query, self.query_string = self.build_query(additional_string)
+
+    def __repr__(self):
+        return f"QueryBuilder <{self.query_string}>"
 
     def build_query(self, additional_string):
         def user_entities():
@@ -205,7 +208,8 @@ class QueryBuilder:
         if additional_string:
             query.append(additional_string)
         query = ''.join(query)
-        return eval(query)
+
+        return eval(query), query
 
     def run_query(self, connection=None):
         if isinstance(self.id, str):

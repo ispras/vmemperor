@@ -1,7 +1,9 @@
 import collections
 import json
 from collections import Mapping
+from json import JSONDecodeError
 
+from rethinkdb.errors import ReqlNonExistenceError
 from serflag import SerFlag
 
 import XenAPI
@@ -170,7 +172,9 @@ class XenObject(metaclass=XenObjectMeta):
 
             if event['operation'] in ('mod', 'add'):
                 new_rec = cls.process_record(xen, event['ref'], record)
-                CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
+                CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec,
+                                                               conflict=lambda id, old_doc, newdoc: old_doc.without(re.r.args(newdoc.keys())).merge(newdoc)
+                                                               ).run())
 
                 def get_access_for_task(task_type):
                     '''
@@ -347,24 +351,29 @@ class XenObject(metaclass=XenObjectMeta):
 class ACLXenObject(XenObject):
     '''
     Abstract class for objects that store ACL information in their other_config
-    Attributes:
-        ALLOW_EMPTY_OTHERCONFIG : boolean - don't throw an exception if other_config is empty.
-        That is, an object is available to everyone by default and if you set access rights for an user,
-        it becomes available to that user exclusively
     '''
-    ALLOW_EMPTY_OTHERCONFIG = False
 
 
     @classmethod
     def process_record(cls, xen, ref, record):
         '''
         Adds an 'access' field to processed record containing access rights
-        :param ref:
-        :param record:
+        if access is changed
+        :param xen: XenAdapter
+        :param ref: Object ref
+        :param record: Object record
         :return:
         '''
         new_rec = super().process_record(xen, ref, record)
-        new_rec['access'] = cls.get_access_data(record)
+        try:
+            new_rec['_settings_'] = json.loads(record['other_config']['vmemperor'])
+        except (KeyError, JSONDecodeError):
+            new_rec['_settings_'] = {}
+
+        access_data = cls.get_access_data(record, new_rec,  ref)
+        if access_data is not None:
+            new_rec['access'] = access_data
+                
         return new_rec
 
 
@@ -418,41 +427,37 @@ class ACLXenObject(XenObject):
 
         self.log.info(f"Access prohibited to {self} for {auth.get_id()}")
         return False
+
     @classmethod
-    def get_access_data(cls, record):
+    def get_access_data(cls, record,  new_rec, ref):
         '''
         Obtain access data from other_config
-        :param record:
-        :param authenticator_name:
-        :return:
+        :param record: Original object record (is not used in default implementation)
+        :param new_rec: New object record (with _settings_ parsed)
+        :param ref: Object ref
+        :return: None if access data wasnt changed since last call
         '''
-        other_config = record['other_config']
 
-        def read_other_config_access_rights(other_config) -> Dict[str, cls.Actions]:
-            from json import JSONDecodeError
-            if 'vmemperor' in other_config:
-                try:
-                    emperor = json.loads(other_config['vmemperor'])
-                except JSONDecodeError:
-                    emperor = {}
+        try:
+            old_settings = re.db.table(cls.db_table_name).get(ref).pluck('_settings_').run()
+        except ReqlNonExistenceError:
+            old_settings = {'_settings_' : {}}
 
-                if 'access' in emperor:
-                    if auth.name in emperor['access']:
-                        auth_dict = emperor['access'][auth.name]
-                        deserialize_auth_dict(cls, auth_dict) # Will raise KeyError if something is wrong
-                        return auth_dict
-                    else:
-                        if cls.ALLOW_EMPTY_OTHERCONFIG:
-                            return {'any':  cls.Actions.ALL.serialize()}
-                        else:
-                            return {}
-            else:
-                if cls.ALLOW_EMPTY_OTHERCONFIG:
-                    return {'any':  cls.Actions.ALL.serialize()}
-                else:
-                    return {}
+        if old_settings['_settings_'] == new_rec['_settings_']:
+            return None
 
-        return read_other_config_access_rights(other_config)
+        def read_other_config_access_rights(access_settings) -> Dict[str, cls.Actions]:
+            if auth.name in access_settings:
+                auth_dict = access_settings[auth.name]
+                deserialize_auth_dict(cls, auth_dict) # Will raise KeyError if something is wrong
+                return auth_dict
+
+            return {}
+
+        if 'access' in new_rec['_settings_']:
+            return read_other_config_access_rights(new_rec['_settings_']['access'])
+        else:
+            return {}
 
     def get_other_config(self):
         ret = self._get_other_config()
@@ -460,8 +465,6 @@ class ACLXenObject(XenObject):
             return ret
         else:
             return {}
-
-
 
     def manage_actions(self, action : SerFlag, revoke=False, clear=False, user : str = None):
         '''
@@ -517,4 +520,3 @@ class ACLXenObject(XenObject):
 
         other_config['vmemperor'] = json.dumps(emperor)
         self.set_other_config(other_config)
-

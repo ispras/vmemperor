@@ -3,6 +3,8 @@ from typing import Dict, Mapping, Any, Set, List, Tuple, Optional, Union
 from graphql import ResolveInfo
 from functools import reduce
 
+from rethinkdb.errors import ReqlNonExistenceError
+
 from connman import ReDBConnection
 import asyncio
 import  constants.re as re
@@ -67,7 +69,8 @@ class ChangefeedBuilder:
         self.builder = QueryBuilder(id, info, info.context.user_authenticator, additional_string, select_subfield)
         self.status = status
 
-
+    def __repr__(self):
+        f"ChangefeedBuilder: {self.builder}, status: {self.status}{', with Queue' if self.queue else ''}"
     async def yield_values(self):
         '''
         Asynchronous iterable yielding value based on changes of that query
@@ -76,7 +79,10 @@ class ChangefeedBuilder:
         while True:
             try:
                 async with ReDBConnection().get_async_connection() as conn:
-                    value = await self.builder.query.run(conn)
+                    try:
+                        value = await self.builder.run_query(conn)
+                    except ReqlNonExistenceError as e:
+                        value = None
                     if not value:
                         item  = {
                             "type": "remove",
