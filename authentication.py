@@ -113,14 +113,13 @@ class AdministratorAuthenticator(BasicAuthenticator):
 
     def check_credentials(self, password, username, log=logging):
         from exc import AuthenticationPasswordException, XenAdapterConnectionError
-        from xenadapter import XenAdapter
-        from vmemperor import opts
+        from xentools.xenadapter import XenAdapter
+        from tornado.options import options as opts
         params = {**opts.group_dict('xenadapter'), **opts.group_dict('rethinkdb')}
         params['username'] = username
         params['password'] = password
         self.id = username
         try:
-
             xen = XenAdapter(params, nosingleton=True)
         except XenAdapterConnectionError as e:
             raise AuthenticationPasswordException(e.log, self)
@@ -145,8 +144,8 @@ class DebugAuthenticator(AdministratorAuthenticator): #used by tests
 
     def __init__(self, user_auth):
 
-        from xenadapter import XenAdapter
-        from vmemperor import opts
+        from xentools.xenadapter import XenAdapter
+        from tornado.options import options as opts
         self.xen = XenAdapter({**opts.group_dict('xenadapter'), **opts.group_dict('rethinkdb')})
 
         super().__init__(user_auth)
