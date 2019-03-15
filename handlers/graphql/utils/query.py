@@ -39,6 +39,11 @@ def resolve_table(graphql_type : ObjectType, table_name : str):
 
     return resolver
 
+def resolve_filter_users(table_name : str):
+    @with_default_authentication
+    def resolver(root, info, *args, **kwargs):
+        query = re.db.table(table_name).filter()
+
 
 def resolve_from_root(root, info : Union[ResolveInfo, str], **kwargs):
     if isinstance(info, ResolveInfo):

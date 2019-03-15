@@ -220,6 +220,27 @@ export type JsonString = any;
 // Documents
 // ====================================================
 
+export namespace VmAccessSetMutation {
+  export type Variables = {
+    actions: VmActions[];
+    user: string;
+    ref: string;
+    revoke: boolean;
+  };
+
+  export type Mutation = {
+    __typename?: "Mutation";
+
+    vmAccessSet: Maybe<VmAccessSet>;
+  };
+
+  export type VmAccessSet = {
+    __typename?: "VMAccessSet";
+
+    success: boolean;
+  };
+}
+
 export namespace VdiAttach {
   export type Variables = {
     vmRef: string;
@@ -1474,6 +1495,52 @@ export namespace VmListFragment {
 // Components
 // ====================================================
 
+export namespace VmAccessSetMutation {
+  export const Document = gql`
+    mutation VMAccessSetMutation(
+      $actions: [VMActions!]!
+      $user: String!
+      $ref: ID!
+      $revoke: Boolean!
+    ) {
+      vmAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref) {
+        success
+      }
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Mutation<Mutation, Variables>
+          mutation={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
+    TChildProps;
+  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
 export namespace VdiAttach {
   export const Document = gql`
     mutation VDIAttach($vmRef: ID!, $vdiRef: ID!) {
@@ -5241,11 +5308,11 @@ export namespace MutationResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext, VmAccessSetArgs>;
   export interface VmAccessSetArgs {
-    actions: (Maybe<VmActions>)[];
+    actions: VmActions[];
 
     ref: string;
 
-    revoke?: Maybe<boolean>;
+    revoke: boolean;
 
     user: string;
   }
@@ -5284,11 +5351,11 @@ export namespace MutationResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext, NetAccessSetArgs>;
   export interface NetAccessSetArgs {
-    actions: (Maybe<NetworkActions>)[];
+    actions: NetworkActions[];
 
     ref: string;
 
-    revoke?: Maybe<boolean>;
+    revoke: boolean;
 
     user: string;
   }
@@ -5313,11 +5380,11 @@ export namespace MutationResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext, VdiAccessSetArgs>;
   export interface VdiAccessSetArgs {
-    actions: (Maybe<VdiActions>)[];
+    actions: VdiActions[];
 
     ref: string;
 
-    revoke?: Maybe<boolean>;
+    revoke: boolean;
 
     user: string;
   }
@@ -5328,11 +5395,11 @@ export namespace MutationResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext, SrAccessSetArgs>;
   export interface SrAccessSetArgs {
-    actions: (Maybe<SrActions>)[];
+    actions: SrActions[];
 
     ref: string;
 
-    revoke?: Maybe<boolean>;
+    revoke: boolean;
 
     user: string;
   }
@@ -7087,11 +7154,11 @@ export interface VmDeleteMutationArgs {
   ref: string;
 }
 export interface VmAccessSetMutationArgs {
-  actions: (Maybe<VmActions>)[];
+  actions: VmActions[];
 
   ref: string;
 
-  revoke?: Maybe<boolean>;
+  revoke: boolean;
 
   user: string;
 }
@@ -7112,11 +7179,11 @@ export interface NetAttachMutationArgs {
   vmRef: string;
 }
 export interface NetAccessSetMutationArgs {
-  actions: (Maybe<NetworkActions>)[];
+  actions: NetworkActions[];
 
   ref: string;
 
-  revoke?: Maybe<boolean>;
+  revoke: boolean;
 
   user: string;
 }
@@ -7129,20 +7196,20 @@ export interface VdiAttachMutationArgs {
   vmRef: string;
 }
 export interface VdiAccessSetMutationArgs {
-  actions: (Maybe<VdiActions>)[];
+  actions: VdiActions[];
 
   ref: string;
 
-  revoke?: Maybe<boolean>;
+  revoke: boolean;
 
   user: string;
 }
 export interface SrAccessSetMutationArgs {
-  actions: (Maybe<SrActions>)[];
+  actions: SrActions[];
 
   ref: string;
 
-  revoke?: Maybe<boolean>;
+  revoke: boolean;
 
   user: string;
 }

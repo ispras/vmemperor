@@ -12,10 +12,10 @@ def create_access_mutation_type(name, actions_type, xenobject_type):
 
 
     class Arguments:
-        ref = graphene.Argument(graphene.ID, required=True)
-        revoke = graphene.Argument(graphene.Boolean)
-        actions = graphene.Argument(graphene.List(actions_type, required=True), required=True)
-        user = graphene.Argument(graphene.String, required=True)
+        ref = graphene.ID(required=True)
+        revoke = graphene.Boolean(required=True)
+        actions = graphene.List(graphene.NonNull(actions_type), required=True)
+        user = graphene.String(required=True)
 
 
 

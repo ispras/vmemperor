@@ -1,13 +1,15 @@
 import * as React from 'react';
-import {GAccessEntry, User} from "../../generated-models";
+import {GAccessEntry, User, VmAccessSetMutation, VmAccessSetMutationArgs} from "../../generated-models";
 import {useCallback, useMemo, useState} from "react";
-import {Nav, Col, NavItem, TabContent} from 'reactstrap';
+import {Nav, Col, NavItem, TabContent, ListGroup, Button} from 'reactstrap';
 import Row from "reactstrap/lib/Row";
 import NavLink from "reactstrap/lib/NavLink";
 import classnames from 'classnames';
 import TabPane from "reactstrap/lib/TabPane";
+import ListGroupItem from "reactstrap/lib/ListGroupItem";
+import ActionList from "./actionList";
 
-interface AccessEntry<T> extends GAccessEntry {
+export interface AccessEntry<T> extends GAccessEntry {
   actions: Array<T>,
   userId: User;
 }
@@ -16,6 +18,7 @@ interface ACLXenObject<T> {
   isOwner: boolean;
   myActions: Array<T>;
   access: Array<AccessEntry<T>>;
+  ref: string;
 }
 
 interface Props<T> {
@@ -79,10 +82,16 @@ function AccessView<T>({data}: Props<T>) {
       </Col>
       <Col xs="6" sm="6" md="6">
         <TabContent activeTab={activeTab}>
-          
+
           {data.access.map(item => (
             <TabPane tabId={item.userId.id}>
-              <h1>Hello</h1>
+              <ActionList
+                entry={item}
+                isOwner={data.isOwner}
+                mutationNode={VmAccessSetMutation.Document}
+                _ref={data.ref}
+                mutationName="vmAccessSet"
+              />
             </TabPane>
           ))}
         </TabContent>
