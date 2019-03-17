@@ -36,6 +36,6 @@ def create_access_mutation_type(name, actions_type, xenobject_type):
 def create_access_type(name, actions_type):
     return type(name, (ObjectType,), {
         "Meta": type("Meta",(), {"interfaces": (GAccessEntry,)}),
-        "actions": graphene.Field(graphene.List(actions_type), required=True)
+        "actions": graphene.Field(graphene.List(graphene.NonNull(actions_type)), required=True)
     })
 

@@ -54,3 +54,12 @@ def resolve_user(field_name = "user_id"):
 
     return resolver
 
+@with_default_authentication
+def resolve_filter_users(root, info, query):
+    q = re.db.table('users').filter(lambda user: user['username'].match(query).or_(user['name'].match(query))).merge(lambda user: {
+        'id': 'users/' + user['id']
+    }).union(re.db.table('groups').filter(lambda user: user['username'].match(query).or_(user['name'].match(query))).merge(lambda user: {
+        'id': 'groups/' + user['id']
+    }))
+    return q.coerce_to('array').run()
+

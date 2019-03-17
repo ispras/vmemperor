@@ -7,7 +7,7 @@ from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.utils.query import resolve_all, resolve_one
 from handlers.graphql.utils.subscription import MakeSubscription, resolve_xen_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_xen_items_changes, resolve_item_by_key, resolve_all_items_changes
-from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user
+from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user, resolve_filter_users
 from handlers.graphql.types.input.attachnet import AttachNetworkMutation
 from handlers.graphql.types.input.attachvdi import AttachVDIMutation
 from handlers.graphql.types.input.createvm import CreateVM
@@ -80,6 +80,8 @@ class Query(ObjectType):
     groups = graphene.List(User, required=True,
                           description="All registered groups", resolver=resolve_groups)
     user = graphene.Field(User, description="User or group information", id=graphene.ID(), resolver=resolve_user())
+
+    find_user = graphene.Field(graphene.List(User), query=graphene.NonNull(graphene.String), required=True, resolver=resolve_filter_users)
 
 
 
