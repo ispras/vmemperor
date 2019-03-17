@@ -66,6 +66,20 @@ import * as Yup from 'yup';
 
 import {dataIdFromObject} from './utils/cacheUtils';
 
+//Init Sentry
+import * as Sentry from '@sentry/browser';
+
+
+Sentry.init({
+  dsn: "https://c3fc58777f354afcb23214433e6fcf27@sentry.io/1417093",
+  /*integrations: [new Sentry.Integrations.RewriteFrames({
+    iteratee: async (frame) => {
+      console.log("Sentry frame sent: ", frame);
+      return frame;
+    }
+  })] */
+});
+
 // Create redux store with history
 const initialState = {};
 const history = createHistory();
@@ -117,12 +131,18 @@ const client = new ApolloClient(
       [
         onError(({graphQLErrors, networkError}) => {
           if (graphQLErrors)
-            graphQLErrors.map(({message, locations, path}) =>
-              console.log(
-                `[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`,
-              ),
+            graphQLErrors.map(error => {
+                console.log(
+                  `[GraphQL error]: Message: ${error.message}, Location: ${error.locations}, Path: ${error.path}`,
+                );
+              Sentry.captureException(error);
+              }
             );
-          if (networkError) console.log(`[Network error]: ${networkError}`);
+          if (networkError){
+            console.log(`[Network error]: ${networkError}`);
+            Sentry.captureException(networkError);
+          }
+
         }),
         link]),
     cache: new InMemoryCache(

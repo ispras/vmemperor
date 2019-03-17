@@ -120,6 +120,7 @@ const VmsettingsForm = ({vm}: Props) => {
             <Col sm="12">
               {<AccessView
                 data={vm}
+                ALL={VmActions.All}
               />}
             </Col>
           </Row>

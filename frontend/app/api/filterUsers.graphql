@@ -1,0 +1,11 @@
+fragment UserFragment on User {
+  username
+  id
+  name
+}
+
+query FilterUsers ($query: String!) {
+  findUser (query: $query) {
+    ...UserFragment
+  }
+}

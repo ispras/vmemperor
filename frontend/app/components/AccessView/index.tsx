@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {GAccessEntry, User, VmAccessSetMutation, VmAccessSetMutationArgs} from "../../generated-models";
+import {GAccessEntry, User, VmAccessSetMutation, VmAccessSetMutationArgs, VmActions} from "../../generated-models";
 import {useCallback, useMemo, useState} from "react";
 import {Nav, Col, NavItem, TabContent, ListGroup, Button} from 'reactstrap';
 import Row from "reactstrap/lib/Row";
@@ -8,6 +8,7 @@ import classnames from 'classnames';
 import TabPane from "reactstrap/lib/TabPane";
 import ListGroupItem from "reactstrap/lib/ListGroupItem";
 import ActionList from "./actionList";
+import SelectUsers from "./selectUsers";
 
 export interface AccessEntry<T> extends GAccessEntry {
   actions: Array<T>,
@@ -19,32 +20,17 @@ interface ACLXenObject<T> {
   myActions: Array<T>;
   access: Array<AccessEntry<T>>;
   ref: string;
+
 }
 
 interface Props<T> {
-  data: ACLXenObject<T>
+  data: ACLXenObject<T>;
+  ALL: T; //ALL action
+
 }
 
-/*
-function AccessView<T>(props: Props<T>) {
-  const options = useMemo(() => {
-    return Object.keys(props. ).filter(value =>
-      props.allActions[value] != 'NONE' && props.allActions[value] != 'ALL')
-      .map(value => ({
-        value: props.allActions[value],
-        label: value,
-      }))
-  }, [props.allActions]);
-  console.log(options);
 
-  return (
-    <div>
-      Hello {JSON.stringify(options)}
-    </div>
-  )
-}
-*/
-function AccessView<T>({data}: Props<T>) {
+function AccessView<T>({data, ALL}: Props<T>) {
   const [activeTab, setActiveTab] = useState("you");
   const toggleTab = useCallback((tab: string) => {
     if (activeTab !== tab) {
@@ -82,15 +68,26 @@ function AccessView<T>({data}: Props<T>) {
       </Col>
       <Col xs="6" sm="6" md="6">
         <TabContent activeTab={activeTab}>
-
+          <TabPane tabId="you">
+            <ActionList
+              actions={data.myActions}
+              isOwner={data.isOwner}
+              _ref={data.ref}
+              mutationNode={VmAccessSetMutation.Document}
+              mutationName="vmAccessSet"
+              ALL={ALL}
+            />
+          </TabPane>
           {data.access.map(item => (
             <TabPane tabId={item.userId.id}>
               <ActionList
-                entry={item}
+                actions={item.actions}
+                user={item.userId}
                 isOwner={data.isOwner}
                 mutationNode={VmAccessSetMutation.Document}
                 _ref={data.ref}
                 mutationName="vmAccessSet"
+                ALL={ALL}
               />
             </TabPane>
           ))}

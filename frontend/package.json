@@ -224,6 +224,7 @@
     "@fortawesome/free-solid-svg-icons": "^5.7.1",
     "@fortawesome/react-fontawesome": "^0.1.4",
     "@novnc/novnc": "^1.0.0",
+    "@sentry/browser": "^4.6.4",
     "@types/graphql": "^14.0.5",
     "@types/react-bootstrap-table": "^4.3.6",
     "@types/react-router-dom": "^4.3.1",
@@ -310,6 +311,8 @@
     "yup": "^0.26.10"
   },
   "devDependencies": {
+    "@sentry/cli": "^1.40.0",
+    "@sentry/webpack-plugin": "^1.6.2",
     "@types/lodash": "^4.14.121",
     "@types/react": "^16.7.6",
     "@types/react-dom": "^16.0.9",

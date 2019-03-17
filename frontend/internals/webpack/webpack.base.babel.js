@@ -11,6 +11,7 @@ const getTransformer = require('ts-transform-graphql-tag').getTransformer;
 //const CheckerPlugin = require('awesome-typescript-loader').CheckerPlugin;
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
+const SentryCliPlugin = require('@sentry/webpack-plugin');
 
 
 // Remove this line once the following warning goes away (it was meant for webpack loader authors not users):
@@ -131,6 +132,13 @@ module.exports = (options) => ({
     ],
   },
   plugins: options.plugins.concat([
+    /*new SentryCliPlugin({
+      include: '.',
+      release: process.env.REL,
+      ignoreFile: '.sentrycliignore',
+      configFile: 'sentry.properties',
+      ignore: ['webpack', 'node_modules'],
+    }), */
     new ForkTsCheckerWebpackPlugin(),
     new webpack.ProvidePlugin({
       // make fetch available

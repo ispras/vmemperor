@@ -3,6 +3,8 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "noEmit": true,
+    "sourceRoot": "/",
+    "inlineSources": true,
     "target": "es6",
     "module": "commonjs",
     "noImplicitAny": false,

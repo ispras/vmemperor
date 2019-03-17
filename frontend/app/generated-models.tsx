@@ -56,9 +56,9 @@ export interface VmInput {
 
 export interface VmStartInput {
   /** Should this VM be started and immidiately paused */
-  paused?: Maybe<boolean>;
+  paused?: boolean;
   /** Should this VM be started forcibly */
-  force?: Maybe<boolean>;
+  force?: boolean;
 }
 /** An enumeration. */
 export enum VmActions {
@@ -391,6 +391,20 @@ export namespace VmEditOptions {
 
     granted: boolean;
   };
+}
+
+export namespace FilterUsers {
+  export type Variables = {
+    query: string;
+  };
+
+  export type Query = {
+    __typename?: "Query";
+
+    findUser: (Maybe<FindUser>)[];
+  };
+
+  export type FindUser = UserFragment.Fragment;
 }
 
 export namespace HostList {
@@ -941,6 +955,18 @@ export namespace DeletedFragment {
   };
 }
 
+export namespace UserFragment {
+  export type Fragment = {
+    __typename?: "User";
+
+    username: string;
+
+    id: string;
+
+    name: string;
+  };
+}
+
 export namespace HostListFragment {
   export type Fragment = {
     __typename?: "GHost";
@@ -1197,7 +1223,7 @@ export namespace VmAccessFragment {
 
     userId: UserId;
 
-    actions: (Maybe<VmActions>)[];
+    actions: VmActions[];
   };
 
   export type UserId = {
@@ -1277,6 +1303,16 @@ export namespace DeletedFragment {
   export const FragmentDoc = gql`
     fragment DeletedFragment on Deleted {
       ref
+    }
+  `;
+}
+
+export namespace UserFragment {
+  export const FragmentDoc = gql`
+    fragment UserFragment on User {
+      username
+      id
+      name
     }
   `;
 }
@@ -1882,6 +1918,48 @@ export namespace VmEditOptions {
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace FilterUsers {
+  export const Document = gql`
+    query FilterUsers($query: String!) {
+      findUser(query: $query) {
+        ...UserFragment
+      }
+    }
+
+    ${UserFragment.FragmentDoc}
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Query<Query, Variables>
+          query={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
+    TChildProps;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
       Document,
       operationOptions
     );
@@ -3436,6 +3514,8 @@ export namespace QueryResolvers {
     /** User or group information */
     user?: UserResolver<Maybe<User>, TypeParent, TContext>;
 
+    findUser?: FindUserResolver<(Maybe<User>)[], TypeParent, TContext>;
+
     selectedItems?: SelectedItemsResolver<string[], TypeParent, TContext>;
 
     vmSelectedReadyFor?: VmSelectedReadyForResolver<
@@ -3604,6 +3684,15 @@ export namespace QueryResolvers {
   > = Resolver<R, Parent, TContext, UserArgs>;
   export interface UserArgs {
     id?: Maybe<string>;
+  }
+
+  export type FindUserResolver<
+    R = (Maybe<User>)[],
+    Parent = {},
+    TContext = {}
+  > = Resolver<R, Parent, TContext, FindUserArgs>;
+  export interface FindUserArgs {
+    query: string;
   }
 
   export type SelectedItemsResolver<
@@ -3841,7 +3930,7 @@ export namespace GvmAccessEntryResolvers {
   export interface Resolvers<TContext = {}, TypeParent = GvmAccessEntry> {
     userId?: UserIdResolver<User, TypeParent, TContext>;
 
-    actions?: ActionsResolver<(Maybe<VmActions>)[], TypeParent, TContext>;
+    actions?: ActionsResolver<VmActions[], TypeParent, TContext>;
   }
 
   export type UserIdResolver<
@@ -3850,7 +3939,7 @@ export namespace GvmAccessEntryResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type ActionsResolver<
-    R = (Maybe<VmActions>)[],
+    R = VmActions[],
     Parent = GvmAccessEntry,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -4951,7 +5040,7 @@ export namespace GTemplateAccessEntryResolvers {
   export interface Resolvers<TContext = {}, TypeParent = GTemplateAccessEntry> {
     userId?: UserIdResolver<User, TypeParent, TContext>;
 
-    actions?: ActionsResolver<(Maybe<TemplateActions>)[], TypeParent, TContext>;
+    actions?: ActionsResolver<TemplateActions[], TypeParent, TContext>;
   }
 
   export type UserIdResolver<
@@ -4960,7 +5049,7 @@ export namespace GTemplateAccessEntryResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type ActionsResolver<
-    R = (Maybe<TemplateActions>)[],
+    R = TemplateActions[],
     Parent = GTemplateAccessEntry,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -6042,7 +6131,7 @@ export namespace GTaskAccessEntryResolvers {
   export interface Resolvers<TContext = {}, TypeParent = GTaskAccessEntry> {
     userId?: UserIdResolver<User, TypeParent, TContext>;
 
-    actions?: ActionsResolver<(Maybe<TaskActions>)[], TypeParent, TContext>;
+    actions?: ActionsResolver<TaskActions[], TypeParent, TContext>;
   }
 
   export type UserIdResolver<
@@ -6051,7 +6140,7 @@ export namespace GTaskAccessEntryResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type ActionsResolver<
-    R = (Maybe<TaskActions>)[],
+    R = TaskActions[],
     Parent = GTaskAccessEntry,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -6376,6 +6465,8 @@ export interface Query {
   /** User or group information */
   user?: Maybe<User>;
 
+  findUser: (Maybe<User>)[];
+
   selectedItems: string[];
 
   vmSelectedReadyFor: VmSelectedIdLists;
@@ -6445,7 +6536,7 @@ export interface User {
 export interface GvmAccessEntry extends GAccessEntry {
   userId: User;
 
-  actions: (Maybe<VmActions>)[];
+  actions: VmActions[];
 }
 
 /** Drivers version. We don't want any fancy resolver except for the thing that we know that it's a dict in VM document */
@@ -6760,7 +6851,7 @@ export interface GTemplate extends GAclXenObject {
 export interface GTemplateAccessEntry extends GAccessEntry {
   userId: User;
 
-  actions: (Maybe<TemplateActions>)[];
+  actions: TemplateActions[];
 }
 
 export interface GPool extends GXenObject {
@@ -7048,7 +7139,7 @@ export interface GTask extends GAclXenObject {
 export interface GTaskAccessEntry extends GAccessEntry {
   userId: User;
 
-  actions: (Maybe<TaskActions>)[];
+  actions: TaskActions[];
 }
 
 export interface PlaybookTasksSubscription {
@@ -7098,6 +7189,9 @@ export interface ConsoleQueryArgs {
 }
 export interface UserQueryArgs {
   id?: Maybe<string>;
+}
+export interface FindUserQueryArgs {
+  query: string;
 }
 export interface SelectedItemsQueryArgs {
   tableId: Table;

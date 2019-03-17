@@ -50,10 +50,10 @@ const CreateVM = () => {
         }
       </div>
 
-      <Modal title="VM form"
-             lg
-             toggle={toggleModal}
-             isOpen={modal}>
+      <Modal
+        lg={true}
+        toggle={toggleModal}
+        isOpen={modal}>
         <VMFormContainer/>
       </Modal>
     </div>
