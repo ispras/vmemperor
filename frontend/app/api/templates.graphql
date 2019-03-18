@@ -2,6 +2,18 @@ fragment TemplateListFragment on GTemplate {
   ref
   nameLabel
   osKind
+  enabled
+  myActions
+  access {
+    userId {
+      id
+      name
+      username
+    }
+    actions
+  }
+  enabled
+  isOwner
 }
 
 query TemplateList {

@@ -1,8 +1,5 @@
-fragment UserFragment on User {
-  username
-  id
-  name
-}
+# import UserFragment from "user.graphql"
+
 
 query FilterUsers ($query: String!) {
   findUser (query: $query) {

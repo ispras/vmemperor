@@ -1,5 +1,6 @@
 enum Table {
   VMS,
+  Templates,
   NetworkAttach,
   DiskAttach
 }

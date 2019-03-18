@@ -100,7 +100,7 @@ class ChangefeedBuilder:
                     # Find out all dependent refs
                     deleted = await self.wait_for_change(conn, value)
                     if deleted:
-                        yield  deleted
+                        yield deleted
                         if isinstance(self.builder.id, str):
                             return
 
@@ -152,7 +152,15 @@ class ChangefeedBuilder:
             i += 1
         cursor = await waiter_query.changes(include_types=True).run(conn)
         # await waiter
-        change = await cursor.next()
+        try:
+            change = await cursor.next()
+        except ReqlNonExistenceError:  # Report removal if it has already been deleted
+            old_ref = self.builder.id[0] if isinstance(self.builder.id, Collection) else self.builder.id
+            return {
+                "type" : "remove",
+                "old_val" : { "ref" : old_ref }
+            }
+
         # Awaited, run main query again
         if change['type'] == 'remove':
             old_ref = change['old_val']['ref']
@@ -163,25 +171,4 @@ class ChangefeedBuilder:
                             "old_val": { "ref" : old_ref}
             }
 
-
         self.status = "change"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

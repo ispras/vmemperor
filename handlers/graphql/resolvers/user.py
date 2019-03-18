@@ -1,4 +1,7 @@
+from graphql import ResolveInfo
+
 from authentication import with_default_authentication
+from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.utils.query import resolve_table
 from handlers.graphql.resolvers import with_connection
 import constants.re as re
@@ -27,7 +30,10 @@ def resolve_user(field_name = "user_id"):
         if 'id' in kwargs:
             id = kwargs['ref']
         else:
-            id = root[field_name]
+            if field_name:
+                id = root[field_name]
+            else:
+                id = root
 
         tables = {
             "users/" : "users",
@@ -53,6 +59,27 @@ def resolve_user(field_name = "user_id"):
         return record
 
     return resolver
+
+@with_default_authentication
+def resolve_current_user(root, info : ResolveInfo):
+    ctx : ContextProtocol = info.context
+    if ctx.user_authenticator.is_admin():
+        return {
+            "is_admin" : True
+        }
+    else:
+        user = re.db.table('users').get(ctx.user_authenticator.get_id())\
+            .merge(lambda user: { 'id' : 'users/' + user['id']}).run()
+
+        groups = re.db.table('groups').get_all(*ctx.user_authenticator.get_user_groups().keys())\
+            .merge(lambda group: {'id': 'groups/' + group['id']}).coerce_to('array').run()
+
+        return {
+            "is_admin" : False,
+            "user" : user,
+            "groups" : groups,
+        }
+
 
 @with_default_authentication
 def resolve_filter_users(root, info, query):

@@ -135,10 +135,10 @@ const client = new ApolloClient(
                 console.log(
                   `[GraphQL error]: Message: ${error.message}, Location: ${error.locations}, Path: ${error.path}`,
                 );
-              Sentry.captureException(error);
+                Sentry.captureException(error);
               }
             );
-          if (networkError){
+          if (networkError) {
             console.log(`[Network error]: ${networkError}`);
             Sentry.captureException(networkError);
           }
@@ -178,7 +178,14 @@ const initializeCache = () => {
       variables: {tableId: Table.DiskAttach},
       data: {selectedItems: []}
     });
+  client.cache.writeQuery<SelectedItemsQuery.Query, SelectedItemsQuery.Variables>(
+    {
+      query: SelectedItemsQuery.Document,
+      variables: {tableId: Table.Templates},
+      data: {selectedItems: []}
+    });
 };
+
 initializeCache();
 
 Yup.addMethod(Yup.mixed, 'sameAs', function (ref, message) {

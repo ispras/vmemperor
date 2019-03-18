@@ -3,7 +3,7 @@ import graphene
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils.base import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
-from authentication import with_authentication, with_default_authentication
+from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
 from handlers.graphql.types.objecttype import InputObjectType
 from xenadapter.template import Template
 
@@ -34,8 +34,7 @@ class TemplateMutation(graphene.Mutation):
     def mutate(root, info, template):
         ctx : ContextProtocol = info.context
 
-        t = Template(auth=ctx.user_authenticator, ref=template.ref)
-
+        t = Template(xen=ctx.xen, ref=template.ref)
 
         mutations = [
             MutationMethod(func=set_enabled, action_name=None)
@@ -52,5 +51,31 @@ class TemplateMutation(graphene.Mutation):
 
         return TemplateMutation(granted=True)
 
+class TemplateCloneMutation(graphene.Mutation):
+    task_id = graphene.ID(required=False, description="clone task ID")
+    granted = graphene.Boolean(required=True, description="Shows if access to clone is granted")
+    reason = graphene.String()
 
+    class Arguments:
+        ref = graphene.ID(required=True)
+        name_label = graphene.String(required=True, description="New name label")
 
+    @staticmethod
+    @with_authentication(access_class=Template, access_action=Template.Actions.clone)
+    @return_if_access_is_not_granted([("Template", "ref", Template.Actions.clone)])
+    def mutate(root, info, ref, name_label, Template : Template):
+        return TemplateCloneMutation(granted=True, task_id=Template.async_clone(name_label))
+
+class TemplateDestroyMutation(graphene.Mutation):
+    task_id = graphene.ID(required=False, description="destroy task ID")
+    granted = graphene.Boolean(required=True, description="Shows if access to destroy is granted")
+    reason = graphene.String()
+
+    class Arguments:
+        ref = graphene.ID(required=True)
+
+    @staticmethod
+    @with_authentication(access_class=Template, access_action=Template.Actions.destroy)
+    @return_if_access_is_not_granted([("Template", "ref", Template.Actions.destroy)])
+    def mutate(root, info, ref, Template : Template):
+        return TemplateCloneMutation(granted=True, task_id=Template.async_destroy())

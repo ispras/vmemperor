@@ -7,7 +7,8 @@ from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.utils.query import resolve_all, resolve_one
 from handlers.graphql.utils.subscription import MakeSubscription, resolve_xen_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_xen_items_changes, resolve_item_by_key, resolve_all_items_changes
-from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user, resolve_filter_users
+from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user, resolve_filter_users, \
+    resolve_current_user
 from handlers.graphql.types.input.attachnet import AttachNetworkMutation
 from handlers.graphql.types.input.attachvdi import AttachVDIMutation
 from handlers.graphql.types.input.createvm import CreateVM
@@ -17,7 +18,7 @@ from handlers.graphql.types.input.accessset import VMAccessSet, NetAccessSet, VD
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
-from handlers.graphql.types.user import User
+from handlers.graphql.types.user import User, CurrentUserInformation
 from xenadapter.vdi import VDI
 from handlers.graphql.types.vdi import GVDI
 from xenadapter.host import Host
@@ -34,7 +35,7 @@ from handlers.graphql.types.vm import GVM
 from xenadapter.network import Network
 from handlers.graphql.types.network import GNetwork
 
-from handlers.graphql.types.input.template import TemplateMutation
+from handlers.graphql.types.input.template import TemplateMutation, TemplateCloneMutation, TemplateDestroyMutation
 from rethinkdb import RethinkDB
 
 r = RethinkDB()
@@ -80,8 +81,11 @@ class Query(ObjectType):
     groups = graphene.List(User, required=True,
                           description="All registered groups", resolver=resolve_groups)
     user = graphene.Field(User, description="User or group information", id=graphene.ID(), resolver=resolve_user())
+    current_user = graphene.Field(CurrentUserInformation, description="current user or group information", resolver=resolve_current_user)
 
     find_user = graphene.Field(graphene.List(User), query=graphene.NonNull(graphene.String), required=True, resolver=resolve_filter_users)
+
+
 
 
 
@@ -89,6 +93,8 @@ class Mutation(ObjectType):
     create_VM = CreateVM.Field(description="Create a new VM")
 
     template = TemplateMutation.Field(description="Edit template options")
+    template_clone = TemplateCloneMutation.Field(description="Clone template")
+    template_delete = TemplateDestroyMutation.Field(description="Delete template")
 
     vm = VMMutation.Field(description="Edit VM options")
     vm_start = VMStartMutation.Field(description="Start VM")
@@ -100,10 +106,8 @@ class Mutation(ObjectType):
 
     playbook_launch = PlaybookLaunchMutation.Field(description="Launch an Ansible Playbook on specified VMs")
 
-
     net_attach = AttachNetworkMutation.Field(description="Attach VM to a Network by creating a new Interface")
     net_access_set = NetAccessSet.Field(description="Set network access rights")
-
 
     vdi_attach = AttachVDIMutation.Field(description="Attach VDI to a VM by creating a new virtual block device")
     vdi_access_set = VDIAccessSet.Field(description="Set VDI access rights")

@@ -56,9 +56,9 @@ export interface VmInput {
 
 export interface VmStartInput {
   /** Should this VM be started and immidiately paused */
-  paused?: boolean;
+  paused?: Maybe<boolean>;
   /** Should this VM be started forcibly */
-  force?: boolean;
+  force?: Maybe<boolean>;
 }
 /** An enumeration. */
 export enum VmActions {
@@ -188,6 +188,7 @@ export enum PlaybookTaskState {
 
 export enum Table {
   Vms = "VMS",
+  Templates = "Templates",
   NetworkAttach = "NetworkAttach",
   DiskAttach = "DiskAttach"
 }
@@ -353,6 +354,30 @@ export namespace CreateVm {
 
     taskId: Maybe<string>;
   };
+}
+
+export namespace CurrentUser {
+  export type Variables = {};
+
+  export type Query = {
+    __typename?: "Query";
+
+    currentUser: Maybe<CurrentUser>;
+  };
+
+  export type CurrentUser = {
+    __typename?: "CurrentUserInformation";
+
+    user: Maybe<User>;
+
+    groups: Maybe<(Maybe<Groups>)[]>;
+
+    isAdmin: boolean;
+  };
+
+  export type User = UserFragment.Fragment;
+
+  export type Groups = UserFragment.Fragment;
 }
 
 export namespace DeleteVm {
@@ -532,6 +557,42 @@ export namespace SelectedItemsQuery {
     __typename?: "Query";
 
     selectedItems: string[];
+  };
+}
+
+export namespace TemplateTableSelection {
+  export type Variables = {};
+
+  export type Query = {
+    __typename?: "Query";
+
+    selectedItems: string[];
+  };
+}
+
+export namespace TemplateTableSelect {
+  export type Variables = {
+    item: string;
+    isSelect: boolean;
+  };
+
+  export type Mutation = {
+    __typename?: "Mutation";
+
+    selectedItems: Maybe<string[]>;
+  };
+}
+
+export namespace TemplateTableSelectAll {
+  export type Variables = {
+    items: string[];
+    isSelect: boolean;
+  };
+
+  export type Mutation = {
+    __typename?: "Mutation";
+
+    selectedItems: Maybe<string[]>;
   };
 }
 
@@ -955,18 +1016,6 @@ export namespace DeletedFragment {
   };
 }
 
-export namespace UserFragment {
-  export type Fragment = {
-    __typename?: "User";
-
-    username: string;
-
-    id: string;
-
-    name: string;
-  };
-}
-
 export namespace HostListFragment {
   export type Fragment = {
     __typename?: "GHost";
@@ -1142,6 +1191,46 @@ export namespace TemplateListFragment {
     nameLabel: string;
 
     osKind: Maybe<string>;
+
+    enabled: boolean;
+
+    myActions: (Maybe<TemplateActions>)[];
+
+    access: (Maybe<Access>)[];
+
+    enabled: boolean;
+
+    isOwner: boolean;
+  };
+
+  export type Access = {
+    __typename?: "GTemplateAccessEntry";
+
+    userId: UserId;
+
+    actions: TemplateActions[];
+  };
+
+  export type UserId = {
+    __typename?: "User";
+
+    id: string;
+
+    name: string;
+
+    username: string;
+  };
+}
+
+export namespace UserFragment {
+  export type Fragment = {
+    __typename?: "User";
+
+    username: string;
+
+    id: string;
+
+    name: string;
   };
 }
 
@@ -1307,16 +1396,6 @@ export namespace DeletedFragment {
   `;
 }
 
-export namespace UserFragment {
-  export const FragmentDoc = gql`
-    fragment UserFragment on User {
-      username
-      id
-      name
-    }
-  `;
-}
-
 export namespace HostListFragment {
   export const FragmentDoc = gql`
     fragment HostListFragment on GHost {
@@ -1423,6 +1502,28 @@ export namespace TemplateListFragment {
       ref
       nameLabel
       osKind
+      enabled
+      myActions
+      access {
+        userId {
+          id
+          name
+          username
+        }
+        actions
+      }
+      enabled
+      isOwner
+    }
+  `;
+}
+
+export namespace UserFragment {
+  export const FragmentDoc = gql`
+    fragment UserFragment on User {
+      username
+      id
+      name
     }
   `;
 }
@@ -1835,6 +1936,54 @@ export namespace CreateVm {
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace CurrentUser {
+  export const Document = gql`
+    query CurrentUser {
+      currentUser {
+        user {
+          ...UserFragment
+        }
+        groups {
+          ...UserFragment
+        }
+        isAdmin
+      }
+    }
+
+    ${UserFragment.FragmentDoc}
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Query<Query, Variables>
+          query={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
+    TChildProps;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
       Document,
       operationOptions
     );
@@ -2370,6 +2519,124 @@ export namespace SelectedItemsQuery {
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace TemplateTableSelection {
+  export const Document = gql`
+    query TemplateTableSelection {
+      selectedItems(tableId: Templates) @client
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Query<Query, Variables>
+          query={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
+    TChildProps;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace TemplateTableSelect {
+  export const Document = gql`
+    mutation TemplateTableSelect($item: ID!, $isSelect: Boolean!) {
+      selectedItems(tableId: Templates, items: [$item], isSelect: $isSelect)
+        @client
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Mutation<Mutation, Variables>
+          mutation={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
+    TChildProps;
+  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace TemplateTableSelectAll {
+  export const Document = gql`
+    mutation TemplateTableSelectAll($items: [ID!]!, $isSelect: Boolean!) {
+      selectedItems(tableId: Templates, items: $items, isSelect: $isSelect)
+        @client
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Mutation<Mutation, Variables>
+          mutation={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
+    TChildProps;
+  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
       Document,
       operationOptions
     );
@@ -3513,6 +3780,12 @@ export namespace QueryResolvers {
     groups?: GroupsResolver<(Maybe<User>)[], TypeParent, TContext>;
     /** User or group information */
     user?: UserResolver<Maybe<User>, TypeParent, TContext>;
+    /** current user or group information */
+    currentUser?: CurrentUserResolver<
+      Maybe<CurrentUserInformation>,
+      TypeParent,
+      TContext
+    >;
 
     findUser?: FindUserResolver<(Maybe<User>)[], TypeParent, TContext>;
 
@@ -3686,6 +3959,11 @@ export namespace QueryResolvers {
     id?: Maybe<string>;
   }
 
+  export type CurrentUserResolver<
+    R = Maybe<CurrentUserInformation>,
+    Parent = {},
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
   export type FindUserResolver<
     R = (Maybe<User>)[],
     Parent = {},
@@ -5202,6 +5480,35 @@ export namespace PlaybookTaskResolvers {
   > = Resolver<R, Parent, TContext>;
 }
 
+export namespace CurrentUserInformationResolvers {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = CurrentUserInformation
+  > {
+    isAdmin?: IsAdminResolver<boolean, TypeParent, TContext>;
+
+    user?: UserResolver<Maybe<User>, TypeParent, TContext>;
+
+    groups?: GroupsResolver<Maybe<(Maybe<User>)[]>, TypeParent, TContext>;
+  }
+
+  export type IsAdminResolver<
+    R = boolean,
+    Parent = CurrentUserInformation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type UserResolver<
+    R = Maybe<User>,
+    Parent = CurrentUserInformation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GroupsResolver<
+    R = Maybe<(Maybe<User>)[]>,
+    Parent = CurrentUserInformation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
 export namespace VmSelectedIdListsResolvers {
   export interface Resolvers<TContext = {}, TypeParent = VmSelectedIdLists> {
     start?: StartResolver<Maybe<(Maybe<string>)[]>, TypeParent, TContext>;
@@ -6333,6 +6640,7 @@ export type IResolvers<TContext = {}> = {
   GPlaybook?: GPlaybookResolvers.Resolvers<TContext>;
   PlaybookRequirements?: PlaybookRequirementsResolvers.Resolvers<TContext>;
   PlaybookTask?: PlaybookTaskResolvers.Resolvers<TContext>;
+  CurrentUserInformation?: CurrentUserInformationResolvers.Resolvers<TContext>;
   VmSelectedIdLists?: VmSelectedIdListsResolvers.Resolvers<TContext>;
   Mutation?: MutationResolvers.Resolvers<TContext>;
   CreateVm?: CreateVmResolvers.Resolvers<TContext>;
@@ -6464,6 +6772,8 @@ export interface Query {
   groups: (Maybe<User>)[];
   /** User or group information */
   user?: Maybe<User>;
+  /** current user or group information */
+  currentUser?: Maybe<CurrentUserInformation>;
 
   findUser: (Maybe<User>)[];
 
@@ -6898,6 +7208,14 @@ export interface PlaybookTask {
   state: PlaybookTaskState;
   /** Human-readable message: error description or return code */
   message: string;
+}
+
+export interface CurrentUserInformation {
+  isAdmin: boolean;
+
+  user?: Maybe<User>;
+
+  groups?: Maybe<(Maybe<User>)[]>;
 }
 
 export interface VmSelectedIdLists {

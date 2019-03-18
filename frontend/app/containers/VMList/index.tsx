@@ -21,30 +21,11 @@ import tableStyle from "./table.css";
 import {useApolloClient, useMutation, useQuery} from "react-apollo-hooks";
 import {Map, Set} from 'immutable';
 import {ButtonGroup, ButtonToolbar} from "reactstrap";
-import {dataIdFromObject, handleAddOfValue, handleAddRemove, handleRemoveOfValueByRef} from "../../utils/cacheUtils";
+import {dataIdFromObject, handleAddRemove} from "../../utils/cacheUtils";
 import StartButton from "../../components/StartButton";
 import StopButton from "../../components/StopButton";
 import RecycleBinButton from "../../components/RecycleBinButton";
-
-function nameFormatter(column, colIndex, {sortElement, filterElement}) {
-  return (
-    <div style={{display: 'flex', flexDirection: 'column'}}>
-      {column.text}
-      {filterElement}
-      {sortElement}
-    </div>
-  );
-}
-
-function plainFormatter(column, colIndex, {sortElement, filterElement}) {
-  return (
-    <div style={{display: 'flex', flexDirection: 'column'}}>
-      {column.text}
-      {filterElement}
-      {sortElement}
-    </div>
-  );
-}
+import {nameFormatter, plainFormatter} from "../../utils/formatters";
 
 
 type VmColumnType = ColumnType<VmListFragment.Fragment>;

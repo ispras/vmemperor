@@ -205,7 +205,6 @@ def with_authentication(access_class : type = None, access_action : SerFlag = No
                 try:
 
                     obj = access_class(xen=info.context.xen, ref=ref)
-
                     if obj.check_access(info.context.user_authenticator, access_action):
                         kwargs[access_class.__name__] = obj
                     else:

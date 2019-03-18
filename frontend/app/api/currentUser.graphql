@@ -1,0 +1,13 @@
+# import UserFragment from "user.graphql"
+
+query CurrentUser {
+  currentUser {
+    user{
+      ...UserFragment
+    }
+    groups {
+      ...UserFragment
+    }
+    isAdmin
+  }
+}

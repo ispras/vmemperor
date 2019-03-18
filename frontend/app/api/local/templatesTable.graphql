@@ -1,0 +1,11 @@
+query TemplateTableSelection {
+  selectedItems(tableId: Templates ) @client
+}
+
+mutation TemplateTableSelect ($item: ID!, $isSelect: Boolean! ){
+  selectedItems(tableId: Templates, items: [$item], isSelect: $isSelect) @client
+}
+
+mutation TemplateTableSelectAll ($items: [ID!]!, $isSelect: Boolean! ){
+  selectedItems(tableId: Templates, items: $items, isSelect: $isSelect) @client
+}

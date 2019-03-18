@@ -12,6 +12,7 @@ from handlers.graphql.types.gxenobjecttype import GXenObjectType
 
 class TemplateActions(SerFlag):
     clone = auto()
+    destroy = auto()
 
 
 GTemplateActions = graphene.Enum.from_enum(TemplateActions)
