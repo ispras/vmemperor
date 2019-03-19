@@ -98,38 +98,9 @@ class XenObject(metaclass=XenObjectMeta):
                                                                conflict=lambda id, old_doc, newdoc: old_doc.without(re.r.args(newdoc.keys())).merge(newdoc)
                                                                ).run())
 
-                def get_access_for_task(task_type):
-                    '''
-                    Returns access rights for task so that only those who have the following access action can view and cancel it
-                    :param task_ref:
-                    :param task_type - access action to check
-                    :return:
-                    '''
-
-                    if task_type not in Task.Actions._value2member_map_:
-                        return {} # Ignore access for "destroy" - no one gets updates on task destroy except admin
-
-                    userids = re.db.table(cls.db_table_name + '_user')\
-                                    .get_all(event['ref'], index='ref')\
-                                    .filter(lambda value: value['actions'].set_intersection(['ALL', task_type]) != [])\
-                                    .pluck('userid')['userid']\
-                                    .coerce_to('array').run()
-
-
-                    return {user: ['cancel'] for user in userids}
-
-
                 if 'current_operations' in record and isinstance(record['current_operations'], Mapping):
-                    task_docs = [{
-                        "ref": k,
-                        "object": cls.__name__,
-                        "type": v,
-                        "access" : get_access_for_task(v)
-                    } for k, v in record['current_operations'].items()]
-                    if task_docs:
-                        CHECK_ER(re.db.table(Task.db_table_name).insert(task_docs, conflict='update').run())
-
-
+                    for ref, type in record['current_operations'].items():
+                        Task.add_pending_task(ref, cls, event['ref'], type, False)
 
 
     @classmethod
@@ -263,8 +234,7 @@ class XenObject(metaclass=XenObjectMeta):
                 ret = attr(self.ref, *args, **kwargs)
                 if async_call:  # Add task to tasks table, providing vmemperor=True
                     from .task import Task
-                    record = Task.process_record(self.xen, ret, Task.get_record(self.xen, ret), vmemperor=True)
-                    CHECK_ER(re.db.table(Task.db_table_name).insert(record).run())
+                    Task.add_pending_task(ret, type(self), self.ref, name, True)
                     return ret
 
                 if isinstance(ret, dict):

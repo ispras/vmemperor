@@ -46,7 +46,7 @@ class TaskCounter:
     count = 1
 
 
-async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, user_authenticator : BasicAuthenticator, xenobject_type: Type[XenObject], additional_string: str = None):
+async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, user_authenticator : BasicAuthenticator, xenobject_type: Type[XenObject], with_initials : bool, additional_string: str = None):
      async with ReDBConnection().get_async_connection() as conn:
         tasks: Dict[str, TaskCounter] = {}
 
@@ -91,7 +91,8 @@ async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, use
                                                 queue=queue,
                                                 additional_string=additional_string,
                                                 select_subfield=['value'],  # { value : {...} <-- this is what we need in info
-                                                status=change['type'])
+                                                status=change['type'],
+                                                ignore_initials=not with_initials)
                     if not value['ref'] in tasks:
                         tasks[value['ref']] = TaskCounter(task=asyncio.create_task(builder.put_values_in_queue()))
                     else:
@@ -190,11 +191,9 @@ def resolve_all_xen_items_changes(item_class: type):
     Returns an asynchronous function that resolves every change in RethinkDB table
 
     :param item_class:  GraphQL object type that has same shape as a table
-    :param table: RethinkDB table
-    :param with_user_table: This table has corresponding user table and user should get only its own objects
     :return:
     """
-    def resolve_items(root, info : ResolveInfo) -> Observable:
+    def resolve_items(root, info : ResolveInfo, with_initials : bool) -> Observable:
         '''
         Returns subscription updates with the following shape:
         {
@@ -203,7 +202,7 @@ def resolve_all_xen_items_changes(item_class: type):
         }
         Create a field with MakeSubscriptionWithChangeType(type)
         :param info:
-        :return:
+        :param with_initials: Supply subscription with initial values (default: False). Use True, when a Subscription is not used as a backer for Query
         '''
 
         async def iterable_to_items():
@@ -211,7 +210,7 @@ def resolve_all_xen_items_changes(item_class: type):
             xenobject_type = fields_for_return_type['_xenobject_type_']
             queue = asyncio.Queue()
             authenticator = info.context.user_authenticator
-            creator_task = asyncio.create_task(create_single_changefeeds(queue, info, authenticator, xenobject_type))
+            creator_task = asyncio.create_task(create_single_changefeeds(queue, info, authenticator, xenobject_type, with_initials))
             try:
                 while True:
                     change = await queue.get()
@@ -279,7 +278,7 @@ def resolve_all_items_changes(item_class: type,   table_name : str):
     :param table: RethinkDB table
     :return:
     """
-    def resolve_items(root, info) -> Observable:
+    def resolve_items(root, info, with_initials: bool) -> Observable:
         '''
         Returns subscription updates with the following shape:
         {
@@ -293,7 +292,7 @@ def resolve_all_items_changes(item_class: type,   table_name : str):
         async def iterable_to_items():
             async with ReDBConnection().get_async_connection() as conn:
                 table = re.db.table(table_name)
-                changes = await table.pluck(*item_class._meta.fields.keys()).changes(include_types=True, include_initial=True).run(conn)
+                changes = await table.pluck(*item_class._meta.fields.keys()).changes(include_types=True, include_initial=with_initials).run(conn)
                 while True:
                     change = await changes.next()
                     if not change:

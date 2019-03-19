@@ -106,9 +106,9 @@ class ACLXenObject(XenObject):
         try:
             old_settings = re.db.table(cls.db_table_name).get(ref).pluck('_settings_').run()
         except ReqlNonExistenceError:
-            old_settings = {'_settings_' : {}}
+            old_settings = {}
 
-        if old_settings['_settings_'] == new_rec['_settings_']:
+        if old_settings.get('_settings_', {}) == new_rec['_settings_']:
             return None
 
         def read_other_config_access_rights(access_settings) -> Dict[str, cls.Actions]:

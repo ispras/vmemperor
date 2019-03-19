@@ -23,8 +23,7 @@ class XenObjectMeta(type):
                     api = getattr(async_method, cls.api_class)
                     attr = getattr(api, name)
                     ret = attr(*args, **kwargs)
-                    record = Task.process_record(xen, ret, Task.get_record(xen, ret), vmemperor=True)
-                    CHECK_ER(re.db.table(Task.db_table_name).insert(record).run())
+                    Task.add_pending_task(ret, cls, None, name, True)
                     return ret
 
                 except XenAPI.Failure as f:

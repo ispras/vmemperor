@@ -1,6 +1,13 @@
+import threading
+from typing import Type, Optional, Dict
+
+from rethinkdb.errors import ReqlNonExistenceError
+
 import constants.re as re
 from handlers.graphql.types.task import GTask, TaskActions
+from rethinkdb_tools.helper import CHECK_ER
 from xenadapter.aclxenobject import ACLXenObject
+from xenadapter.xenobject import XenObject
 
 
 class Task(ACLXenObject):
@@ -9,15 +16,16 @@ class Task(ACLXenObject):
     db_table_name = 'tasks'
     GraphQLType = GTask
     Actions = TaskActions
-    
+    pending_db_table_name = 'pending_tasks'
+    global_pending_lock = threading.Lock()
+    pending_values_under_lock = set()
+
     @classmethod
     def process_event(cls, xen, event):
         '''
         Make changes to a RethinkDB-based cache, processing a XenServer event
 
         :param event: event dict
-        :param db: rethinkdb DB
-        :param authenticator_name: authenticator class name - used by access control
         :return: nothing
         '''
         from rethinkdb_tools.helper import CHECK_ER
@@ -38,27 +46,99 @@ class Task(ACLXenObject):
                 if record['status'] in ['success', 'failure', 'cancelled'] and new_rec['vmemperor']: # only our tasks have non-empty 'access'
                     xen.api.task.destroy(event['ref'])
 
+    @classmethod
+    def create_db(cls, indexes=None):
+        '''
+        Creates a table pending_tasks which contains tasks scheduled for processing by Task class in the following format:
+        >>> {
+        >>> "ref" : "Task ref",
+        >>> "object_type" : "Classname of object who created this task",
+        >>> "object_ref" : "ref of object who created this task",
+        >>> "access" : "access entries for task",
+        >>> "type": "task type - corresponds to one of access actions",
+        >>> "vmemperor": "True if this task was created by vmemperor"
+        >>> }
+        :param indexes:
+        :return:
+        '''
+        super().create_db(indexes=indexes)
+        re.db.table_create(cls.pending_db_table_name, durability="soft", primary_key="ref").run()
+        re.db.table(cls.pending_db_table_name).wait().run()
 
     @classmethod
-    def process_record(cls, xen, ref, record, vmemperor=False):
+    def add_pending_task(cls, ref: str, object_type: Type[XenObject], object_ref: Optional[str], type: str, vmemperor: bool):
         '''
-        Preserve vmemperor=True if exists. If does not exist (Task is not created by us), add vmemperor=False.
-        If task is created by us, then XenAdapter.__getattr__ class this method with vmemperor=True
-        NB: This method would return None if the `ref` does not exist in the Task table AND vmemperor=False (i.e. not created by us)
+        Add a pending task
+        :param ref: Task ref
+        :param object_type: Type of caller
+        :param object_ref: Object ref of caller (None if it's called by method)
+        :param type: Task type
+        :param vmemperor - True if this task was created by VMEmperor, False otherwise.
+         Bear in mind that this method does not overwrite pending tasks so that if it was called with vmemperor=True first,
+         then subsequent calls won't matter
+        :return:
+        '''
+
+        if re.db.table(cls.db_table_name).get(ref).run() is not None or\
+           re.db.table(cls.pending_db_table_name).get(ref).run() is not None:
+            return
+
+        def get_access_for_task():
+            '''
+            Returns access rights for task so that only those who have the following access action can view and cancel it
+            :return:
+            '''
+
+            if type not in Task.Actions._value2member_map_:
+                return {} # Ignore access for "destroy" - no one gets updates on task destroy except admin
+
+            userids = re.db.table(object_type.db_table_name + '_user')\
+                            .get_all(object_ref, index='ref')\
+                            .filter(lambda value: value['actions'].set_intersection(['ALL', type]) != [])\
+                            .pluck('userid')['userid']\
+                            .coerce_to('array').run()
+
+
+            return {user: ['cancel'] for user in userids}
+
+        with cls.global_pending_lock:
+            if ref in cls.pending_values_under_lock:
+                return
+            else:
+                cls.pending_values_under_lock.add(ref)
+
+        doc = {
+            "ref" : ref,
+            "object_type" : object_type.__name__,
+            "object_ref" : object_ref,
+            "type": type,
+            "vmemperor": vmemperor,
+            "access": get_access_for_task()
+        }
+        CHECK_ER(re.db.table(cls.pending_db_table_name).insert(doc).run())
+        with cls.global_pending_lock:
+            cls.pending_values_under_lock.remove(ref)
+
+
+
+    @classmethod
+    def process_record(cls, xen, ref, record):
+        '''
+        NB: This method would return None if the `ref` does not exist in the Task table AND vmemperor=None (i.e. not created by us)
         New entries are added to task table by calling Async XAPI via `xenobject.__getattr__` or by appearing in `current_operations` in
         XenObject.process_event
         :param xen:
         :param ref:
         :param record:
-        :return: None if the value does not exist.
         '''
-        current_rec = re.db.table(cls.db_table_name).get(ref).run()
-        if not current_rec:
-            if not vmemperor:
-                return None
-            else:
-                current_rec = {'vmemperor' : True}
+        try: #  "vmemperor" field is used by Task.process_event
+            current_rec = re.db.table(cls.db_table_name).get(ref).pluck('ref', 'vmemperor').run()
+        except ReqlNonExistenceError:
+            pop_from_pending = re.db.table(cls.pending_db_table_name).get(ref).delete(return_changes=True).run()
+            if pop_from_pending['deleted'] != 1:
+                return None  # This task is not being processed because it was not requested
+
+            current_rec = pop_from_pending['changes'][0]['old_val']
 
         new_rec = super().process_record(xen, ref, record)
-        new_rec['vmemperor'] = current_rec['vmemperor']
-        return new_rec
+        return {**current_rec, **new_rec}

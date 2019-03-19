@@ -122,24 +122,24 @@ class Subscription(ObjectType):
     '''
     All subscriptions must return  Observable
     '''
-    vms = graphene.Field(MakeSubscriptionWithChangeType(GVM), required=True, description="Updates for all VMs")
+    vms = graphene.Field(MakeSubscriptionWithChangeType(GVM), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all VMs")
     vm = graphene.Field(MakeSubscription(GVM), ref=graphene.NonNull(graphene.ID), description="Updates for a particular VM")
 
-    templates = graphene.Field(MakeSubscriptionWithChangeType(GTemplate), required=True, description="Updates for all Templates")
+    templates = graphene.Field(MakeSubscriptionWithChangeType(GTemplate), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all Templates")
     template = graphene.Field(MakeSubscription(GTemplate), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Template")
 
-    hosts = graphene.Field(MakeSubscriptionWithChangeType(GHost), required=True, description="Updates for all Hosts")
+    hosts = graphene.Field(MakeSubscriptionWithChangeType(GHost), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all Hosts")
     host = graphene.Field(MakeSubscription(GHost), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Host")
 
-    pools = graphene.Field(MakeSubscriptionWithChangeType(GPool), required=True, description="Updates for all pools available in VMEmperor")
+    pools = graphene.Field(MakeSubscriptionWithChangeType(GPool), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all pools available in VMEmperor")
     pool = graphene.Field(MakeSubscription(GPool), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Pool")
 
-    tasks = graphene.Field(MakeSubscriptionWithChangeType(GTask), required=True, description="Updates for all XenServer tasks")
+    tasks = graphene.Field(MakeSubscriptionWithChangeType(GTask), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all XenServer tasks")
     task = graphene.Field(MakeSubscription(GTask),  ref=graphene.NonNull(graphene.ID), description="Updates for a particular XenServer Task")
 
 
     playbook_task = graphene.Field(MakeSubscription(PlaybookTask), id=graphene.NonNull(graphene.ID), description="Updates for a particular Playbook installation Task")
-    playbook_tasks = graphene.Field(MakeSubscriptionWithChangeType(PlaybookTask), required=True, description="Updates for all Playbook Tasks")
+    playbook_tasks = graphene.Field(MakeSubscriptionWithChangeType(PlaybookTask), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all Playbook Tasks")
 
 
     def resolve_task(*args, **kwargs):

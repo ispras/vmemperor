@@ -53,7 +53,7 @@ class ChangefeedBuilder:
     one of DB objects represented by these values to change. If something changes, it reruns the query.
 
     '''
-    def __init__(self, id : Optional[Union[str, Collection]], info : ResolveInfo, queue: asyncio.Queue = None,  status="initial", additional_string = None, select_subfield=None):
+    def __init__(self, id : Optional[Union[str, Collection]], info : ResolveInfo, queue: asyncio.Queue = None,  status="initial", additional_string = None, select_subfield=None, ignore_initials=False):
         '''
 
         :param queue: Queue to put results into. If None, yield_values acts as generator
@@ -68,6 +68,7 @@ class ChangefeedBuilder:
         self.queue = queue
         self.builder = QueryBuilder(id, info, info.context.user_authenticator, additional_string, select_subfield)
         self.status = status
+        self.ignore_initials = ignore_initials
 
     def __repr__(self):
         f"ChangefeedBuilder: {self.builder}, status: {self.status}{', with Queue' if self.queue else ''}"
@@ -91,11 +92,12 @@ class ChangefeedBuilder:
                         yield item
                         return
                     else:
-                        item = {
-                            "type": self.status,
-                            "new_val": value
-                        }
-                        yield item
+                        if not (self.status == 'initial' and self.ignore_initials):
+                            item = {
+                                "type": self.status,
+                                "new_val": value
+                            }
+                            yield item
 
                     # Find out all dependent refs
                     deleted = await self.wait_for_change(conn, value)
@@ -124,11 +126,12 @@ class ChangefeedBuilder:
                         await self.queue.put(item)
                         return
                     else:
-                        item = {
+                        if not (self.status == 'initial' and self.ignore_initials):
+                            item = {
                             "type": self.status,
                             "new_val": value
-                        }
-                        await self.queue.put(item)
+                            }
+                            await self.queue.put(item)
 
                     # Find out all dependent refs
                     deleted = await self.wait_for_change(conn, value)
