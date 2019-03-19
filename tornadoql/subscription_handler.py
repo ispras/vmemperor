@@ -8,6 +8,7 @@ from collections import OrderedDict
 from traceback import print_exc
 
 from graphql import graphql, format_error
+from sentry_sdk import capture_exception
 from tornado import websocket
 from tornado.escape import json_decode, json_encode
 from tornado.log import app_log
@@ -234,6 +235,9 @@ class GQLSubscriptionHandler(websocket.WebSocketHandler, Loggable):
                     'data' : execution_result.data,
                     'errors' : [str(error) for error in execution_result.errors]
                 })
+                for error in execution_result.errors:
+                    capture_exception(error)
+                    
                 app_log.error(f"GraphQL error: GraphQL execution result returned {execution_info}. Expected: Observable")
                 raise ValueError(f"A subscription must return an observable. Got: {execution_info}")
 
