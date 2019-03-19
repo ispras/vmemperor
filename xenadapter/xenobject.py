@@ -1,9 +1,6 @@
 import collections
-import json
 from collections import Mapping
-from json import JSONDecodeError
 
-from rethinkdb.errors import ReqlNonExistenceError
 from serflag import SerFlag
 
 import XenAPI
@@ -12,94 +9,21 @@ from datetime import datetime
 import pytz
 
 import constants.re as re
-import constants.auth as auth
 from exc import *
 from authentication import BasicAuthenticator
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
-from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
-from handlers.graphql.utils.graphql_xenobject import assign_xenobject_type_for_graphql_type
+from rethinkdb_tools.helper import CHECK_ER
+from xenadapter.xenobjectmeta import XenObjectMeta
+from xentools.dict_deep_convert import dict_deep_convert
 from xentools.xenadapter import XenAdapter
-import logging
-from typing import Optional, Type, Collection, Dict
-from xenadapter.helpers import use_logger
-
-
-def dict_deep_convert(d):
-    def convert_to_bool(v):
-        if isinstance(v, str):
-            if v.lower() == 'true':
-                return True
-            elif v.lower() == 'false':
-                return False
-        elif isinstance(v, dict):
-            return dict_deep_convert(v)
-
-        return v
-
-    return {k: convert_to_bool(v) for k, v in d.items()}
-
-
-
-
-
-
-class XenObjectMeta(type):
-
-    def __getattr__(cls, name):
-        if name[0] == '_':
-            name = name[1:]
-
-        if name.startswith('async_'):
-            name = name[6:]
-            from .task import Task
-            def async_method(xen, *args, **kwargs):
-                try:
-                    async_method = getattr(xen.api, 'Async')
-                    api = getattr(async_method, cls.api_class)
-                    attr = getattr(api, name)
-                    ret = attr(*args, **kwargs)
-                    return ret
-
-                except XenAPI.Failure as f:
-                    raise XenAdapterAPIError(xen.log, f"Failed to execute {cls.api_class}::{name} asynchronously", f.details)
-            return async_method
-
-        def method(xen, *args, **kwargs):
-            if not hasattr(cls, 'api_class'):
-                raise XenAdapterArgumentError(xen.log, "api_class not specified for XenObject")
-
-            api_class = getattr(cls, 'api_class')
-            api = getattr(xen.api, api_class)
-            attr = getattr(api, name)
-
-            try:
-                ret = attr(*args, **kwargs)
-                if isinstance(ret, dict):
-                    ret = dict_deep_convert(ret)
-                return ret
-            except XenAPI.Failure as f:
-                raise XenAdapterAPIError(xen.log, f"Failed to execute static method {api_class}::{name}", f.details)
-        return method
-
-
-    def __init__(cls, what, bases=None, dict=None):
-        from rethinkdb_tools.db_classes import create_db_for_me, create_acl_db_for_me
-        from xenadapter.event_dispatcher import add_to_event_dispatcher
-        super().__init__(what, bases, dict)
-        logging.debug(f"Add XenObject class {cls}")
-        add_to_event_dispatcher(cls)
-        if 'db_table_name' in dict and dict['db_table_name']:
-            if any((base.__name__ == 'ACLXenObject' for base in cls.mro())):
-                create_acl_db_for_me(cls)
-            else:
-                create_db_for_me(cls)
-
-            if 'GraphQLType' in dict and dict['GraphQLType']:
-                assign_xenobject_type_for_graphql_type(dict['GraphQLType'], cls)
+from typing import Optional, Type, Collection
 
 
 class XenObject(metaclass=XenObjectMeta):
+    '''
+    Represents a proxy used to call XAPI methods on particular object (with particular ref)
+    '''
     api_class = None
     GraphQLType : GXenObjectType = None # Specify GraphQL type to access Rethinkdb cache
     REF_NULL = "OpaqueRef:NULL"
@@ -122,10 +46,8 @@ class XenObject(metaclass=XenObjectMeta):
 
     def __init__(self, xen : XenAdapter, ref : str =None):
         '''
-
-                either
-        :param uuid: object uuid
-        :param ref: object ref or object
+        :param xen: XenAdapter used to obtain this object through XenAPI
+        :param ref: object ref
         '''
         # if not isinstance(xen, XenAdapter):
         #          raise AttributeError("No XenAdapter specified")
@@ -329,7 +251,9 @@ class XenObject(metaclass=XenObjectMeta):
             async_method = getattr(self.xen.api, 'Async')
             api = getattr(async_method, self.api_class)
             name = name[6:]
-
+            async_call = True
+        else:
+            async_call = False
 
         if name[0] == '_':
             name=name[1:]
@@ -337,6 +261,11 @@ class XenObject(metaclass=XenObjectMeta):
         def method (*args, **kwargs):
             try:
                 ret = attr(self.ref, *args, **kwargs)
+                if async_call:  # Add task to tasks table, providing vmemperor=True
+                    from .task import Task
+                    record = Task.process_record(self.xen, ret, Task.get_record(self.xen, ret), vmemperor=True)
+                    CHECK_ER(re.db.table(Task.db_table_name).insert(record).run())
+                    return ret
 
                 if isinstance(ret, dict):
                     ret = dict_deep_convert(ret)
@@ -348,175 +277,3 @@ class XenObject(metaclass=XenObjectMeta):
         return method
 
 
-class ACLXenObject(XenObject):
-    '''
-    Abstract class for objects that store ACL information in their other_config
-    '''
-
-
-    @classmethod
-    def process_record(cls, xen, ref, record):
-        '''
-        Adds an 'access' field to processed record containing access rights
-        if access is changed
-        :param xen: XenAdapter
-        :param ref: Object ref
-        :param record: Object record
-        :return:
-        '''
-        new_rec = super().process_record(xen, ref, record)
-        try:
-            new_rec['_settings_'] = json.loads(record['other_config']['vmemperor'])
-        except (KeyError, JSONDecodeError):
-            new_rec['_settings_'] = {}
-
-        access_data = cls.get_access_data(record, new_rec,  ref)
-        if access_data is not None:
-            new_rec['access'] = access_data
-                
-        return new_rec
-
-
-    @use_logger
-    def check_access(self, auth : BasicAuthenticator, action):
-        '''
-        Check if it's possible to do 'action' by specified user with specified Xen Object
-        :param action: action to perform. If action is None, check for the fact that user can view this Xen object
-        :param auth: authenticator - an object containing info about user and all its groups
-
-        Implementation details:
-        looks for self.db_table_name and then in db to table $(self.db_table_name)_access
-
-        with empty=True if XenStore is empty and ALLOW_EMPTY_OTHERCONFIG set to false
-
-        '''
-        if not action:
-            action = self.Actions.NONE
-        if auth.is_admin():
-            return True # admin can do it all
-
-        self.log.info(
-            f"Checking {self.__class__.__name__} {self.ref} rights for user {auth.get_id()}: action {action}")
-        from rethinkdb.errors import ReqlNonExistenceError
-
-        try:
-            access_info = re.db.table(self.db_table_name).get(self.ref).pluck('access').run()
-        except ReqlNonExistenceError:
-            access_info = None
-            
-        access_info = access_info['access'] if access_info else None
-        if not access_info:
-            if self.ALLOW_EMPTY_OTHERCONFIG:
-                self.log.info(f"Access granted to {self} for {auth.get_id()}")
-                return True
-            else:
-                self.log.info(f"Access prohibited to {self} for {auth.get_id()}")
-                return False
-
-
-        username = f'users/{auth.get_id()}'
-        groupnames = [f'groups/{group}' for group in auth.get_user_groups()]
-        for userid in (username, *groupnames):
-            for item in access_info.get(userid, []):
-                if not item:
-                    continue
-                available_actions = self.Actions.deserialize(item)
-                if action & available_actions or action == self.Actions.NONE:
-                    self.log.info(f"Access granted to {self} for {auth.get_id()}")
-                    return True
-
-        self.log.info(f"Access prohibited to {self} for {auth.get_id()}")
-        return False
-
-    @classmethod
-    def get_access_data(cls, record,  new_rec, ref):
-        '''
-        Obtain access data from other_config
-        :param record: Original object record (is not used in default implementation)
-        :param new_rec: New object record (with _settings_ parsed)
-        :param ref: Object ref
-        :return: None if access data wasnt changed since last call
-        '''
-
-        try:
-            old_settings = re.db.table(cls.db_table_name).get(ref).pluck('_settings_').run()
-        except ReqlNonExistenceError:
-            old_settings = {'_settings_' : {}}
-
-        if old_settings['_settings_'] == new_rec['_settings_']:
-            return None
-
-        def read_other_config_access_rights(access_settings) -> Dict[str, cls.Actions]:
-            if auth.name in access_settings:
-                auth_dict = access_settings[auth.name]
-                deserialize_auth_dict(cls, auth_dict) # Will raise KeyError if something is wrong
-                return auth_dict
-
-            return {}
-
-        if 'access' in new_rec['_settings_']:
-            return read_other_config_access_rights(new_rec['_settings_']['access'])
-        else:
-            return {}
-
-    def get_other_config(self):
-        ret = self._get_other_config()
-        if isinstance(ret, dict):
-            return ret
-        else:
-            return {}
-
-    def manage_actions(self, action : SerFlag, revoke=False, clear=False, user : str = None):
-        '''
-        Changes action list for a Xen object
-        :param action:
-        :param revoke:
-        :param user: User ID  in form "users/USER_ID" or "groups/GROUP_ID"
-        :param group:
-        '''
-        if user is None:  # It's root so do nothing
-            return
-
-        if not isinstance(action, self.Actions):
-            raise TypeError(f"Unsupported type for 'action': {type(action)}. Expected: {self.Actions}")
-
-
-        from json import JSONDecodeError
-        if not (user.startswith('users/') or user.startswith('groups/')):
-            raise XenAdapterArgumentError(self.log, f'Specify user OR group for {self.__class__.__name__}::manage_actions. Specified: {user}')
-
-
-        other_config = self.get_other_config()
-
-        if 'vmemperor' not in other_config:
-            emperor = {'access': {auth.name : {}}}
-        else:
-
-            try:
-                emperor = json.loads(other_config['vmemperor'])
-            except JSONDecodeError:
-                emperor = {'access': {auth.name: {}}}
-
-        if auth.name in emperor['access'] and not clear:
-            previous_actions = deserialize_auth_dict(self, emperor['access'][auth.name])
-        else:
-            previous_actions = {}
-            emperor['access'][auth.name] = {}
-
-        user_actions: SerFlag = previous_actions.get(user, self.Actions.NONE)
-
-        if revoke:
-            user_actions = user_actions & ~action
-        else:
-            user_actions = user_actions | action
-        if user_actions:
-            emperor['access'][auth.name][user] = user_actions.serialize()
-        else:
-            if user in emperor['access'][auth.name]:
-                del emperor['access'][auth.name][user]
-
-        if not emperor['access'][auth.name]:
-            del emperor['access'][auth.name]
-
-        other_config['vmemperor'] = json.dumps(emperor)
-        self.set_other_config(other_config)

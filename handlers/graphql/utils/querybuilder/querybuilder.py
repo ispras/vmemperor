@@ -5,7 +5,7 @@ from graphql import ResolveInfo
 import itertools
 from authentication import BasicAuthenticator
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
-from xenadapter.xenobject import ACLXenObject
+from xenadapter.aclxenobject import ACLXenObject
 import  constants.re as re
 
 

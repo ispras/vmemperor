@@ -16,7 +16,8 @@ from connman import ReDBConnection
 from handlers.graphql.types.deleted import Deleted
 from handlers.graphql.utils.querybuilder.changefeedbuilder import ChangefeedBuilder
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
-from xenadapter.xenobject import ACLXenObject, XenObject
+from xenadapter.xenobject import XenObject
+from xenadapter.aclxenobject import ACLXenObject
 
 
 class Change(graphene.Enum):

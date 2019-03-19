@@ -2,7 +2,7 @@ from _operator import or_
 from functools import reduce
 
 from handlers.graphql.graphql_handler import ContextProtocol
-from xenadapter.xenobject import ACLXenObject
+from xenadapter.aclxenobject import ACLXenObject
 
 
 def mutate(root, info, object : ACLXenObject, actions, user, revoke=False):

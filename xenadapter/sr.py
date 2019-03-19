@@ -1,5 +1,5 @@
 from handlers.graphql.types.sr import SRActions, GSR
-from xenadapter.xenobject import ACLXenObject
+from xenadapter.aclxenobject import ACLXenObject
 
 
 class SR(ACLXenObject):

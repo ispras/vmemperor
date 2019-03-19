@@ -1,4 +1,5 @@
 from handlers.graphql.types.network import GNetwork, NetworkActions
+from xenadapter.aclxenobject import ACLXenObject
 from xenadapter.vif import VIF
 from .xenobject import *
 from xenadapter.helpers import use_logger

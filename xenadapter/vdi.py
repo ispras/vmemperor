@@ -8,7 +8,8 @@ from xenadapter.vbd import VBD
 from xenadapter.helpers import use_logger
 from exc import *
 import XenAPI
-from xenadapter.xenobject import ACLXenObject, XenObject
+from xenadapter.xenobject import XenObject
+from xenadapter.aclxenobject import ACLXenObject
 
 
 class Attachable:

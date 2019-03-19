@@ -1,6 +1,6 @@
 import constants.re as re
 from handlers.graphql.types.task import GTask, TaskActions
-from .xenobject import ACLXenObject
+from xenadapter.aclxenobject import ACLXenObject
 
 
 class Task(ACLXenObject):
@@ -39,12 +39,12 @@ class Task(ACLXenObject):
                     xen.api.task.destroy(event['ref'])
 
 
-
     @classmethod
-    def process_record(cls, xen, ref, record):
+    def process_record(cls, xen, ref, record, vmemperor=False):
         '''
         Preserve vmemperor=True if exists. If does not exist (Task is not created by us), add vmemperor=False.
-        NB: This method would return None if the `ref` does not exist in the Task table.
+        If task is created by us, then XenAdapter.__getattr__ class this method with vmemperor=True
+        NB: This method would return None if the `ref` does not exist in the Task table AND vmemperor=False (i.e. not created by us)
         New entries are added to task table by calling Async XAPI via `xenobject.__getattr__` or by appearing in `current_operations` in
         XenObject.process_event
         :param xen:
@@ -54,11 +54,11 @@ class Task(ACLXenObject):
         '''
         current_rec = re.db.table(cls.db_table_name).get(ref).run()
         if not current_rec:
-            return None
+            if not vmemperor:
+                return None
+            else:
+                current_rec = {'vmemperor' : True}
 
         new_rec = super().process_record(xen, ref, record)
-        if 'vmemperor' in current_rec and current_rec['vmemperor']:
-            new_rec['vmemperor'] = current_rec['vmemperor']
-        else:
-            new_rec['vmemperor'] = False
+        new_rec['vmemperor'] = current_rec['vmemperor']
         return new_rec
