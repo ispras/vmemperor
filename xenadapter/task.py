@@ -55,7 +55,7 @@ class Task(ACLXenObject):
         >>> "object_type" : "Classname of object who created this task",
         >>> "object_ref" : "ref of object who created this task",
         >>> "access" : "access entries for task",
-        >>> "type": "task type - corresponds to one of access actions",
+        >>> "action": "task action - corresponds to one of access actions",
         >>> "vmemperor": "True if this task was created by vmemperor"
         >>> }
         :param indexes:
@@ -66,13 +66,13 @@ class Task(ACLXenObject):
         re.db.table(cls.pending_db_table_name).wait().run()
 
     @classmethod
-    def add_pending_task(cls, ref: str, object_type: Type[XenObject], object_ref: Optional[str], type: str, vmemperor: bool):
+    def add_pending_task(cls, ref: str, object_type: Type[XenObject], object_ref: Optional[str], action: str, vmemperor: bool):
         '''
         Add a pending task
         :param ref: Task ref
         :param object_type: Type of caller
         :param object_ref: Object ref of caller (None if it's called by method)
-        :param type: Task type
+        :param action: Task action
         :param vmemperor - True if this task was created by VMEmperor, False otherwise.
          Bear in mind that this method does not overwrite pending tasks so that if it was called with vmemperor=True first,
          then subsequent calls won't matter
@@ -89,12 +89,9 @@ class Task(ACLXenObject):
             :return:
             '''
 
-            if type not in Task.Actions._value2member_map_:
-                return {} # Ignore access for "destroy" - no one gets updates on task destroy except admin
-
             userids = re.db.table(object_type.db_table_name + '_user')\
                             .get_all(object_ref, index='ref')\
-                            .filter(lambda value: value['actions'].set_intersection(['ALL', type]) != [])\
+                            .filter(lambda value: value['actions'].set_intersection(['ALL', action]) != [])\
                             .pluck('userid')['userid']\
                             .coerce_to('array').run()
 
@@ -108,10 +105,10 @@ class Task(ACLXenObject):
                 cls.pending_values_under_lock.add(ref)
 
         doc = {
-            "ref" : ref,
-            "object_type" : object_type.__name__,
-            "object_ref" : object_ref,
-            "type": type,
+            "ref": ref,
+            "object_type": object_type.__name__,
+            "object_ref": object_ref,
+            "action": action,
             "vmemperor": vmemperor,
             "access": get_access_for_task()
         }
