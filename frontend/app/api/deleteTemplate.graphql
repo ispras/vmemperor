@@ -1,0 +1,5 @@
+mutation DeleteTemplate ($ref : ID!) {
+  templateDelete(ref: $ref) {
+    taskId
+  }
+}

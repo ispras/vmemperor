@@ -381,6 +381,24 @@ export namespace CurrentUser {
   export type Groups = UserFragment.Fragment;
 }
 
+export namespace DeleteTemplate {
+  export type Variables = {
+    ref: string;
+  };
+
+  export type Mutation = {
+    __typename?: "Mutation";
+
+    templateDelete: Maybe<TemplateDelete>;
+  };
+
+  export type TemplateDelete = {
+    __typename?: "TemplateDestroyMutation";
+
+    taskId: Maybe<string>;
+  };
+}
+
 export namespace DeleteVm {
   export type Variables = {
     ref: string;
@@ -841,6 +859,26 @@ export namespace RebootVm {
     __typename?: "VMRebootMutation";
 
     taskId: Maybe<string>;
+  };
+}
+
+export namespace TemplateSetEnabled {
+  export type Variables = {
+    template: TemplateInput;
+  };
+
+  export type Mutation = {
+    __typename?: "Mutation";
+
+    template: Maybe<Template>;
+  };
+
+  export type Template = {
+    __typename?: "TemplateMutation";
+
+    granted: boolean;
+
+    reason: Maybe<string>;
   };
 }
 
@@ -2008,6 +2046,47 @@ export namespace CurrentUser {
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace DeleteTemplate {
+  export const Document = gql`
+    mutation DeleteTemplate($ref: ID!) {
+      templateDelete(ref: $ref) {
+        taskId
+      }
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Mutation<Mutation, Variables>
+          mutation={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
+    TChildProps;
+  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
       Document,
       operationOptions
     );
@@ -3183,6 +3262,48 @@ export namespace RebootVm {
     mutation RebootVm($ref: ID!, $force: ShutdownForce) {
       vmReboot(ref: $ref, force: $force) {
         taskId
+      }
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Mutation<Mutation, Variables>
+          mutation={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
+    TChildProps;
+  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace TemplateSetEnabled {
+  export const Document = gql`
+    mutation TemplateSetEnabled($template: TemplateInput!) {
+      template(template: $template) {
+        granted
+        reason
       }
     }
   `;
@@ -5728,7 +5849,7 @@ export namespace MutationResolvers {
   > = Resolver<R, Parent, TContext, TemplateArgs>;
   export interface TemplateArgs {
     /** Template to change */
-    template?: Maybe<TemplateInput>;
+    template: TemplateInput;
   }
 
   export type TemplateCloneResolver<
@@ -6339,7 +6460,11 @@ export namespace SubscriptionResolvers {
     R = GvMsSubscription,
     Parent = {},
     TContext = {}
-  > = SubscriptionResolver<R, Parent, TContext>;
+  > = SubscriptionResolver<R, Parent, TContext, VmsArgs>;
+  export interface VmsArgs {
+    withInitials?: boolean;
+  }
+
   export type VmResolver<
     R = Maybe<Gvm>,
     Parent = {},
@@ -6353,7 +6478,11 @@ export namespace SubscriptionResolvers {
     R = GTemplatesSubscription,
     Parent = {},
     TContext = {}
-  > = SubscriptionResolver<R, Parent, TContext>;
+  > = SubscriptionResolver<R, Parent, TContext, TemplatesArgs>;
+  export interface TemplatesArgs {
+    withInitials?: boolean;
+  }
+
   export type TemplateResolver<
     R = Maybe<GTemplate>,
     Parent = {},
@@ -6367,7 +6496,11 @@ export namespace SubscriptionResolvers {
     R = GHostsSubscription,
     Parent = {},
     TContext = {}
-  > = SubscriptionResolver<R, Parent, TContext>;
+  > = SubscriptionResolver<R, Parent, TContext, HostsArgs>;
+  export interface HostsArgs {
+    withInitials?: boolean;
+  }
+
   export type HostResolver<
     R = Maybe<GHost>,
     Parent = {},
@@ -6381,7 +6514,11 @@ export namespace SubscriptionResolvers {
     R = GPoolsSubscription,
     Parent = {},
     TContext = {}
-  > = SubscriptionResolver<R, Parent, TContext>;
+  > = SubscriptionResolver<R, Parent, TContext, PoolsArgs>;
+  export interface PoolsArgs {
+    withInitials?: boolean;
+  }
+
   export type PoolResolver<
     R = Maybe<GPool>,
     Parent = {},
@@ -6395,7 +6532,11 @@ export namespace SubscriptionResolvers {
     R = GTasksSubscription,
     Parent = {},
     TContext = {}
-  > = SubscriptionResolver<R, Parent, TContext>;
+  > = SubscriptionResolver<R, Parent, TContext, TasksArgs>;
+  export interface TasksArgs {
+    withInitials?: boolean;
+  }
+
   export type TaskResolver<
     R = Maybe<GTask>,
     Parent = {},
@@ -6418,7 +6559,10 @@ export namespace SubscriptionResolvers {
     R = PlaybookTasksSubscription,
     Parent = {},
     TContext = {}
-  > = SubscriptionResolver<R, Parent, TContext>;
+  > = SubscriptionResolver<R, Parent, TContext, PlaybookTasksArgs>;
+  export interface PlaybookTasksArgs {
+    withInitials?: boolean;
+  }
 }
 
 export namespace GvMsSubscriptionResolvers {
@@ -7806,7 +7950,7 @@ export interface CreateVmMutationArgs {
 }
 export interface TemplateMutationArgs {
   /** Template to change */
-  template?: Maybe<TemplateInput>;
+  template: TemplateInput;
 }
 export interface TemplateCloneMutationArgs {
   /** New name label */
@@ -7911,23 +8055,41 @@ export interface SelectedItemsMutationArgs {
 
   isSelect: boolean;
 }
+export interface VmsSubscriptionArgs {
+  withInitials?: Maybe<boolean>;
+}
 export interface VmSubscriptionArgs {
   ref: string;
+}
+export interface TemplatesSubscriptionArgs {
+  withInitials?: Maybe<boolean>;
 }
 export interface TemplateSubscriptionArgs {
   ref: string;
 }
+export interface HostsSubscriptionArgs {
+  withInitials?: Maybe<boolean>;
+}
 export interface HostSubscriptionArgs {
   ref: string;
 }
+export interface PoolsSubscriptionArgs {
+  withInitials?: Maybe<boolean>;
+}
 export interface PoolSubscriptionArgs {
   ref: string;
+}
+export interface TasksSubscriptionArgs {
+  withInitials?: Maybe<boolean>;
 }
 export interface TaskSubscriptionArgs {
   ref: string;
 }
 export interface PlaybookTaskSubscriptionArgs {
   id: string;
+}
+export interface PlaybookTasksSubscriptionArgs {
+  withInitials?: Maybe<boolean>;
 }
 
 // ====================================================

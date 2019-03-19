@@ -1,0 +1,8 @@
+mutation TemplateSetEnabled($template: TemplateInput!)
+{
+  template (template:$template) {
+    granted
+    reason
+  }
+}
+

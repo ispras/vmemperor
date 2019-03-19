@@ -1,15 +1,15 @@
 import * as React from 'react';
-import {Fragment, Reducer, ReducerState, useReducer} from 'react';
+import {Fragment, Reducer, ReducerState, useCallback, useReducer} from 'react';
 import {RouteComponentProps} from "react-router";
 import StatefulTable, {ColumnType} from "../StatefulTable";
-import {useApolloClient, useQuery} from "react-apollo-hooks";
+import {useApolloClient, useMutation, useQuery} from "react-apollo-hooks";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter'
 import {
   Change,
-  CurrentUser,
+  CurrentUser, DeleteTemplate,
   TemplateActions,
   TemplateList,
-  TemplateListFragment, TemplateListUpdate,
+  TemplateListFragment, TemplateListUpdate, TemplateSetEnabled,
   TemplateTableSelect,
   TemplateTableSelectAll,
   TemplateTableSelection
@@ -64,8 +64,11 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {templates}} = useQuery<TemplateList.Query>(TemplateList.Document);
   const {data: {currentUser}} = useQuery<CurrentUser.Query>(CurrentUser.Document);
   const client = useApolloClient();
+  const templateMutation = useMutation<TemplateSetEnabled.Mutation, TemplateSetEnabled.Variables>(TemplateSetEnabled.Document);
+  const deleteTemplate = useMutation<DeleteTemplate.Mutation, DeleteTemplate.Variables>(DeleteTemplate.Document);
 
   const reducer: TemplateListReducer = (state, action) => {
+    let currentState = {...initialState};
     switch (action.type) {
       case "Change":
       case "Add":
@@ -78,10 +81,8 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
         });
 
         if (currentUser.isAdmin)
-          return {
-            selectedForTrash: info.myActions.includes(TemplateActions.Destroy)
-              ? state.selectedForTrash.add(action.ref)
-              : state.selectedForTrash.remove(action.ref),
+          currentState = {
+            ...currentState,
             selectedForEnabling: !info.enabled
               ? state.selectedForEnabling.add(action.ref)
               : state.selectedForEnabling.remove(action.ref),
@@ -92,23 +93,21 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
           };
 
         return {
-          ...initialState,
-          selectedForTrash: info.myActions.includes(TemplateActions.Destroy)
+          ...currentState, selectedForTrash: info.myActions.includes(TemplateActions.Destroy)
             ? state.selectedForTrash.add(action.ref)
             : state.selectedForTrash.remove(action.ref)
         };
       case "Remove":
         if (currentUser.isAdmin)
-          return {
-            ...initialState,
-            selectedForTrash: state.selectedForTrash.delete(action.ref)
+          currentState = {
+            ...currentState,
+            selectedForEnabling: state.selectedForEnabling.delete(action.ref),
+            selectedForDisabling: state.selectedForDisabling.delete(action.ref),
           };
         return {
+          ...currentState,
           selectedForTrash: state.selectedForTrash.delete(action.ref),
-          selectedForEnabling: state.selectedForEnabling.delete(action.ref),
-          selectedForDisabling: state.selectedForDisabling.delete(action.ref),
         };
-
     }
   };
 
@@ -135,8 +134,37 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
       }
     });
 
+  const onEnableDisable = useCallback(async (array: Array<string>, enabled: boolean) => {
+    for (const id of array) {
+      await templateMutation({
+        variables: {
+          template: {
+            ref: id,
+            enabled
+          }
+        }
+      });
+    }
+  }, [templateMutation]);
+
   const [state, dispatch] = useReducer<TemplateListReducer>(reducer, initialState);
   const {selectedForEnabling, selectedForDisabling, selectedForTrash} = state;
+
+  const onEnable = useCallback(async () =>
+    await onEnableDisable(selectedForEnabling.toArray(), true), [onEnableDisable, selectedForEnabling]);
+  const onDisable = useCallback(async () =>
+    await onEnableDisable(selectedForDisabling.toArray(), false), [onEnableDisable, selectedForDisabling]);
+
+  const onDeleteTemplate = useCallback(async () => {
+    for (const id of selectedForTrash.toArray()) {
+      await deleteTemplate({
+        variables: {
+          ref: id
+        }
+      });
+    }
+  }, [deleteTemplate, selectedForTrash]);
+
   return (
     <Fragment>
       <ButtonToolbar>
@@ -145,12 +173,14 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
           <Button
             color="primary"
             disabled={selectedForEnabling.isEmpty()}
+            onClick={onEnable}
           >
             Enable
           </Button>
           <Button
             color="primary"
             disabled={selectedForDisabling.isEmpty()}
+            onClick={onDisable}
           >
             Disable
           </Button>
@@ -158,6 +188,7 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
         }
         <ButtonGroup className="ml-auto">
           <RecycleBinButton
+            onClick={onDeleteTemplate}
             disabled={selectedForTrash.size == 0}/>
         </ButtonGroup>
       </ButtonToolbar>

@@ -49,7 +49,7 @@ class MutationHelper:
                 else:
                     return False, item
             else:
-                if self.mutable_object.check_access(item.access_action):
+                if self.mutable_object.check_access(self.ctx.user_authenticator, item.access_action):
                     callables.append(lambda: item.func(self.ctx, self.mutable_object, changes))
                 else:
                     return False, item

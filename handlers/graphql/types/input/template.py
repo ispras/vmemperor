@@ -24,9 +24,7 @@ class TemplateMutation(graphene.Mutation):
     reason = graphene.Field(graphene.String, required=False, description="If access is not granted, return reason why")
 
     class Arguments:
-        template = graphene.Argument(TemplateInput, description="Template to change")
-
-
+        template = graphene.Argument(TemplateInput, description="Template to change", required=True)
 
     @staticmethod
     @with_default_authentication
@@ -37,7 +35,7 @@ class TemplateMutation(graphene.Mutation):
         t = Template(xen=ctx.xen, ref=template.ref)
 
         mutations = [
-            MutationMethod(func=set_enabled, action_name=None)
+            MutationMethod(func=set_enabled, access_action=None)
         ]
 
         def reason(method):
@@ -78,4 +76,4 @@ class TemplateDestroyMutation(graphene.Mutation):
     @with_authentication(access_class=Template, access_action=Template.Actions.destroy)
     @return_if_access_is_not_granted([("Template", "ref", Template.Actions.destroy)])
     def mutate(root, info, ref, Template : Template):
-        return TemplateCloneMutation(granted=True, task_id=Template.async_destroy())
+        return TemplateDestroyMutation(granted=True, task_id=Template.async_destroy())
