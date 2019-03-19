@@ -1,5 +1,6 @@
 import json
 
+from authentication import BasicAuthenticator
 from handlers.graphql.types.template import GTemplate, TemplateActions
 from .abstractvm import AbstractVM
 from exc import *
@@ -37,6 +38,10 @@ class Template(AbstractVM):
             new_rec['hvm'] = True
 
         new_rec['enabled'] = cls.is_enabled(record)
+        new_rec['is_default_template'] = 'default_template' in record['other_config'] and\
+                                         record['other_config']['default_template']
+        if new_rec['is_default_template']:
+            new_rec['_blocked_operations_'].append("destroy")
 
         #read xenstore data
         xenstore_data = record['xenstore_data']
@@ -56,6 +61,7 @@ class Template(AbstractVM):
         template_settings = json.load(xenstore_data[cls.VMEMPEROR_TEMPLATE_PREFIX])
         new_rec['os_kind'] = template_settings['os_kind']
         return new_rec
+
 
     @classmethod
     def get_access_data(cls, record,  new_rec, ref):

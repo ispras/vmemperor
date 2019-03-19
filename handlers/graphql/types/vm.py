@@ -5,6 +5,7 @@ import graphene
 from graphene.types.resolver import dict_resolver
 from serflag import SerFlag
 
+from handlers.graphql.action_deserializers.abstractvm_deserializer import AbstractVMDeserializer
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
 from handlers.graphql.types.access import create_access_type
@@ -101,8 +102,6 @@ class VMActions(SerFlag):
 
 
 GVMActions = graphene.Enum.from_enum(VMActions)
-
-
 GVMAccessEntry = create_access_type("GVMAccessEntry", GVMActions)
 
 
@@ -110,10 +109,8 @@ class GVM(GXenObjectType):
     class Meta:
         interfaces = (GAclXenObject,)
 
-
-    access = graphene.Field(graphene.List(GVMAccessEntry), required=True,
-                            resolver=resolve_accessentries(VMActions))
-    my_actions = graphene.Field(graphene.List(GVMActions), required=True, resolver=resolve_myactions(VMActions))
+    access = graphene.Field(graphene.List(GVMAccessEntry), required=True)
+    my_actions = graphene.Field(graphene.List(GVMActions), required=True)
     is_owner = graphene.Field(graphene.Boolean, required=True, resolver=resolve_owner(VMActions))
 
     # from http://xapi-project.github.io/xen-api/classes/vm_guest_metrics.html
@@ -135,3 +132,12 @@ class GVM(GXenObjectType):
     start_time = graphene.Field(graphene.DateTime)
     VIFs = graphene.Field(graphene.List(GVIF), required=True, resolver=resolve_many())
     VBDs = graphene.Field(graphene.List(GVBD), description="Virtual block devices", required=True, resolver=resolve_many())
+
+    @staticmethod
+    def resolve_my_actions(root, info, *args, **kwargs):
+        return resolve_myactions(AbstractVMDeserializer(root, VMActions))(root, info, *args, **kwargs)
+
+    @staticmethod
+    def resolve_access(root, info, *args, **kwargs):
+        return resolve_accessentries(AbstractVMDeserializer(root, VMActions))(root, info, *args, **kwargs)
+
