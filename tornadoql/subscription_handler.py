@@ -237,7 +237,7 @@ class GQLSubscriptionHandler(websocket.WebSocketHandler, Loggable):
                 })
                 for error in execution_result.errors:
                     capture_exception(error)
-                    
+
                 app_log.error(f"GraphQL error: GraphQL execution result returned {execution_info}. Expected: Observable")
                 raise ValueError(f"A subscription must return an observable. Got: {execution_info}")
 

@@ -125,13 +125,16 @@ class Subscription(ObjectType):
     vms = graphene.Field(MakeSubscriptionWithChangeType(GVM), required=True, description="Updates for all VMs")
     vm = graphene.Field(MakeSubscription(GVM), ref=graphene.NonNull(graphene.ID), description="Updates for a particular VM")
 
+    templates = graphene.Field(MakeSubscriptionWithChangeType(GTemplate), required=True, description="Updates for all Templates")
+    template = graphene.Field(MakeSubscription(GTemplate), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Template")
+
     hosts = graphene.Field(MakeSubscriptionWithChangeType(GHost), required=True, description="Updates for all Hosts")
     host = graphene.Field(MakeSubscription(GHost), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Host")
 
     pools = graphene.Field(MakeSubscriptionWithChangeType(GPool), required=True, description="Updates for all pools available in VMEmperor")
     pool = graphene.Field(MakeSubscription(GPool), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Pool")
 
-    tasks = graphene.Field(MakeSubscriptionWithChangeType(GTask), required=True, description="Updates for all user's tasks")
+    tasks = graphene.Field(MakeSubscriptionWithChangeType(GTask), required=True, description="Updates for all XenServer tasks")
     task = graphene.Field(MakeSubscription(GTask),  ref=graphene.NonNull(graphene.ID), description="Updates for a particular XenServer Task")
 
 
@@ -151,6 +154,12 @@ class Subscription(ObjectType):
     def resolve_vm(*args, **kwargs):
         return resolve_xen_item_by_key()(*args, **kwargs)
 
+    def resolve_templates(*args, **kwargs):
+        return resolve_all_xen_items_changes(GTemplate)(*args, **kwargs)
+
+    def resolve_template(*args, **kwargs):
+        return resolve_xen_item_by_key()(*args, **kwargs)
+
     def resolve_hosts(*args, **kwargs):
         return resolve_all_xen_items_changes(GHost)(*args, **kwargs)
 
@@ -168,6 +177,8 @@ class Subscription(ObjectType):
 
     def resolve_playbook_tasks(*args, **kwargs):
         return resolve_all_items_changes(PlaybookTask, 'tasks_playbooks')(*args, **kwargs)
+
+
 
 
 schema = SchemaWithFlags(query=Query, mutation=Mutation, subscription=Subscription)

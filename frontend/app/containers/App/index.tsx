@@ -33,33 +33,35 @@ import VMSettings from "../Vmsettings";
 import {AccessController} from "../AccessController";
 
 import * as Sentry from '@sentry/browser';
+import Templates from "../TemplateList";
+
 
 interface State {
   error?: Error
 }
 
-class  App extends React.Component<{}, State> {
+class App extends React.Component<{}, State> {
   constructor(props) {
-        super(props);
-        this.state = { error: null };
-    }
+    super(props);
+    this.state = {error: null};
+  }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
     this.setState({error});
     Sentry.withScope(scope => {
-       Object.keys(errorInfo).forEach(key => {
-          scope.setExtra(key, errorInfo[key]);
-        });
-        Sentry.captureException(error);
+      Object.keys(errorInfo).forEach(key => {
+        scope.setExtra(key, errorInfo[key]);
+      });
+      Sentry.captureException(error);
     })
   }
 
   render() {
     if (this.state.error) {
-       return (
-              <a onClick={() => Sentry.showReportDialog()}>Report feedback</a>
-            );
-        }
+      return (
+        <a onClick={() => Sentry.showReportDialog()}>Report feedback</a>
+      );
+    }
 
     return (
       <div>
@@ -68,6 +70,7 @@ class  App extends React.Component<{}, State> {
           <Route exact path="/" component={HomePage}/>
           <Route path="/login" component={LoginPage}/>
           <PrivateRoute path="/vms" component={VMs}/>
+          <PrivateRoute path="/templates" component={Templates}/>
           <PrivateRoute path="/vmsettings/:ref" component={VMSettings}/>
           <PrivateRoute path="/create-vm" component={CreateVM}/>
           <PrivateRoute path="/logout" component={Logout}/>

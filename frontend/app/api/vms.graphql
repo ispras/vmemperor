@@ -3,6 +3,7 @@ fragment VMListFragment on GVM {
   ref
   nameLabel
   powerState
+  myActions
 }
 
 

@@ -173,6 +173,7 @@ export enum VbdMode {
 /** An enumeration. */
 export enum TemplateActions {
   Clone = "clone",
+  Destroy = "destroy",
   None = "NONE",
   All = "ALL"
 }
@@ -924,6 +925,26 @@ export namespace TemplateList {
   export type Templates = TemplateListFragment.Fragment;
 }
 
+export namespace TemplateListUpdate {
+  export type Variables = {};
+
+  export type Subscription = {
+    __typename?: "Subscription";
+
+    templates: Templates;
+  };
+
+  export type Templates = {
+    __typename?: "GTemplatesSubscription";
+
+    value: Value;
+
+    changeType: Change;
+  };
+
+  export type Value = TemplateListFragment.Fragment | DeletedFragment.Fragment;
+}
+
 export namespace StorageAttachVdiList {
   export type Variables = {};
 
@@ -1377,6 +1398,8 @@ export namespace VmListFragment {
     nameLabel: string;
 
     powerState: PowerState;
+
+    myActions: (Maybe<VmActions>)[];
   };
 }
 
@@ -1624,6 +1647,7 @@ export namespace VmListFragment {
       ref
       nameLabel
       powerState
+      myActions
     }
   `;
 }
@@ -3408,6 +3432,55 @@ export namespace TemplateList {
       Document,
       operationOptions
     );
+  }
+}
+export namespace TemplateListUpdate {
+  export const Document = gql`
+    subscription TemplateListUpdate {
+      templates {
+        value {
+          ...TemplateListFragment
+          ...DeletedFragment
+        }
+        changeType
+      }
+    }
+
+    ${TemplateListFragment.FragmentDoc}
+    ${DeletedFragment.FragmentDoc}
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Subscription<Subscription, Variables>
+          subscription={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
+    TChildProps;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<
+      TProps,
+      Subscription,
+      Variables,
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 export namespace StorageAttachVdiList {
@@ -5260,6 +5333,12 @@ export namespace GTemplateResolvers {
     hvm?: HvmResolver<boolean, TypeParent, TContext>;
     /** True if this template is available for regular users */
     enabled?: EnabledResolver<boolean, TypeParent, TContext>;
+    /** This template is preinstalled with XenServer */
+    isDefaultTemplate?: IsDefaultTemplateResolver<
+      boolean,
+      TypeParent,
+      TContext
+    >;
   }
 
   export type NameLabelResolver<
@@ -5308,6 +5387,11 @@ export namespace GTemplateResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type EnabledResolver<
+    R = boolean,
+    Parent = GTemplate,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsDefaultTemplateResolver<
     R = boolean,
     Parent = GTemplate,
     TContext = {}
@@ -5541,6 +5625,18 @@ export namespace MutationResolvers {
     createVm?: CreateVmResolver<Maybe<CreateVm>, TypeParent, TContext>;
     /** Edit template options */
     template?: TemplateResolver<Maybe<TemplateMutation>, TypeParent, TContext>;
+    /** Clone template */
+    templateClone?: TemplateCloneResolver<
+      Maybe<TemplateCloneMutation>,
+      TypeParent,
+      TContext
+    >;
+    /** Delete template */
+    templateDelete?: TemplateDeleteResolver<
+      Maybe<TemplateDestroyMutation>,
+      TypeParent,
+      TContext
+    >;
     /** Edit VM options */
     vm?: VmResolver<Maybe<VmMutation>, TypeParent, TContext>;
     /** Start VM */
@@ -5633,6 +5729,27 @@ export namespace MutationResolvers {
   export interface TemplateArgs {
     /** Template to change */
     template?: Maybe<TemplateInput>;
+  }
+
+  export type TemplateCloneResolver<
+    R = Maybe<TemplateCloneMutation>,
+    Parent = {},
+    TContext = {}
+  > = Resolver<R, Parent, TContext, TemplateCloneArgs>;
+  export interface TemplateCloneArgs {
+    /** New name label */
+    nameLabel: string;
+
+    ref: string;
+  }
+
+  export type TemplateDeleteResolver<
+    R = Maybe<TemplateDestroyMutation>,
+    Parent = {},
+    TContext = {}
+  > = Resolver<R, Parent, TContext, TemplateDeleteArgs>;
+  export interface TemplateDeleteArgs {
+    ref: string;
   }
 
   export type VmResolver<
@@ -5857,6 +5974,66 @@ export namespace TemplateMutationResolvers {
   export type ReasonResolver<
     R = Maybe<string>,
     Parent = TemplateMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace TemplateCloneMutationResolvers {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = TemplateCloneMutation
+  > {
+    /** clone task ID */
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+    /** Shows if access to clone is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
+  }
+
+  export type TaskIdResolver<
+    R = Maybe<string>,
+    Parent = TemplateCloneMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
+    Parent = TemplateCloneMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
+    Parent = TemplateCloneMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace TemplateDestroyMutationResolvers {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = TemplateDestroyMutation
+  > {
+    /** destroy task ID */
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+    /** Shows if access to destroy is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
+  }
+
+  export type TaskIdResolver<
+    R = Maybe<string>,
+    Parent = TemplateDestroyMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
+    Parent = TemplateDestroyMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
+    Parent = TemplateDestroyMutation,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
 }
@@ -6128,6 +6305,10 @@ export namespace SubscriptionResolvers {
     vms?: VmsResolver<GvMsSubscription, TypeParent, TContext>;
     /** Updates for a particular VM */
     vm?: VmResolver<Maybe<Gvm>, TypeParent, TContext>;
+    /** Updates for all Templates */
+    templates?: TemplatesResolver<GTemplatesSubscription, TypeParent, TContext>;
+    /** Updates for a particular Template */
+    template?: TemplateResolver<Maybe<GTemplate>, TypeParent, TContext>;
     /** Updates for all Hosts */
     hosts?: HostsResolver<GHostsSubscription, TypeParent, TContext>;
     /** Updates for a particular Host */
@@ -6136,7 +6317,7 @@ export namespace SubscriptionResolvers {
     pools?: PoolsResolver<GPoolsSubscription, TypeParent, TContext>;
     /** Updates for a particular Pool */
     pool?: PoolResolver<Maybe<GPool>, TypeParent, TContext>;
-    /** Updates for all user's tasks */
+    /** Updates for all XenServer tasks */
     tasks?: TasksResolver<GTasksSubscription, TypeParent, TContext>;
     /** Updates for a particular XenServer Task */
     task?: TaskResolver<Maybe<GTask>, TypeParent, TContext>;
@@ -6165,6 +6346,20 @@ export namespace SubscriptionResolvers {
     TContext = {}
   > = SubscriptionResolver<R, Parent, TContext, VmArgs>;
   export interface VmArgs {
+    ref: string;
+  }
+
+  export type TemplatesResolver<
+    R = GTemplatesSubscription,
+    Parent = {},
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext>;
+  export type TemplateResolver<
+    R = Maybe<GTemplate>,
+    Parent = {},
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, TemplateArgs>;
+  export interface TemplateArgs {
     ref: string;
   }
 
@@ -6255,6 +6450,29 @@ export namespace DeletedResolvers {
   export type RefResolver<
     R = string,
     Parent = Deleted,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace GTemplatesSubscriptionResolvers {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = GTemplatesSubscription
+  > {
+    /** Change type */
+    changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
+
+    value?: ValueResolver<GTemplateOrDeleted, TypeParent, TContext>;
+  }
+
+  export type ChangeTypeResolver<
+    R = Change,
+    Parent = GTemplatesSubscription,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ValueResolver<
+    R = GTemplateOrDeleted,
+    Parent = GTemplatesSubscription,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
 }
@@ -6530,6 +6748,17 @@ export namespace GvmOrDeletedResolvers {
   > = TypeResolveFn<R, Parent, TContext>;
 }
 
+export namespace GTemplateOrDeletedResolvers {
+  export interface Resolvers {
+    __resolveType: ResolveType;
+  }
+  export type ResolveType<
+    R = "GTemplate" | "Deleted",
+    Parent = GTemplate | Deleted,
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
+}
+
 export namespace GHostOrDeletedResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
@@ -6645,6 +6874,10 @@ export type IResolvers<TContext = {}> = {
   Mutation?: MutationResolvers.Resolvers<TContext>;
   CreateVm?: CreateVmResolvers.Resolvers<TContext>;
   TemplateMutation?: TemplateMutationResolvers.Resolvers<TContext>;
+  TemplateCloneMutation?: TemplateCloneMutationResolvers.Resolvers<TContext>;
+  TemplateDestroyMutation?: TemplateDestroyMutationResolvers.Resolvers<
+    TContext
+  >;
   VmMutation?: VmMutationResolvers.Resolvers<TContext>;
   VmStartMutation?: VmStartMutationResolvers.Resolvers<TContext>;
   VmShutdownMutation?: VmShutdownMutationResolvers.Resolvers<TContext>;
@@ -6661,6 +6894,7 @@ export type IResolvers<TContext = {}> = {
   Subscription?: SubscriptionResolvers.Resolvers<TContext>;
   GvMsSubscription?: GvMsSubscriptionResolvers.Resolvers<TContext>;
   Deleted?: DeletedResolvers.Resolvers<TContext>;
+  GTemplatesSubscription?: GTemplatesSubscriptionResolvers.Resolvers<TContext>;
   GHostsSubscription?: GHostsSubscriptionResolvers.Resolvers<TContext>;
   GPoolsSubscription?: GPoolsSubscriptionResolvers.Resolvers<TContext>;
   GTasksSubscription?: GTasksSubscriptionResolvers.Resolvers<TContext>;
@@ -6673,6 +6907,7 @@ export type IResolvers<TContext = {}> = {
   GAccessEntry?: GAccessEntryResolvers.Resolvers;
   GXenObject?: GXenObjectResolvers.Resolvers;
   GvmOrDeleted?: GvmOrDeletedResolvers.Resolvers;
+  GTemplateOrDeleted?: GTemplateOrDeletedResolvers.Resolvers;
   GHostOrDeleted?: GHostOrDeletedResolvers.Resolvers;
   GPoolOrDeleted?: GPoolOrDeletedResolvers.Resolvers;
   GTaskOrDeleted?: GTaskOrDeletedResolvers.Resolvers;
@@ -7156,6 +7391,8 @@ export interface GTemplate extends GAclXenObject {
   hvm: boolean;
   /** True if this template is available for regular users */
   enabled: boolean;
+  /** This template is preinstalled with XenServer */
+  isDefaultTemplate: boolean;
 }
 
 export interface GTemplateAccessEntry extends GAccessEntry {
@@ -7231,6 +7468,10 @@ export interface Mutation {
   createVm?: Maybe<CreateVm>;
   /** Edit template options */
   template?: Maybe<TemplateMutation>;
+  /** Clone template */
+  templateClone?: Maybe<TemplateCloneMutation>;
+  /** Delete template */
+  templateDelete?: Maybe<TemplateDestroyMutation>;
   /** Edit VM options */
   vm?: Maybe<VmMutation>;
   /** Start VM */
@@ -7274,6 +7515,24 @@ export interface TemplateMutation {
   /** If access is granted */
   granted: boolean;
   /** If access is not granted, return reason why */
+  reason?: Maybe<string>;
+}
+
+export interface TemplateCloneMutation {
+  /** clone task ID */
+  taskId?: Maybe<string>;
+  /** Shows if access to clone is granted */
+  granted: boolean;
+
+  reason?: Maybe<string>;
+}
+
+export interface TemplateDestroyMutation {
+  /** destroy task ID */
+  taskId?: Maybe<string>;
+  /** Shows if access to destroy is granted */
+  granted: boolean;
+
   reason?: Maybe<string>;
 }
 
@@ -7370,6 +7629,10 @@ export interface Subscription {
   vms: GvMsSubscription;
   /** Updates for a particular VM */
   vm?: Maybe<Gvm>;
+  /** Updates for all Templates */
+  templates: GTemplatesSubscription;
+  /** Updates for a particular Template */
+  template?: Maybe<GTemplate>;
   /** Updates for all Hosts */
   hosts: GHostsSubscription;
   /** Updates for a particular Host */
@@ -7378,7 +7641,7 @@ export interface Subscription {
   pools: GPoolsSubscription;
   /** Updates for a particular Pool */
   pool?: Maybe<GPool>;
-  /** Updates for all user's tasks */
+  /** Updates for all XenServer tasks */
   tasks: GTasksSubscription;
   /** Updates for a particular XenServer Task */
   task?: Maybe<GTask>;
@@ -7398,6 +7661,13 @@ export interface GvMsSubscription {
 export interface Deleted {
   /** Deleted object's ref */
   ref: string;
+}
+
+export interface GTemplatesSubscription {
+  /** Change type */
+  changeType: Change;
+
+  value: GTemplateOrDeleted;
 }
 
 export interface GHostsSubscription {
@@ -7538,6 +7808,15 @@ export interface TemplateMutationArgs {
   /** Template to change */
   template?: Maybe<TemplateInput>;
 }
+export interface TemplateCloneMutationArgs {
+  /** New name label */
+  nameLabel: string;
+
+  ref: string;
+}
+export interface TemplateDeleteMutationArgs {
+  ref: string;
+}
 export interface VmMutationArgs {
   /** VM to change */
   vm: VmInput;
@@ -7635,6 +7914,9 @@ export interface SelectedItemsMutationArgs {
 export interface VmSubscriptionArgs {
   ref: string;
 }
+export interface TemplateSubscriptionArgs {
+  ref: string;
+}
 export interface HostSubscriptionArgs {
   ref: string;
 }
@@ -7653,6 +7935,8 @@ export interface PlaybookTaskSubscriptionArgs {
 // ====================================================
 
 export type GvmOrDeleted = Gvm | Deleted;
+
+export type GTemplateOrDeleted = GTemplate | Deleted;
 
 export type GHostOrDeleted = GHost | Deleted;
 

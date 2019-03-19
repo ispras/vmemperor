@@ -1,3 +1,4 @@
+# import DeletedFragment from "deleted.graphql"
 fragment TemplateListFragment on GTemplate {
   ref
   nameLabel
@@ -19,5 +20,15 @@ fragment TemplateListFragment on GTemplate {
 query TemplateList {
   templates {
     ...TemplateListFragment
+  }
+}
+
+subscription TemplateListUpdate {
+  templates {
+    value {
+      ...TemplateListFragment
+      ...DeletedFragment
+    }
+    changeType
   }
 }

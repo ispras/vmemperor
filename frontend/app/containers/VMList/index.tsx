@@ -6,6 +6,7 @@ import {
   PowerState,
   ShutdownVm,
   StartVm,
+  VmActions,
   VmList,
   VmListFragment,
   VmListUpdate,
@@ -19,13 +20,14 @@ import {RouteComponentProps} from "react-router";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter'
 import tableStyle from "./table.css";
 import {useApolloClient, useMutation, useQuery} from "react-apollo-hooks";
-import {Map, Set} from 'immutable';
+import {Set} from 'immutable';
 import {ButtonGroup, ButtonToolbar} from "reactstrap";
 import {dataIdFromObject, handleAddRemove} from "../../utils/cacheUtils";
 import StartButton from "../../components/StartButton";
 import StopButton from "../../components/StopButton";
 import RecycleBinButton from "../../components/RecycleBinButton";
 import {nameFormatter, plainFormatter} from "../../utils/formatters";
+import {ListAction} from "../../utils/reducer";
 
 
 type VmColumnType = ColumnType<VmListFragment.Fragment>;
@@ -64,23 +66,15 @@ interface State {
   selectedForStart: Set<string>;
   selectedForStop: Set<string>;
   selectedForTrash: Set<string>;
-  wholeSelectionByPowerState: Map<string, PowerState>;
 }
 
-interface Action {
-  type: "Add" | "Change" | "Remove";
-  ref: string;
-
-}
-
-type VMListReducer = Reducer<State, Action>;
+type VMListReducer = Reducer<State, ListAction>;
 
 
 const initialState: ReducerState<VMListReducer> = {
   selectedForStart: Set.of<string>(),
   selectedForStop: Set.of<string>(),
   selectedForTrash: Set.of<string>(),
-  wholeSelectionByPowerState: Map<string, PowerState>()
 };
 
 export default function ({history}: RouteComponentProps) {
@@ -91,37 +85,33 @@ export default function ({history}: RouteComponentProps) {
   const client = useApolloClient();
 
   const reducer: VMListReducer = (state, action) => {
-    //Read fragment associated with this VM in the cache
-    const info = client.cache.readFragment<VmListFragment.Fragment>({
-      fragment: VmListFragment.FragmentDoc,
-      id: dataIdFromObject({
-        ref: action.ref,
-        __typename: "GVM",
-      }),
-    });
-    console.log("Got associated info: ", info, "Action:", action.type);
-    console.log("State:", state);
 
-    if (action.type === 'Add' && state.wholeSelectionByPowerState.has(action.ref))
-      return state;
 
     switch (action.type) {
       case "Change":
-        if (!state.wholeSelectionByPowerState.has(action.ref) ||
-          (state.wholeSelectionByPowerState[action.ref] === info.powerState))
-          return state;
       case "Add":
+        //Read fragment associated with this VM in the cache
+        const info = client.cache.readFragment<VmListFragment.Fragment>({
+          fragment: VmListFragment.FragmentDoc,
+          id: dataIdFromObject({
+            ref: action.ref,
+            __typename: "GVM",
+          }),
+
+        });
+        console.log("Got associated info: ", info, "Action:", action.type);
+        console.log("State:", state);
+        
         return {
-          selectedForStart: info.powerState !== PowerState.Running
+          selectedForStart: info.powerState !== PowerState.Running && info.myActions.includes(VmActions.Start)
             ? state.selectedForStart.add(action.ref)
             : state.selectedForStart.remove(action.ref),
-          selectedForStop: info.powerState !== PowerState.Halted
+          selectedForStop: info.powerState !== PowerState.Halted && info.myActions.includes(VmActions.HardShutdown)
             ? state.selectedForStop.add(action.ref)
             : state.selectedForStop.remove(action.ref),
-          selectedForTrash: info.powerState === PowerState.Halted
+          selectedForTrash: info.powerState === PowerState.Halted && info.myActions.includes(VmActions.Destroy)
             ? state.selectedForTrash.add(action.ref)
             : state.selectedForTrash.remove(action.ref),
-          wholeSelectionByPowerState: state.wholeSelectionByPowerState.set(action.ref, info.powerState)
 
         };
       case "Remove":
@@ -129,12 +119,11 @@ export default function ({history}: RouteComponentProps) {
           selectedForStart: state.selectedForStart.remove(action.ref),
           selectedForStop: state.selectedForStop.remove(action.ref),
           selectedForTrash: state.selectedForTrash.remove(action.ref),
-          wholeSelectionByPowerState: state.wholeSelectionByPowerState.remove(action.ref)
         }
 
     }
   };
-  const [{selectedForStart, selectedForStop, selectedForTrash, wholeSelectionByPowerState}, dispatch] = useReducer<VMListReducer>(reducer, initialState);
+  const [{selectedForStart, selectedForStop, selectedForTrash}, dispatch] = useReducer<VMListReducer>(reducer, initialState);
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: VmListFragment.Fragment, index) => {
     e.preventDefault();
