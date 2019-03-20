@@ -1,4 +1,4 @@
-import React, {Reducer, ReducerState, useCallback, useMemo, useReducer} from 'react';
+import React, {Reducer, ReducerState, useCallback, useEffect, useMemo, useReducer} from 'react';
 import {useSubscription} from "../../hooks/subscription";
 import {
   Change,
@@ -152,6 +152,18 @@ export default function ({history}: RouteComponentProps) {
     }
   };
   const [{selectedForStart, selectedForStop, selectedForTrash, selectedForPause, selectedForSuspend, wholeSelection}, dispatch] = useReducer<VMListReducer>(reducer, initialState);
+  const {data: {selectedItems}} = useQuery<VmTableSelection.Query, VmTableSelection.Variables>(VmTableSelection.Document);
+
+  useEffect(() => { //Re-add items to our internal state
+    if (!wholeSelection.isEmpty())
+      return;
+
+    for (const item of selectedItems)
+      dispatch({
+        type: "Add",
+        ref: item,
+      })
+  }, []); // To be run only once on loading
   const buttonTitle = useCallback((startswith: string, array: Array<string>) => {
     let ret = startswith;
     for (let i = 0; i < array.length; ++i) {
@@ -237,7 +249,7 @@ export default function ({history}: RouteComponentProps) {
       }
     });
 
- 
+
   const startVm = useMutation<StartVm.Mutation, StartVm.Variables>(
     StartVm.Document);
   const suspendVm = useMutation<SuspendVm.Mutation, SuspendVm.Variables>(SuspendVm.Document);
