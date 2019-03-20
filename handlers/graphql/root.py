@@ -13,7 +13,7 @@ from handlers.graphql.types.input.attachnet import AttachNetworkMutation
 from handlers.graphql.types.input.attachvdi import AttachVDIMutation
 from handlers.graphql.types.input.createvm import CreateVM
 from handlers.graphql.types.input.vm import VMMutation, VMStartMutation, VMShutdownMutation, VMRebootMutation, \
-    VMPauseMutation, VMDeleteMutation
+    VMPauseMutation, VMDeleteMutation, VMSuspendMutation
 from handlers.graphql.types.input.accessset import VMAccessSet, NetAccessSet, VDIAccessSet, SRAccessSet
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
@@ -101,6 +101,7 @@ class Mutation(ObjectType):
     vm_shutdown = VMShutdownMutation.Field(description="Shut down VM")
     vm_reboot = VMRebootMutation.Field(description="Reboot VM")
     vm_pause = VMPauseMutation.Field(description="If VM is Running, pause VM. If Paused, unpause VM")
+    vm_suspend = VMSuspendMutation.Field(description="If VM is Running, suspend VM. If Suspended, resume VM")
     vm_delete = VMDeleteMutation.Field(description="Delete a Halted VM")
     vm_access_set = VMAccessSet.Field(description="Set VM access rights")
 

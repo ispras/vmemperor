@@ -7,6 +7,7 @@ from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils.base import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
 from handlers.graphql.types.objecttype import InputObjectType
+from xenadapter import Host
 from xenadapter.vm import VM
 from handlers.graphql.types.vm import DomainType
 
@@ -69,7 +70,7 @@ class VMMutation(graphene.Mutation):
 
 class VMStartInput(InputObjectType):
     paused = graphene.InputField(graphene.Boolean, default_value=False, description="Should this VM be started and immidiately paused")
-    # todo Implement Host field
+    host = graphene.InputField(graphene.ID, description="Host to start VM on")
     force = graphene.InputField(graphene.Boolean, default_value=False, description="Should this VM be started forcibly")
 
 
@@ -83,14 +84,37 @@ class VMStartMutation(graphene.Mutation):
         options = graphene.Argument(VMStartInput)
 
     @staticmethod
-    @with_authentication(access_class=VM, access_action=VM.Actions.start)
-    @return_if_access_is_not_granted([("VM", "ref", VM.Actions.start)])
+    @with_default_authentication
     def mutate(root, info, ref, options : VMStartInput = None, **kwargs):
         ctx :ContextProtocol = info.context
-        vm = kwargs['VM']
+
         paused = options.paused if options else False
         force = options.force if options else False
-        return VMStartMutation(granted=True, taskId=vm.async_start(paused, force))
+        host = options.host if options else None
+        vm = VM(ctx.xen, ref)
+        power_state = vm.get_power_state()
+        if power_state == "Halted":
+            if host:
+                access_action = VM.Actions.start_on
+                method = 'async_start_on'
+            else:
+                access_action = VM.Actions.start
+                method = 'async_start'
+        elif power_state == 'Suspended':
+            if host:
+                access_action = VM.Actions.resume_on
+                method = 'async_resume_on'
+            else:
+                access_action = VM.Actions.resume
+                method = 'async_resume'
+        else:
+            return VMStartMutation(granted=False, reason=f"Power state is  {power_state}, expected: Halted or Suspended")
+
+        if not vm.check_access(ctx.user_authenticator, access_action):
+            return VMStartMutation(granted=False, reason=f"Access to action {access_action} for VM {vm.ref} is not granted")
+
+        return VMStartMutation(granted=True, taskId=getattr(vm, method)(paused, force))
+
 
 
 class ShutdownForce(graphene.Enum):
@@ -159,14 +183,14 @@ class VMRebootMutation(graphene.Mutation):
 
 class VMPauseMutation(graphene.Mutation):
     taskId = graphene.ID(required=False, description="Pause/unpause task ID")
-    granted = graphene.Boolean(required=True, description="Shows if access to pause is granted")
+    granted = graphene.Boolean(required=True, description="Shows if access to pause/unpause is granted")
     reason = graphene.String()
 
     class Arguments:
         ref = graphene.ID(required=True)
 
     @staticmethod
-    @with_authentication
+    @with_default_authentication
     def mutate(root, info, ref):
         ctx: ContextProtocol = info.context
 
@@ -186,6 +210,22 @@ class VMPauseMutation(graphene.Mutation):
             return VMPauseMutation(granted=False, reason=f"Access to action {access_action} for VM {vm.ref} is not granted")
 
         return VMPauseMutation(taskId=getattr(vm, method)(), granted=True)
+
+
+class VMSuspendMutation(graphene.Mutation):
+    taskId = graphene.ID(required=False, description="Suspend/resume task ID")
+    granted = graphene.Boolean(required=True, description="Shows if access to suspend/resume is granted")
+    reason = graphene.String()
+
+    class Arguments:
+        ref = graphene.ID(required=True)
+
+    @staticmethod
+    @with_authentication(access_class=VM, access_action=VM.Actions.suspend)
+    @return_if_access_is_not_granted([("VM", "ref", VM.Actions.suspend)])
+    def mutate(root, info, ref, VM):
+        ctx: ContextProtocol = info.context
+        return VMSuspendMutation(taskId=VM.async_suspend(), granted=True)
 
 
 class VMDeleteMutation(graphene.Mutation):
