@@ -1,0 +1,7 @@
+mutation SuspendVM ($ref:ID!) {
+  vmSuspend (ref:$ref) {
+    taskId
+    granted
+    reason
+  }
+}

@@ -1,5 +1,7 @@
-mutation StartVM ($ref : ID!) {
-  vmStart(ref: $ref) {
+mutation StartVM ($ref:ID!, $options: VMStartInput) {
+  vmStart (ref:$ref, options : $options) {
+    granted
     taskId
+    reason
   }
 }

@@ -1,0 +1,7 @@
+mutation PauseVM ($ref:ID!) {
+  vmPause (ref:$ref) {
+    taskId
+    granted
+    reason
+  }
+}

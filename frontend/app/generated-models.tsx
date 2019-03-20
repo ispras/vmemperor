@@ -56,9 +56,11 @@ export interface VmInput {
 
 export interface VmStartInput {
   /** Should this VM be started and immidiately paused */
-  paused?: Maybe<boolean>;
+  paused?: boolean;
+  /** Host to start VM on */
+  host?: Maybe<string>;
   /** Should this VM be started forcibly */
-  force?: Maybe<boolean>;
+  force?: boolean;
 }
 /** An enumeration. */
 export enum VmActions {
@@ -701,6 +703,28 @@ export namespace NetworkList {
   export type Networks = NetworkListFragment.Fragment;
 }
 
+export namespace PauseVm {
+  export type Variables = {
+    ref: string;
+  };
+
+  export type Mutation = {
+    __typename?: "Mutation";
+
+    vmPause: Maybe<VmPause>;
+  };
+
+  export type VmPause = {
+    __typename?: "VMPauseMutation";
+
+    taskId: Maybe<string>;
+
+    granted: boolean;
+
+    reason: Maybe<string>;
+  };
+}
+
 export namespace PlaybookLaunch {
   export type Variables = {
     id: string;
@@ -904,6 +928,7 @@ export namespace ShutdownVm {
 export namespace StartVm {
   export type Variables = {
     ref: string;
+    options?: Maybe<VmStartInput>;
   };
 
   export type Mutation = {
@@ -915,7 +940,11 @@ export namespace StartVm {
   export type VmStart = {
     __typename?: "VMStartMutation";
 
+    granted: boolean;
+
     taskId: Maybe<string>;
+
+    reason: Maybe<string>;
   };
 }
 
@@ -929,6 +958,28 @@ export namespace StorageList {
   };
 
   export type Srs = StorageListFragment.Fragment;
+}
+
+export namespace SuspendVm {
+  export type Variables = {
+    ref: string;
+  };
+
+  export type Mutation = {
+    __typename?: "Mutation";
+
+    vmSuspend: Maybe<VmSuspend>;
+  };
+
+  export type VmSuspend = {
+    __typename?: "VMSuspendMutation";
+
+    taskId: Maybe<string>;
+
+    granted: boolean;
+
+    reason: Maybe<string>;
+  };
 }
 
 export namespace Tasks {
@@ -2986,6 +3037,49 @@ export namespace NetworkList {
     );
   }
 }
+export namespace PauseVm {
+  export const Document = gql`
+    mutation PauseVM($ref: ID!) {
+      vmPause(ref: $ref) {
+        taskId
+        granted
+        reason
+      }
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Mutation<Mutation, Variables>
+          mutation={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
+    TChildProps;
+  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
 export namespace PlaybookLaunch {
   export const Document = gql`
     mutation PlaybookLaunch($id: ID!, $vms: [ID], $variables: JSONString) {
@@ -3383,9 +3477,11 @@ export namespace ShutdownVm {
 }
 export namespace StartVm {
   export const Document = gql`
-    mutation StartVM($ref: ID!) {
-      vmStart(ref: $ref) {
+    mutation StartVM($ref: ID!, $options: VMStartInput) {
+      vmStart(ref: $ref, options: $options) {
+        granted
         taskId
+        reason
       }
     }
   `;
@@ -3459,6 +3555,49 @@ export namespace StorageList {
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace SuspendVm {
+  export const Document = gql`
+    mutation SuspendVM($ref: ID!) {
+      vmSuspend(ref: $ref) {
+        taskId
+        granted
+        reason
+      }
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Mutation<Mutation, Variables>
+          mutation={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
+    TChildProps;
+  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
       Document,
       operationOptions
     );
@@ -5772,6 +5911,12 @@ export namespace MutationResolvers {
     vmReboot?: VmRebootResolver<Maybe<VmRebootMutation>, TypeParent, TContext>;
     /** If VM is Running, pause VM. If Paused, unpause VM */
     vmPause?: VmPauseResolver<Maybe<VmPauseMutation>, TypeParent, TContext>;
+    /** If VM is Running, suspend VM. If Suspended, resume VM */
+    vmSuspend?: VmSuspendResolver<
+      Maybe<VmSuspendMutation>,
+      TypeParent,
+      TContext
+    >;
     /** Delete a Halted VM */
     vmDelete?: VmDeleteResolver<Maybe<VmDeleteMutation>, TypeParent, TContext>;
     /** Set VM access rights */
@@ -5924,6 +6069,15 @@ export namespace MutationResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext, VmPauseArgs>;
   export interface VmPauseArgs {
+    ref: string;
+  }
+
+  export type VmSuspendResolver<
+    R = Maybe<VmSuspendMutation>,
+    Parent = {},
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmSuspendArgs>;
+  export interface VmSuspendArgs {
     ref: string;
   }
 
@@ -6249,7 +6403,7 @@ export namespace VmPauseMutationResolvers {
   export interface Resolvers<TContext = {}, TypeParent = VmPauseMutation> {
     /** Pause/unpause task ID */
     taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
-    /** Shows if access to pause is granted */
+    /** Shows if access to pause/unpause is granted */
     granted?: GrantedResolver<boolean, TypeParent, TContext>;
 
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
@@ -6268,6 +6422,33 @@ export namespace VmPauseMutationResolvers {
   export type ReasonResolver<
     R = Maybe<string>,
     Parent = VmPauseMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace VmSuspendMutationResolvers {
+  export interface Resolvers<TContext = {}, TypeParent = VmSuspendMutation> {
+    /** Suspend/resume task ID */
+    taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
+    /** Shows if access to suspend/resume is granted */
+    granted?: GrantedResolver<boolean, TypeParent, TContext>;
+
+    reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
+  }
+
+  export type TaskIdResolver<
+    R = Maybe<string>,
+    Parent = VmSuspendMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
+    Parent = VmSuspendMutation,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
+    Parent = VmSuspendMutation,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
 }
@@ -7027,6 +7208,7 @@ export type IResolvers<TContext = {}> = {
   VmShutdownMutation?: VmShutdownMutationResolvers.Resolvers<TContext>;
   VmRebootMutation?: VmRebootMutationResolvers.Resolvers<TContext>;
   VmPauseMutation?: VmPauseMutationResolvers.Resolvers<TContext>;
+  VmSuspendMutation?: VmSuspendMutationResolvers.Resolvers<TContext>;
   VmDeleteMutation?: VmDeleteMutationResolvers.Resolvers<TContext>;
   VmAccessSet?: VmAccessSetResolvers.Resolvers<TContext>;
   PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers.Resolvers<TContext>;
@@ -7626,6 +7808,8 @@ export interface Mutation {
   vmReboot?: Maybe<VmRebootMutation>;
   /** If VM is Running, pause VM. If Paused, unpause VM */
   vmPause?: Maybe<VmPauseMutation>;
+  /** If VM is Running, suspend VM. If Suspended, resume VM */
+  vmSuspend?: Maybe<VmSuspendMutation>;
   /** Delete a Halted VM */
   vmDelete?: Maybe<VmDeleteMutation>;
   /** Set VM access rights */
@@ -7713,7 +7897,16 @@ export interface VmRebootMutation {
 export interface VmPauseMutation {
   /** Pause/unpause task ID */
   taskId?: Maybe<string>;
-  /** Shows if access to pause is granted */
+  /** Shows if access to pause/unpause is granted */
+  granted: boolean;
+
+  reason?: Maybe<string>;
+}
+
+export interface VmSuspendMutation {
+  /** Suspend/resume task ID */
+  taskId?: Maybe<string>;
+  /** Shows if access to suspend/resume is granted */
   granted: boolean;
 
   reason?: Maybe<string>;
@@ -7983,6 +8176,9 @@ export interface VmRebootMutationArgs {
   ref: string;
 }
 export interface VmPauseMutationArgs {
+  ref: string;
+}
+export interface VmSuspendMutationArgs {
   ref: string;
 }
 export interface VmDeleteMutationArgs {
