@@ -65,7 +65,16 @@ class XenObject(metaclass=XenObjectMeta):
                              f"XenObject:Failed to initialize object of type {self.__class__.__name__}"
                              f": invalid type of ref. Expected: str, got {ref.__class__.__name__}")
 
-    def check_access(self, auth: BasicAuthenticator,  action):
+    def check_access(self, auth: BasicAuthenticator,  action : Optional[SerFlag]):
+        '''
+        Check if it's possible to do 'action' by specified user with specified Xen Object
+        :param action: action to perform. If action is None, check for the fact that user can view this Xen object
+        :param auth: authenticator - an object containing info about user and all its groups
+        :return boolean
+
+        Implementation details:
+        ACL is disabled, always return True
+        '''
         return True
 
     def manage_actions(self, actions: Collection, revoke=False, user: str = None):

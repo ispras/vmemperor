@@ -7,7 +7,6 @@ from singleton import Singleton
 
 
 class XenAdapter(Loggable, metaclass=Singleton):
-    AUTOINSTALL_PREFIX = '/autoinstall'
     VMEMPEROR_ACCESS_PREFIX='vm-data/vmemperor/access'
 
 

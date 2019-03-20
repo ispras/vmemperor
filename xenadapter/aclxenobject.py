@@ -1,6 +1,6 @@
 import json
 from json import JSONDecodeError
-from typing import Dict
+from typing import Dict, Optional
 
 from rethinkdb.errors import ReqlNonExistenceError
 from serflag import SerFlag
@@ -43,7 +43,7 @@ class ACLXenObject(XenObject):
 
 
     @use_logger
-    def check_access(self, auth : BasicAuthenticator, action):
+    def check_access(self, auth : BasicAuthenticator, action : Optional[SerFlag]):
         '''
         Check if it's possible to do 'action' by specified user with specified Xen Object
         :param action: action to perform. If action is None, check for the fact that user can view this Xen object

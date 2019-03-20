@@ -5,7 +5,7 @@ from playbookloader import PlaybookLoader
 
 logger = None # global logger
 POSTINST_ROUTE = r'/postinst'
-
+AUTOINSTALL_ROUTE = r'/autoinstall'
 
 first_batch_of_events = threading.Event()
 need_exit = threading.Event()

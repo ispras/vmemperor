@@ -21,7 +21,8 @@ class AbstractVM(ACLXenObject):
         return new_rec
 
     def check_access(self, auth : BasicAuthenticator, action : SerFlag):
-        blocked_operations_query = re.db.table(self.db_table_name).get(self.ref).pluck('_blocked_operations_')
-        if action.name in blocked_operations_query.run()['_blocked_operations_']:
-            return False
+        if action:
+            blocked_operations_query = re.db.table(self.db_table_name).get(self.ref).pluck('_blocked_operations_')
+            if action.name in blocked_operations_query.run()['_blocked_operations_']:
+                return False
         return super().check_access(auth, action)

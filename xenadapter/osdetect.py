@@ -1,5 +1,8 @@
 from urllib.parse import urlencode
 
+from constants import AUTOINSTALL_ROUTE
+
+
 class GenericOS:
     '''
     A class that generates kernel boot arguments string for various Linux distributions
@@ -54,7 +57,6 @@ class GenericOS:
         :return: Scenario URL
         '''
         from vmemperor import opts
-        from xenadapter import XenAdapter
         args = dict(
             device=self.device,
             hostname=self.hostname,
@@ -72,7 +74,7 @@ class GenericOS:
         )
 
         return 'http://' + opts.vmemperor_host + ':' + str(
-            opts.vmemperor_port) + XenAdapter.AUTOINSTALL_PREFIX + "/" + self.os_kind.split()[0] + "?" \
+            opts.vmemperor_port) + AUTOINSTALL_ROUTE + "/" + self.os_kind.split()[0] + "?" \
         + urlencode(args, doseq=True)
 
     def set_kickstart(self, url):

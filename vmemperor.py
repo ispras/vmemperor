@@ -102,7 +102,7 @@ def make_app(executor, auth_class=None, debug=False):
 
         (r"/login", AuthHandler, dict(pool_executor=executor, authenticator=auth_class)),
         (r"/logout", LogOut, dict(pool_executor=executor)),
-        (XenAdapter.AUTOINSTALL_PREFIX + r'/([^/]+)', AutoInstall, dict(pool_executor=executor)),
+        (constants.AUTOINSTALL_ROUTE + r'/([^/]+)', AutoInstall, dict(pool_executor=executor)),
         (constants.POSTINST_ROUTE + r'.*', Postinst, dict(pool_executor=executor)),
         (r'/console.*', ConsoleHandler, dict(pool_executor=executor)),
         (r'/list_pools', PoolListPublic, dict(pool_executor=executor)),
