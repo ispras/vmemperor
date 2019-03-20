@@ -1,4 +1,4 @@
-import React, {Reducer, ReducerState, useCallback, useEffect, useMemo, useReducer} from 'react';
+import React, {Reducer, ReducerState, useCallback, useEffect, useMemo, useReducer, useState} from 'react';
 import {useSubscription} from "../../hooks/subscription";
 import {
   Change,
@@ -7,7 +7,7 @@ import {
   PowerState,
   ShutdownVm,
   StartVm,
-  SuspendVm,
+  SuspendVm, VmAccessSetMutation,
   VmActions,
   VmList,
   VmListFragment,
@@ -33,6 +33,8 @@ import {ListAction} from "../../utils/reducer";
 import PauseButton from "../../components/PauseButton";
 import SuspendButton from "../../components/SuspendButton";
 import VmSelectedReadyFor = VmStateForButtonToolbar.VmSelectedReadyFor;
+import SetAccessButton from "../../components/SetAccessButton";
+import ActionListModal from "../../components/AccessView/actionListModal";
 
 
 type VmColumnType = ColumnType<VmListFragment.Fragment>;
@@ -77,6 +79,7 @@ interface State {
   selectedForTrash: Set<string>;
   selectedForPause: Set<string>;
   selectedForSuspend: Set<string>;
+  selectedForSetAction: Set<string>;
   wholeSelection: Map<string, VmListFragment.Fragment>;
 }
 
@@ -89,6 +92,7 @@ const initialState: ReducerState<VMListReducer> = {
   selectedForTrash: Set.of<string>(),
   selectedForPause: Set.of<string>(),
   selectedForSuspend: Set.of<string>(),
+  selectedForSetAction: Set.of<string>(),
   wholeSelection: Map.of(),
 };
 
@@ -137,21 +141,28 @@ export default function ({history}: RouteComponentProps) {
           selectedForSuspend: info.powerState === PowerState.Running && info.myActions.includes(VmActions.Suspend)
             ? state.selectedForSuspend.add(action.ref)
             : state.selectedForSuspend.remove(action.ref),
-          wholeSelection: state.wholeSelection.set(action.ref, info)
-        };
-      case "Remove":
+          selectedForSetAction: info.isOwner
+            ? state.selectedForSetAction.add(action.ref)
+            : state.selectedForSetAction.remove(action.ref),
+          wholeSelection: state.wholeSelection.set(action.ref, info),
+        }
+          ;
+      case
+      "Remove"
+      :
         return {
           selectedForStart: state.selectedForStart.remove(action.ref),
           selectedForStop: state.selectedForStop.remove(action.ref),
           selectedForTrash: state.selectedForTrash.remove(action.ref),
           selectedForPause: state.selectedForPause.remove(action.ref),
           selectedForSuspend: state.selectedForSuspend.remove(action.ref),
+          selectedForSetAction: state.selectedForSetAction.remove(action.ref),
           wholeSelection: state.wholeSelection.remove(action.ref),
         }
 
     }
   };
-  const [{selectedForStart, selectedForStop, selectedForTrash, selectedForPause, selectedForSuspend, wholeSelection}, dispatch] = useReducer<VMListReducer>(reducer, initialState);
+  const [{selectedForStart, selectedForStop, selectedForTrash, selectedForPause, selectedForSuspend, selectedForSetAction, wholeSelection}, dispatch] = useReducer<VMListReducer>(reducer, initialState);
   const {data: {selectedItems}} = useQuery<VmTableSelection.Query, VmTableSelection.Variables>(VmTableSelection.Document);
 
   useEffect(() => { //Re-add items to our internal state
@@ -319,6 +330,10 @@ export default function ({history}: RouteComponentProps) {
     }
   };
 
+  const [actionModalVisible, setActionModalVisible] = useState(false);
+  const onActionSet = useCallback(() => {
+    setActionModalVisible(true);
+  }, [setActionModalVisible]);
 
   return (
     <React.Fragment>
@@ -343,6 +358,10 @@ export default function ({history}: RouteComponentProps) {
             onClick={onSuspendVm}
             disabled={selectedForSuspend.isEmpty()}
           />
+          <SetAccessButton
+            onClick={onActionSet}
+            disabled={selectedForSetAction.isEmpty()}
+          />
         </ButtonGroup>
         <ButtonGroup className="ml-auto">
           <RecycleBinButton
@@ -351,6 +370,17 @@ export default function ({history}: RouteComponentProps) {
             disabled={selectedForTrash.isEmpty()}/>
         </ButtonGroup>
       </ButtonToolbar>
+      {!selectedForSetAction.isEmpty() &&
+      (<ActionListModal
+        setOpen={setActionModalVisible}
+        open={actionModalVisible}
+        actions={wholeSelection.get(selectedForSetAction.toSeq().first()).myActions}
+        refs={selectedForSetAction.toArray()}
+        ALL={VmActions.All}
+        mutationName="vmAccessSet"
+        mutationNode={VmAccessSetMutation.Document}
+      />)}
+
       <StatefulTable
         keyField="ref"
         refetchQueriesOnSelect={
@@ -382,7 +412,8 @@ export default function ({history}: RouteComponentProps) {
           ref: key,
         })}
       />
-    </React.Fragment>)
+    </React.Fragment>
+  )
 
 
 }

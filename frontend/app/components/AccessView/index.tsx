@@ -1,14 +1,13 @@
 import * as React from 'react';
-import {GAccessEntry, User, VmAccessSetMutation, VmAccessSetMutationArgs, VmActions} from "../../generated-models";
+import {GAccessEntry, User} from "../../generated-models";
 import {useCallback, useMemo, useState} from "react";
 import {Nav, Col, NavItem, TabContent, ListGroup, Button} from 'reactstrap';
 import Row from "reactstrap/lib/Row";
 import NavLink from "reactstrap/lib/NavLink";
 import classnames from 'classnames';
 import TabPane from "reactstrap/lib/TabPane";
-import ListGroupItem from "reactstrap/lib/ListGroupItem";
 import ActionList from "./actionList";
-import SelectUsers from "./selectUsers";
+import {DocumentNode} from "graphql";
 
 export interface AccessEntry<T> extends GAccessEntry {
   actions: Array<T>,
@@ -26,11 +25,12 @@ interface ACLXenObject<T> {
 interface Props<T> {
   data: ACLXenObject<T>;
   ALL: T; //ALL action
-
+  mutationNode: DocumentNode,
+  mutationName: string,
 }
 
 
-function AccessView<T>({data, ALL}: Props<T>) {
+function AccessView<T>({data, ALL, mutationName, mutationNode}: Props<T>) {
   const [activeTab, setActiveTab] = useState("you");
   const toggleTab = useCallback((tab: string) => {
     if (activeTab !== tab) {
@@ -72,9 +72,9 @@ function AccessView<T>({data, ALL}: Props<T>) {
             <ActionList
               actions={data.myActions}
               isOwner={data.isOwner}
-              _ref={data.ref}
-              mutationNode={VmAccessSetMutation.Document}
-              mutationName="vmAccessSet"
+              refs={[data.ref]}
+              mutationNode={mutationNode}
+              mutationName={mutationName}
               ALL={ALL}
             />
           </TabPane>
@@ -84,9 +84,9 @@ function AccessView<T>({data, ALL}: Props<T>) {
                 actions={item.actions}
                 user={item.userId}
                 isOwner={data.isOwner}
-                mutationNode={VmAccessSetMutation.Document}
-                _ref={data.ref}
-                mutationName="vmAccessSet"
+                refs={[data.ref]}
+                mutationNode={mutationNode}
+                mutationName={mutationName}
                 ALL={ALL}
               />
             </TabPane>

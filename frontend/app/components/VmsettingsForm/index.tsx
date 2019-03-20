@@ -5,7 +5,7 @@
  */
 
 import React, {useCallback, useState} from 'react';
-import {PowerState, VmActions, VmInfo} from "../../generated-models";
+import {PowerState, VmAccessSetMutation, VmActions, VmInfo} from "../../generated-models";
 import Power from './subforms/power';
 import {Badge, Col, Nav, NavItem, NavLink, Row, TabContent, TabPane} from 'reactstrap';
 import classnames from 'classnames';
@@ -14,6 +14,7 @@ import Network from "./subforms/network";
 import Storage from "./subforms/storage";
 import AccessView from '../../components/AccessView';
 import Vm = VmInfo.Vm;
+import VmAccessSet = VmAccessSetMutation.VmAccessSet;
 
 
 interface Props {
@@ -121,6 +122,8 @@ const VmsettingsForm = ({vm}: Props) => {
               {<AccessView
                 data={vm}
                 ALL={VmActions.All}
+                mutationName="vmAccessSet"
+                mutationNode={VmAccessSetMutation.Document}
               />}
             </Col>
           </Row>

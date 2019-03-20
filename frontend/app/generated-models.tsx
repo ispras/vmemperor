@@ -1489,6 +1489,8 @@ export namespace VmListFragment {
     powerState: PowerState;
 
     myActions: (Maybe<VmActions>)[];
+
+    isOwner: boolean;
   };
 }
 
@@ -1737,6 +1739,7 @@ export namespace VmListFragment {
       nameLabel
       powerState
       myActions
+      isOwner
     }
   `;
 }

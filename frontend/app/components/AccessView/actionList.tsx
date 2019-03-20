@@ -21,17 +21,17 @@ export interface MutationVariables<T> {
   revoke: boolean;
 }
 
-interface Props<T> {
+export interface Props<T> {
   actions: T[],
   user?: User,
   isOwner: boolean;
-  _ref: string;
+  refs: string[];
   mutationNode: DocumentNode;
   mutationName: string;
   ALL: T,
 }
 
-function ActionList<T>({actions, user, isOwner, _ref, mutationNode, ALL}: Props<T>) {
+function ActionList<T>({actions, user, isOwner, refs, mutationNode, ALL}: Props<T>) {
   type MyVariables = MutationVariables<T>;
   if (isOwner) {
     const [selectedItems, setSelectedItems] = useState(Set.of<T>());
@@ -49,32 +49,37 @@ function ActionList<T>({actions, user, isOwner, _ref, mutationNode, ALL}: Props<
       if (!user) {
         return null;
       }
-      await onAccessSetMutation({
-        variables: {
-          ref: _ref,
-          actions: selectedItems.toArray(),
-          user: user.id,
-          revoke: true,
-        }
-      });
-    }, [user, _ref, selectedItems]);
+      for (const ref of refs) {
+        await onAccessSetMutation({
+          variables: {
+            ref,
+            actions: selectedItems.toArray(),
+            user: user.id,
+            revoke: true,
+          }
+        });
+      }
+    }, [user, refs, selectedItems]);
 
     const onGrantRequested = useCallback(async (users: Array<User>) => {
       if (user)
         return null;
       for (const user of users) {
-        await onAccessSetMutation({
-          variables: {
-            ref: _ref,
-            actions: makeOwner ? [ALL] : selectedItems.toArray(),
-            user: user.id,
-            revoke: false,
-          }
-        });
+        for (const ref of refs) {
+          await onAccessSetMutation({
+            variables: {
+              ref,
+              actions: makeOwner ? [ALL] : selectedItems.toArray(),
+              user: user.id,
+              revoke: false,
+            }
+
+          });
+        }
       }
       setUserSelectionModal(false);
 
-    }, [user, _ref, selectedItems, ALL, makeOwner]);
+    }, [user, refs, selectedItems, ALL, makeOwner]);
     const onSelectDeselect = useCallback(() => {
         if (selectedItems.count() == actions.length) {
           setSelectedItems(selectedItems.clear());
