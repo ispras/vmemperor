@@ -3,6 +3,9 @@ from collections.abc import Iterable
 
 from graphql import ResolveInfo
 import itertools
+
+from rethinkdb.errors import ReqlNonExistenceError
+
 from authentication import BasicAuthenticator
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
 from xenadapter.aclxenobject import ACLXenObject
@@ -219,5 +222,7 @@ class QueryBuilder:
 
         if connection:
             return query.run(connection)
-
-        return query.run()
+        try:
+            return query.run()
+        except ReqlNonExistenceError:
+            return None
