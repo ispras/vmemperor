@@ -25,9 +25,25 @@ const VNCView = ({vm: {ref, nameLabel, powerState}}: Props) => {
   }
   const url = `ws://${window.location.hostname}:${window.location.port}/api${data.console}`;
 
+  const onClipboard = (e: CustomEvent) => {
+    /*
+    Copies text to system clipboard.
+     e is defined in  RFB._handle_server_cut_text
+     */
+    const textField = document.createElement("textarea");
+    textField.innerText = e.detail.text;
+    document.body.appendChild(textField);
+    textField.select();
+    document.execCommand('copy');
+    textField.remove();
+  };
+
   return (
     <Fragment>
-      <VncDisplay url={url} onDisconnect={() => refetch()}/>
+      <VncDisplay
+        onClipboard={onClipboard}
+        url={url}
+        onDisconnect={() => refetch()}/>
     </Fragment>
   );
 };

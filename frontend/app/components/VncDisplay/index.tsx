@@ -1,10 +1,20 @@
-import React from 'react';
+import React, {Ref} from 'react';
 import {arrayOf, string, bool, func, number, object} from 'prop-types';
 import RFB from '@novnc/novnc/core/rfb';
 import {init_logging} from '@novnc/novnc/core/util/logging';
 import omit from 'object.omit';
 
-export default class VncDisplay extends React.PureComponent {
+interface Props {
+  onDisconnect: () => any;
+  url: string;
+  onClipboard: (e: CustomEvent) => any;
+}
+
+export default class VncDisplay extends React.PureComponent<Props> {
+  rfb: RFB;
+  canvas: Ref<any>;
+
+
   static propTypes = {
     url: string.isRequired,
     style: object,
@@ -78,6 +88,7 @@ export default class VncDisplay extends React.PureComponent {
       this.connect();
     }
   };
+
   connect = () => {
     this.disconnect();
 
@@ -101,6 +112,7 @@ export default class VncDisplay extends React.PureComponent {
     this.rfb = new RFB(this.canvas, this.props.url, {...options});
     this.rfb.focusOnClick = true;
     this.rfb.addEventListener("disconnect", this.onDisconnected);
+    this.rfb.addEventListener("clipboard", this.props.onClipboard);
   };
 
   registerChild = (ref) => this.canvas = ref;
