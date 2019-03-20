@@ -1,6 +1,6 @@
 import pathlib
 from urllib.parse import urlencode
-
+import os, sys
 import constants
 from handlers.rest.base import RESTHandler
 
@@ -70,7 +70,10 @@ class AutoInstall(RESTHandler):
         if not filename:
             raise ValueError(f"OS {os_kind} doesn't support autoinstallation")
         # filename = 'raid10.cfg'
-        self.render(f"templates/installation-scenarios/{filename}", hostname=hostname, username=username,
-                    fullname=fullname, password=password, mirror_url=mirror_url, mirror_path=mirror_path,
-                    ip=ip, gateway=gateway, netmask=netmask, dns0=dns0, dns1=dns1, partition=partition, pubkey=pubkey,device=device,
-                    postinst=f"{constants.URL}{constants.POSTINST_ROUTE}?{urlencode({'os': 'debian', 'device':device})}")
+        self.render(os.path.join(
+            os.path.abspath(sys.modules['__main__'].__file__ + "/.."),
+            f"templates/installation-scenarios/{filename}"),
+            hostname=hostname, username=username,
+            fullname=fullname, password=password, mirror_url=mirror_url, mirror_path=mirror_path,
+            ip=ip, gateway=gateway, netmask=netmask, dns0=dns0, dns1=dns1, partition=partition, pubkey=pubkey,device=device,
+            postinst=f"{constants.URL}{constants.POSTINST_ROUTE}?{urlencode({'os': 'debian', 'device':device})}")
