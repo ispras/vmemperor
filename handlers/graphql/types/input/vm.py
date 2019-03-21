@@ -4,21 +4,18 @@ import graphene
 
 from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
 from handlers.graphql.graphql_handler import ContextProtocol
-from handlers.graphql.mutation_utils.base import MutationMethod, MutationHelper
+from handlers.graphql.mutation_utils.mutationmethod import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
-from handlers.graphql.types.input.namedinput import NamedInput, set_name_label, set_name_description
+from handlers.graphql.types.input.abstractvm import AbstractVMInput, domain_type, VCPUs_at_startup, \
+    VCPUs_max
+from handlers.graphql.types.input.namedinput import NamedInput, name_label, name_description
 from handlers.graphql.types.objecttype import InputObjectType
 from xenadapter import Host
 from xenadapter.vm import VM
 from handlers.graphql.types.vm import DomainType
 
-class VMInput(NamedInput):
-    domain_type = graphene.InputField(DomainType, description="VM domain type: 'pv', 'hvm', 'pv_in_pvh'")
-
-
-def set_domain_type(ctx: ContextProtocol, vm: VM, changes: VMInput):
-    if changes.domain_type is not None:
-        vm.set_domain_type(changes.domain_type)
+class VMInput(AbstractVMInput):
+    pass
 
 
 class VMMutation(graphene.Mutation):
@@ -41,18 +38,20 @@ class VMMutation(graphene.Mutation):
         mutable = VM(ctx.xen, vm.ref)
 
         mutations = [
-            MutationMethod(func=set_name_label, access_action=VM.Actions.rename, deps=(vm.name_label,)),
-            MutationMethod(func=set_name_description, access_action=VM.Actions.rename, deps=(vm.name_description, )),
-            MutationMethod(func=set_domain_type, access_action=VM.Actions.change_domain_type, deps=(vm.domain_type, ))
+            MutationMethod(func=name_label, access_action=VM.Actions.rename, deps=(vm.name_label,)),
+            MutationMethod(func=name_description, access_action=VM.Actions.rename, deps=(vm.name_description,)),
+            MutationMethod(func=domain_type, access_action=VM.Actions.change_domain_type, deps=(vm.domain_type,)),
+            MutationMethod(func=VCPUs_max, access_action=VM.Actions.changing_VCPUs, deps=(vm.VCPUs_max,
+                lambda obj: (obj.get_power_state() == "Halted", f"{obj} should be in 'Halted' state, encountered: '{obj.get_power_state()}'"))),
+            #  priority matters: set_vcpus_max is executed first
+            MutationMethod(func=VCPUs_at_startup, access_action=VM.Actions.changing_VCPUs, deps=(vm.VCPUs_at_startup,)),
         ]
 
-        def reason(method: MutationMethod):
-            return f"Action {method.access_action} is required to perform mutation on VM {mutable.ref}"
 
         helper = MutationHelper(mutations, ctx, mutable)
-        granted, method = helper.perform_mutations(vm)
+        granted, reason = helper.perform_mutations(vm)
         if not granted:
-            return VMMutation(granted=False, reason=reason(method))
+            return VMMutation(granted=False, reason=reason)
 
         return VMMutation(granted=True)
 

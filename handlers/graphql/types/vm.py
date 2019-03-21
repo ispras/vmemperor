@@ -74,6 +74,8 @@ class VMActions(SerFlag):
     change_domain_type = auto()
     VNC = auto()
 
+    changing_VCPUs = auto()
+    
     snapshot = auto()
     clone = auto()
     copy = auto()

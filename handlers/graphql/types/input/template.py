@@ -1,18 +1,17 @@
 import graphene
 
 from handlers.graphql.graphql_handler import ContextProtocol
-from handlers.graphql.mutation_utils.base import MutationMethod, MutationHelper
+from handlers.graphql.mutation_utils.mutationmethod import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
 from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
-from handlers.graphql.types.objecttype import InputObjectType
+from handlers.graphql.types.input.abstractvm import AbstractVMInput
 from xenadapter.template import Template
 
-class TemplateInput(InputObjectType):
-    ref = graphene.InputField(graphene.ID, required=True, description="Template ID")
+class TemplateInput(AbstractVMInput):
     enabled = graphene.InputField(graphene.Boolean,
                                 description="Should this template be enabled, i.e. used in VMEmperor by users")
 
-def set_enabled(ctx : ContextProtocol, template : Template, changes : TemplateInput):
+def enabled(ctx : ContextProtocol, template : Template, changes : TemplateInput):
     if changes.enabled is not None:
         template.set_enabled(changes.enabled)
 
@@ -34,18 +33,13 @@ class TemplateMutation(graphene.Mutation):
         t = Template(xen=ctx.xen, ref=template.ref)
 
         mutations = [
-            MutationMethod(func=set_enabled, access_action=None, deps=(template.enabled, ))
-
+            MutationMethod(func=enabled, access_action=None, deps=(template.enabled,))
         ]
 
-        def reason(method):
-            if method.func == set_enabled:
-                return "Not an administrator"
-
         helper = MutationHelper(mutations, ctx, t)
-        granted, method = helper.perform_mutations(template)
+        granted, reason = helper.perform_mutations(template)
         if not granted:
-            return TemplateMutation(granted=False, reason=reason(method))
+            return TemplateMutation(granted=False, reason=reason)
 
         return TemplateMutation(granted=True)
 
