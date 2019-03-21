@@ -122,7 +122,11 @@ const VMFormContainer: React.FunctionComponent = () => {
               username: string().min(1).max(31).matches(USERNAME_REGEX).when('autoMode', autoModeRequired(string)),
               password: string().min(1).matches(PASSWORD_REGEX).when('autoMode', autoModeRequired(string)),
               // @ts-ignore
-              password2: string().sameAs(Yup.ref('password')).when('autoMode', autoModeRequired(string)),
+              password2: string().required().label("Confirm password").test('pass-match', 'Passwords must match',
+                function (value) {
+                  console.log("Test password!");
+                  return this.parent.password === value;
+                }),
               nameDescription: string(),
               nameLabel: string().required(),
               vcpus: number().integer().min(1).max(32).required(),
