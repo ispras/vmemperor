@@ -8,6 +8,7 @@ from authentication import AdministratorAuthenticator, NotAuthenticatedAsAdminEx
 
 from handlers.graphql.graphql_handler import ContextProtocol
 from xenadapter.xenobject import XenObject
+from functools import partial
 
 
 @dataclass
@@ -17,10 +18,10 @@ class MutationMethod:
     Here, access_action = None has a special meaning: if access_action is None, then it is checked whether the user is an administrator, thus this
     value is suitable for administrator actions
     '''
-    #func : Callable[[ContextProtocol, XenObject, InputObject, OutputObject, ...], None]
-    func : Callable
-    access_action : Optional[SerFlag]
-
+    # func : Callable[[ContextProtocol, XenObject, InputObject, OutputObject, ...], None]
+    func: Callable
+    access_action: Optional[SerFlag]
+    deps: Tuple[Any]
 
 
 @dataclass
@@ -31,9 +32,9 @@ class MutationHelper:
     - ctx: Request's context
     - mutable_object: A Xen object to perform mutation on
     """
-    mutations : Sequence[MutationMethod]
-    ctx : ContextProtocol
-    mutable_object : XenObject
+    mutations: Sequence[MutationMethod]
+    ctx: ContextProtocol
+    mutable_object: XenObject
 
     def perform_mutations(self, changes) -> Tuple[bool, Optional[MutationMethod]]:
         '''
@@ -43,27 +44,16 @@ class MutationHelper:
         '''
         callables = []
         for item in self.mutations:
-            if item.access_action is None:
-                if self.ctx.user_authenticator.is_admin():
-                    callables.append(lambda: item.func(self.ctx, self.mutable_object, changes))
-                else:
-                    return False, item
+            if None in item.deps:
+                continue  # Dependency not fulfilled
+            if item.access_action is None and \
+                    self.ctx.user_authenticator.is_admin() or \
+                    self.mutable_object.check_access(self.ctx.user_authenticator, item.access_action):
+                callables.append(partial(item.func, self.ctx, self.mutable_object, changes))
             else:
-                if self.mutable_object.check_access(self.ctx.user_authenticator, item.access_action):
-                    callables.append(lambda: item.func(self.ctx, self.mutable_object, changes))
-                else:
-                    return False, item
+                return False, item
 
         for callable in callables:
             callable()
 
         return True, None
-
-
-
-
-
-
-
-
-

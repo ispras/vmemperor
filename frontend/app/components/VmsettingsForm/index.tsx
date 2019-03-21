@@ -5,8 +5,8 @@
  */
 
 import React, {useCallback, useState} from 'react';
-import {PowerState, VmAccessSetMutation, VmActions, VmInfo} from "../../generated-models";
-import Power from './subforms/power';
+import {PowerState, VmAccessSetMutation, VmActions, VmEditOptions, VmInfo} from "../../generated-models";
+import Overview from './subforms/overview';
 import {Badge, Col, Nav, NavItem, NavLink, Row, TabContent, TabPane} from 'reactstrap';
 import classnames from 'classnames';
 import Vncview from '../../containers/Vncview';
@@ -15,6 +15,7 @@ import Storage from "./subforms/storage";
 import AccessView from '../../components/AccessView';
 import Vm = VmInfo.Vm;
 import VmAccessSet = VmAccessSetMutation.VmAccessSet;
+import XenObjectHeader from "../XenObjectHeader";
 
 
 interface Props {
@@ -22,17 +23,17 @@ interface Props {
 }
 
 enum Tab {
-  Power = 'power',
+  Overview = 'overview',
+  CPU = 'cpu',
   VNC = 'vnc',
   Access = 'access',
   Storage = 'storage',
   Network = 'network',
-
 }
 
 
 const VmsettingsForm = ({vm}: Props) => {
-  const [activeTab, setActiveTab] = useState(Tab.Power);
+  const [activeTab, setActiveTab] = useState(Tab.Overview);
   const [vncActivated, setVncActivated] = useState(false);
 
   const toggleTab = useCallback((tab: Tab) => {
@@ -46,24 +47,39 @@ const VmsettingsForm = ({vm}: Props) => {
 
   if (activeTab === Tab.VNC && vm.powerState !== PowerState.Running) {
     setVncActivated(false);
-    setActiveTab(Tab.Power);
+    setActiveTab(Tab.Overview);
   }
   return (
     <div>
-      <h3 className="text-center">{vm.nameLabel} <Badge color="primary">{vm.powerState}</Badge>
+      <XenObjectHeader
+        xenObject={vm}
+        editMutationName={"vm"}
+        editMutation={VmEditOptions.Document}
+      >
+        <Badge color="primary">{vm.powerState}</Badge>
         {vm.osVersion &&
         (<Badge color="success">{vm.osVersion.name}</Badge>)}
-      </h3>
+      </XenObjectHeader>
 
       <Nav tabs={true}>
         <NavItem>
           <NavLink
-            className={classnames({active: activeTab === Tab.Power})}
+            className={classnames({active: activeTab === Tab.Overview})}
             onClick={() => {
-              toggleTab(Tab.Power);
+              toggleTab(Tab.Overview);
             }}
           >
-            Power
+            Overview
+          </NavLink>
+        </NavItem>
+        <NavItem>
+          <NavLink
+            className={classnames({active: activeTab === Tab.CPU})}
+            onClick={() => {
+              toggleTab(Tab.CPU);
+            }}
+          >
+            CPU & Memory
           </NavLink>
         </NavItem>
         <NavItem>
@@ -109,10 +125,17 @@ const VmsettingsForm = ({vm}: Props) => {
         </NavItem>
       </Nav>
       <TabContent activeTab={activeTab}>
-        <TabPane tabId={Tab.Power}>
+        <TabPane tabId={Tab.Overview}>
           <Row>
             <Col sm="12">
-              <Power vm={vm}/>
+              <Overview vm={vm}/>
+            </Col>
+          </Row>
+        </TabPane>
+        <TabPane tabId={Tab.CPU}>
+          <Row>
+            <Col sm="12">
+              
             </Col>
           </Row>
         </TabPane>

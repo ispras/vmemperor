@@ -6,26 +6,15 @@ from authentication import with_authentication, with_default_authentication, ret
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils.base import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
+from handlers.graphql.types.input.namedinput import NamedInput, set_name_label, set_name_description
 from handlers.graphql.types.objecttype import InputObjectType
 from xenadapter import Host
 from xenadapter.vm import VM
 from handlers.graphql.types.vm import DomainType
 
-
-class VMInput(InputObjectType):
-    ref = graphene.InputField(graphene.ID, required=True, description="VM ref")
-    name_label = graphene.InputField(graphene.String, description="VM human-readable name")
-    name_description = graphene.InputField(graphene.String, description="VM human-readable description")
+class VMInput(NamedInput):
     domain_type = graphene.InputField(DomainType, description="VM domain type: 'pv', 'hvm', 'pv_in_pvh'")
 
-def set_name_label(ctx : ContextProtocol, vm : VM, changes : VMInput):
-    if changes.name_label is not None:
-        vm.set_name_label(changes.name_label)
-
-
-def set_name_description(ctx: ContextProtocol, vm: VM, changes: VMInput):
-    if changes.name_description is not None:
-        vm.set_name_description(changes.name_description)
 
 def set_domain_type(ctx: ContextProtocol, vm: VM, changes: VMInput):
     if changes.domain_type is not None:
@@ -46,15 +35,15 @@ class VMMutation(graphene.Mutation):
     @staticmethod
     @with_default_authentication
     @with_connection
-    def mutate(root, info, vm):
+    def mutate(root, info, vm: VMInput):
         ctx : ContextProtocol = info.context
 
         mutable = VM(ctx.xen, vm.ref)
 
         mutations = [
-            MutationMethod(func=set_name_label, access_action=VM.Actions.rename),
-            MutationMethod(func=set_name_description, access_action=VM.Actions.rename),
-            MutationMethod(func=set_domain_type, access_action=VM.Actions.change_domain_type)
+            MutationMethod(func=set_name_label, access_action=VM.Actions.rename, deps=(vm.name_label,)),
+            MutationMethod(func=set_name_description, access_action=VM.Actions.rename, deps=(vm.name_description, )),
+            MutationMethod(func=set_domain_type, access_action=VM.Actions.change_domain_type, deps=(vm.domain_type, ))
         ]
 
         def reason(method: MutationMethod):

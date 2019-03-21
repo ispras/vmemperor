@@ -18,7 +18,6 @@ def set_enabled(ctx : ContextProtocol, template : Template, changes : TemplateIn
 
 
 
-
 class TemplateMutation(graphene.Mutation):
     granted = graphene.Field(graphene.Boolean, required=True, description="If access is granted")
     reason = graphene.Field(graphene.String, required=False, description="If access is not granted, return reason why")
@@ -29,13 +28,14 @@ class TemplateMutation(graphene.Mutation):
     @staticmethod
     @with_default_authentication
     @with_connection
-    def mutate(root, info, template):
+    def mutate(root, info, template : TemplateInput):
         ctx : ContextProtocol = info.context
 
         t = Template(xen=ctx.xen, ref=template.ref)
 
         mutations = [
-            MutationMethod(func=set_enabled, access_action=None)
+            MutationMethod(func=set_enabled, access_action=None, deps=(template.enabled, ))
+
         ]
 
         def reason(method):

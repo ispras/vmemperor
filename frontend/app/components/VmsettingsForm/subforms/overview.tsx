@@ -25,7 +25,7 @@ interface Props {
   vm: Vm
 }
 
-const Power = ({vm}: Props) => {
+const Overview = ({vm}: Props) => {
 
   const current_date = new Date();
   const start_date = new Date(vm.startTime);
@@ -215,4 +215,4 @@ const Power = ({vm}: Props) => {
   );
 };
 
-export default Power;
+export default Overview;
