@@ -1,4 +1,5 @@
 import logging
+from collections import Mapping
 
 import XenAPI
 from exc import XenAdapterAPIError, XenAdapterArgumentError
@@ -10,6 +11,19 @@ import constants.re as re
 
 class XenObjectMeta(type):
 
+    @staticmethod
+    def convert_dict(d):
+        if not isinstance(d, Mapping):
+            return d
+        def convert_value(v):
+            if v is True:
+                return 'true'
+            elif v is False:
+                return 'false'
+            else:
+                return str(v)
+        return {k: convert_value(v) for k,v in d.items()}
+
     def __getattr__(cls, name):
         if name[0] == '_':
             name = name[1:]
@@ -19,6 +33,7 @@ class XenObjectMeta(type):
             from .task import Task
             def async_method(xen, *args, **kwargs):
                 try:
+                    args = [cls.convert_dict(arg) for arg in args]
                     async_method = getattr(xen.api, 'Async')
                     api = getattr(async_method, cls.api_class)
                     attr = getattr(api, name)
@@ -37,7 +52,7 @@ class XenObjectMeta(type):
             api_class = getattr(cls, 'api_class')
             api = getattr(xen.api, api_class)
             attr = getattr(api, name)
-
+            args = [cls.convert_dict(arg) for arg in args]
             try:
                 ret = attr(*args, **kwargs)
                 if isinstance(ret, dict):

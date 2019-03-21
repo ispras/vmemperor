@@ -246,6 +246,7 @@ class XenObject(metaclass=XenObjectMeta):
             name=name[1:]
         attr = getattr(api, name)
         def method (*args, **kwargs):
+            args = [type(self).convert_dict(arg) for arg in args]
             try:
                 ret = attr(self.ref, *args, **kwargs)
                 if async_call:  # Add task to tasks table, providing vmemperor=True

@@ -26,3 +26,11 @@ class AbstractVM(ACLXenObject):
             if action.name in blocked_operations_query.run()['_blocked_operations_']:
                 return False
         return super().check_access(auth, action)
+
+    def set_platform(self, platform : dict):
+        keys = tuple(platform.keys())
+        for key in keys:
+            if '_' in key:
+                new_key = key.replace('_', '-')
+                platform[new_key] = platform.pop(key)
+        self._set_platform(platform)
