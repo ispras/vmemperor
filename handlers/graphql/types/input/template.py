@@ -11,11 +11,6 @@ class TemplateInput(AbstractVMInput):
     enabled = graphene.InputField(graphene.Boolean,
                                 description="Should this template be enabled, i.e. used in VMEmperor by users")
 
-def enabled(ctx : ContextProtocol, template : Template, changes : TemplateInput):
-    if changes.enabled is not None:
-        template.set_enabled(changes.enabled)
-
-
 
 class TemplateMutation(graphene.Mutation):
     granted = graphene.Field(graphene.Boolean, required=True, description="If access is granted")
@@ -33,15 +28,12 @@ class TemplateMutation(graphene.Mutation):
         t = Template(xen=ctx.xen, ref=template.ref)
 
         mutations = [
-            MutationMethod(func=enabled, access_action=None, deps=(template.enabled,))
+            MutationMethod(func="enabled", access_action=None)
         ]
 
         helper = MutationHelper(mutations, ctx, t)
         granted, reason = helper.perform_mutations(template)
-        if not granted:
-            return TemplateMutation(granted=False, reason=reason)
-
-        return TemplateMutation(granted=True)
+        return TemplateMutation(granted, reason)
 
 class TemplateCloneMutation(graphene.Mutation):
     task_id = graphene.ID(required=False, description="clone task ID")

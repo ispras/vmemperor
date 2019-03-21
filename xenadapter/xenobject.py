@@ -23,16 +23,18 @@ from typing import Optional, Type, Collection
 class XenObject(metaclass=XenObjectMeta):
     '''
     Represents a proxy used to call XAPI methods on particular object (with particular ref)
+    Attributes:
+    db_table_name:
+    Database table name for a XenObject. Set by every XenObject class. Don't use field value from the class instance as individual instances may disable
+    db caching for themselves by clearing this variable. Instead, use a value provided at class level.
+
     '''
     api_class = None
     GraphQLType : GXenObjectType = None # Specify GraphQL type to access Rethinkdb cache
     REF_NULL = "OpaqueRef:NULL"
     db_table_name = ''
     Actions: SerFlag = None
-    """
-    Database table name for a XenObject. Set by every XenObject class. Don't use field value from the class instance as individual instances may disable
-    db caching for themselves by clearing this variable. Instead, use a value provided at class level.
-    """
+
     EVENT_CLASSES=[]
     _db_created = False
     FAIL_ON_NON_EXISTENCE = False # Fail if object does not exist in cache database. Usable if you know for sure that filter_record is always true
@@ -168,8 +170,13 @@ class XenObject(metaclass=XenObjectMeta):
                         return type_for_key.serialize(v)
                     else:
                         raise ValueError(f"type_for_key should be a subclass of GXenObjectType or contain serialize method. Got: {type_for_key}")
-                return {key: get_real_value(key, value, type_for_key)
-                        for key, value in v.items() if not type_for_key or key in type_for_key._meta.fields}
+
+                def yield_values():
+                    for key, value in v.items():
+                        key = key.replace('-', '_')
+                        if not type_for_key or key in type_for_key._meta.fields:
+                            yield key, get_real_value(key, value, type_for_key)
+                return {key: value for key, value in yield_values()}
             else:
                 if current_type:
                     return current_type.get_type(k).serialize(v)

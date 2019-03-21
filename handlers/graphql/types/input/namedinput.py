@@ -9,12 +9,3 @@ class NamedInput(InputObjectType):
     ref = graphene.InputField(graphene.ID, required=True, description="Object's ref")
     name_label = graphene.InputField(graphene.String, description="Object's human-readable name")
     name_description = graphene.InputField(graphene.String, description="Object's human-readable description")
-
-def name_label(ctx : ContextProtocol, obj : XenObject, changes : NamedInput):
-    if changes.name_label is not None:
-        obj.set_name_label(changes.name_label)
-
-
-def name_description(ctx: ContextProtocol, obj: XenObject, changes: NamedInput):
-    if changes.name_description is not None:
-        obj.set_name_description(changes.name_description)

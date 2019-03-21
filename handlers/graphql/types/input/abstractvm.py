@@ -1,6 +1,5 @@
 import graphene
 
-from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.types.input.namedinput import NamedInput
 from handlers.graphql.types.vm import DomainType
 from xenadapter.abstractvm import AbstractVM
@@ -10,17 +9,62 @@ class AbstractVMInput(NamedInput):
     domain_type = graphene.InputField(DomainType, description="VM domain type: 'pv', 'hvm', 'pv_in_pvh'")
     VCPUs_at_startup = graphene.InputField(graphene.Int, description="Number of VCPUs at startup")
     VCPUs_max = graphene.InputField(graphene.Int, description="Maximum number of VCPUs")
+    memory = graphene.InputField(graphene.Float, description="Set the memory allocation in bytes - Sets all of memory_static_max, memory_dynamic_min, and memory_dynamic_max to the given value, and leaves memory_static_min untouched")
+    memory_dynamic_min = graphene.InputField(graphene.Float, description="Dynamic memory min in bytes")
+    memory_dynamic_max = graphene.InputField(graphene.Float, description="Dynamic memory max in bytes")
+    memory_static_min = graphene.InputField(graphene.Float, description="Static memory min in bytes")
+    memory_static_max = graphene.InputField(graphene.Float, description="Static memory max in bytes")
 
 
-def domain_type(ctx: ContextProtocol, vm: AbstractVM, changes: AbstractVMInput):
-    if changes.domain_type is not None:
-        vm.set_domain_type(changes.domain_type)
+def set_memory(input: AbstractVMInput, vm: AbstractVM):
+    try:
+        smin = int(input.memory_static_min)
+    except TypeError:
+        smin = None
+    try:
+        smax = int(input.memory_static_max)
+    except TypeError:
+        smax = None
+    try:
+        dmin = int(input.memory_dynamic_min)
+    except TypeError:
+        dmin = None
+    try:
+        dmax = int(input.memory_dynamic_max)
+    except TypeError:
+        dmin = None
+    
+    if smin and smax and dmin and dmax: # No worries on zeros, memory cant be 0
+        vm.set_memory_limits(smin, smax, dmin, dmax)
+        return
+    if smin and smax:
+        vm.set_memory_static_range(smin, smax)
+    elif smin or smax:
+        if smin:
+            vm.set_memory_static_min(smin)
+        else:
+            vm.set_memory_static_max(smax)
+    
+    if dmin and smax:
+        vm.set_memory_dynamic_range(smin, smax)
+    elif dmin or dmax:
+        if dmin:
+            vm.set_memory_dynamic_min(dmin)
+        else:
+            vm.set_memory_dynamic_max(dmax)
 
-def VCPUs_at_startup(ctx: ContextProtocol, vm: AbstractVM, changes: AbstractVMInput):
-    if changes.VCPUs_at_startup is not None:
-        vm.set_VCPUs_at_startup(changes.VCPUs_at_startup)
 
-def VCPUs_max(ctx: ContextProtocol, vm: AbstractVM, changes: AbstractVMInput):
-    if changes.VCPUs_max is not None:
-        vm.set_VCPUs_max(changes.VCPUs_max)
+def memory_input_validator(input: AbstractVMInput):
+    smin : float = input.memory_static_min
+    smax : float = input.memory_static_max
+    dmin : float = input.memory_dynamic_min
+    dmax : float = input.memory_dynamic_max
+    memory_filter = filter(lambda item: item is not None, (smin, smax, dmin, dmax))
+    has_values = False # return False, None -> skip mutation. True - execute mutation, False w/nonempty string - break transaction
+    for item in memory_filter:
+        if not item.is_integer() or item <= 0:
+            return False, f"Incorrect value: {item}: expected positive integer"
+        has_values = True
+
+    return has_values, None
 

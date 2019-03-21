@@ -9,7 +9,8 @@ from handlers.graphql.action_deserializers.abstractvm_deserializer import Abstra
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
 from handlers.graphql.types.access import create_access_type
-from handlers.graphql.types.gxenobjecttype import GXenObjectType
+from handlers.graphql.types.gxenobjecttype import GXenObjectType, GSubtypeObjectType
+from handlers.graphql.types.objecttype import ObjectType
 from handlers.graphql.utils.query import resolve_many
 from xenadapter.vbd import VBD
 from handlers.graphql.types.vbd import GVBD
@@ -54,6 +55,20 @@ class OSVersion(graphene.ObjectType):
     minor = graphene.Int()
 
 
+class Platform(GSubtypeObjectType):
+    class Meta:
+        default_resolver = dict_resolver
+    cores_per_socket = graphene.Int()
+    timeoffset = graphene.Int()
+    nx = graphene.Boolean()
+    device_model = graphene.String()
+    pae = graphene.Boolean()
+    hpet = graphene.Boolean()
+    apic = graphene.Boolean()
+    acpi = graphene.Int()
+    videoram = graphene.Int()
+
+
 class PowerState(graphene.Enum):
     Halted = 'Halted'
     Paused = 'Paused'
@@ -66,7 +81,6 @@ class DomainType(graphene.Enum):
     PV = 'pv'
     PV_in_PVH = 'pv_in_pvh'
 
-
 class VMActions(SerFlag):
     attach_vdi = auto()
     attach_network = auto()
@@ -75,7 +89,7 @@ class VMActions(SerFlag):
     VNC = auto()
 
     changing_VCPUs = auto()
-    
+    changing_memory_limits = auto()
     snapshot = auto()
     clone = auto()
     copy = auto()
@@ -118,6 +132,7 @@ class GVM(GXenObjectType):
     # from http://xapi-project.github.io/xen-api/classes/vm_guest_metrics.html
     PV_drivers_up_to_date = graphene.Field(graphene.Boolean, description="True if PV drivers are up to date, reported if Guest Additions are installed")
     PV_drivers_version = graphene.Field(PvDriversVersion,description="PV drivers version, if available")
+    platform = graphene.Field(Platform, description="CPU platform parameters")
     VCPUs_at_startup = graphene.Field(graphene.Int, required=True)
     VCPUs_max = graphene.Field(graphene.Int, required=True)
     domain_type = graphene.Field(DomainType, required=True)

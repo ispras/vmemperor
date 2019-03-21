@@ -6,9 +6,8 @@ from authentication import with_authentication, with_default_authentication, ret
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils.mutationmethod import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
-from handlers.graphql.types.input.abstractvm import AbstractVMInput, domain_type, VCPUs_at_startup, \
-    VCPUs_max
-from handlers.graphql.types.input.namedinput import NamedInput, name_label, name_description
+from handlers.graphql.types.input.abstractvm import AbstractVMInput, memory_input_validator, set_memory
+from handlers.graphql.types.input.namedinput import NamedInput
 from handlers.graphql.types.objecttype import InputObjectType
 from xenadapter import Host
 from xenadapter.vm import VM
@@ -38,13 +37,16 @@ class VMMutation(graphene.Mutation):
         mutable = VM(ctx.xen, vm.ref)
 
         mutations = [
-            MutationMethod(func=name_label, access_action=VM.Actions.rename, deps=(vm.name_label,)),
-            MutationMethod(func=name_description, access_action=VM.Actions.rename, deps=(vm.name_description,)),
-            MutationMethod(func=domain_type, access_action=VM.Actions.change_domain_type, deps=(vm.domain_type,)),
-            MutationMethod(func=VCPUs_max, access_action=VM.Actions.changing_VCPUs, deps=(vm.VCPUs_max,
-                lambda obj: (obj.get_power_state() == "Halted", f"{obj} should be in 'Halted' state, encountered: '{obj.get_power_state()}'"))),
+            MutationMethod(func="name_label", access_action=VM.Actions.rename),
+            MutationMethod(func="name_description", access_action=VM.Actions.rename),
+            MutationMethod(func="domain_type", access_action=VM.Actions.change_domain_type),
+            MutationMethod(func="VCPUs_max", access_action=VM.Actions.changing_VCPUs, deps=(
+                lambda obj: (obj.get_power_state() == "Halted", f"{obj} should be in 'Halted' state, encountered: '{obj.get_power_state()}'"),
+            )),
             #  priority matters: set_vcpus_max is executed first
-            MutationMethod(func=VCPUs_at_startup, access_action=VM.Actions.changing_VCPUs, deps=(vm.VCPUs_at_startup,)),
+            MutationMethod(func="VCPUs_at_startup", access_action=VM.Actions.changing_VCPUs),
+            MutationMethod(func=(set_memory, memory_input_validator), access_action=VM.Actions.changing_memory_limits)
+
         ]
 
 
