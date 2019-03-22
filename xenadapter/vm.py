@@ -130,8 +130,8 @@ class VM (AbstractVM):
 
 
     @use_logger
-    def create(self, user, insert_log_entry, provision_config : Sequence[SetDisksEntry], net, ram_size, template=None, ip=None, install_url=None, override_pv_args=None, iso=None,
-               username=None, password=None, hostname=None, partition=None, fullname=None, vcpus=1, return_xenadapter_to_query=True):
+    def create(self, user, insert_log_entry, provision_config : Sequence[SetDisksEntry], net, ram_size, VCPUs_at_startup, cores_per_socket, template, ip=None, install_url=None, override_pv_args=None, iso=None,
+               username=None, password=None, hostname=None, partition=None, fullname=None):
         '''
         Creates a virtual machine and installs an OS
 
@@ -151,16 +151,25 @@ class VM (AbstractVM):
         :param iso: ISO Image object. If specified, will be mounted
 
         '''
+        if VCPUs_at_startup % cores_per_socket != 0:
+            raise ValueError(f"VCPUs_at_startup should be divisible on cores_per_socket")
+
         self.user = user
         self.insert_log_entry = lambda *args, **kwargs: insert_log_entry(self.ref, *args, **kwargs)
         self.install = True
         self.remove_tags('vmemperor')
         self.manage_actions(self.Actions.ALL, user=user)
         self.set_ram_size(ram_size)
-        self.set_VCPUs_max(vcpus)
-        self.set_VCPUs_at_startup(vcpus)
-        self.set_disks(provision_config)
+        self.set_VCPUs_max(VCPUs_at_startup)
+        self.set_VCPUs_at_startup(VCPUs_at_startup)
 
+        # Set VCPU cores per socket configuration
+        platform = self.get_platform()
+
+        platform['cores-per-socket'] = cores_per_socket
+        self.set_platform(platform)
+
+        self.set_disks(provision_config)
         if iso:
             try:
                 iso.attach(self, sync=True)
@@ -200,6 +209,8 @@ class VM (AbstractVM):
                 raise XenAdapterAPIError(self.log, 'Failed to start OS installation', f.details)
 
         # Wait for installation to finish
+        # remove PV_args
+        self.set_PV_args("")
 
         from constants import need_exit
 

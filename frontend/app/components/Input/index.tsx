@@ -51,58 +51,54 @@ const InputComponent: React.FunctionComponent<FieldProps & InputProps & InputCom
   }
 ) => {
   return (
-    <FormGroup row={true}>
+    <FormGroup>
       {label && (
-        <Label for={fields.name} style={{marginTop: "0.5rem"}}>
+        <Label for={fields.name}>
           {children}
         </Label>
       )
       }
+      <InputGroup row={true}>
+        {addonIcon && (
+          <InputGroupAddon style={{"line-height": "1!important"}} addonType="prepend">
+            <InputGroupText>
+              <FontAwesomeIcon icon={addonIcon}/>
+            </InputGroupText>
+          </InputGroupAddon>
+        )
+        }
+        {addonText && (
+          <InputGroupAddon style={{"line-height": "1!important"}} addonType="prepend">
+            <InputGroupText>
+              {addonText}
+            </InputGroupText>
+          </InputGroupAddon>
+        )
+        }
+        <Input {...props} {...fields}
+               invalid={Boolean(form.touched[fields.name]
+                 && form.errors[fields.name])}
+        />
+        {form.touched[fields.name] && form.errors[fields.name] &&
+        (<FormFeedback> {form.errors[fields.name]} </FormFeedback>)}
 
-
-      <Col>
-        <InputGroup row={true}>
-          {addonIcon && (
-            <InputGroupAddon style={{"line-height": "1!important"}} addonType="prepend">
-              <InputGroupText>
-                <FontAwesomeIcon icon={addonIcon}/>
-              </InputGroupText>
-            </InputGroupAddon>
-          )
-          }
-          {addonText && (
-            <InputGroupAddon style={{"line-height": "1!important"}} addonType="prepend">
-              <InputGroupText>
-                {addonText}
-              </InputGroupText>
-            </InputGroupAddon>
-          )
-          }
-          <Input {...props} {...fields}
-                 invalid={Boolean(form.touched[fields.name]
-                   && form.errors[fields.name])}
-          />
-          {form.touched[fields.name] && form.errors[fields.name] &&
-          (<FormFeedback> {form.errors[fields.name]} </FormFeedback>)}
-
-          {appendAddonIcon && (
-            <InputGroupAddon style={{"line-height": "1!important"}} addonType="append">
-              <InputGroupText>
-                <FontAwesomeIcon icon={appendAddonIcon}/>
-              </InputGroupText>
-            </InputGroupAddon>
-          )
-          }
-          {appendAddonText && (
-            <InputGroupAddon style={{"line-height": "1!important"}} addonType="append">
-              <InputGroupText>
-                {appendAddonText}
-              </InputGroupText>
-            </InputGroupAddon>
-          )
-          }
-        </InputGroup>
-      </Col>
+        {appendAddonIcon && (
+          <InputGroupAddon style={{"line-height": "1!important"}} addonType="append">
+            <InputGroupText>
+              <FontAwesomeIcon icon={appendAddonIcon}/>
+            </InputGroupText>
+          </InputGroupAddon>
+        )
+        }
+        {appendAddonText && (
+          <InputGroupAddon style={{"line-height": "1!important"}} addonType="append">
+            <InputGroupText>
+              {appendAddonText}
+            </InputGroupText>
+          </InputGroupAddon>
+        )
+        }
+      </InputGroup>
     </FormGroup>
   )
 };

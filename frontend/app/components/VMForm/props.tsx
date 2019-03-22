@@ -1,8 +1,9 @@
 import {FormikProps} from "formik";
 import React from "react";
 import {Option} from '../../hooks/form';
+import {ResourceFormValues} from "../ResourcesForm";
 
-export interface Values {
+export interface Values extends ResourceFormValues {
   pool: Option;
   template: Option;
   storage: Option;
@@ -15,8 +16,6 @@ export interface Values {
   hostname: string;
   nameLabel: string;
   nameDescription: string;
-  vcpus: number;
-  ram: number; //MB
   hdd: number; //GB
   ip: string;
   netmask: string;

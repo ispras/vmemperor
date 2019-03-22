@@ -36,11 +36,11 @@ import CheckBoxComponent from "../Checkbox";
 import {networkTypeOptions} from "./props";
 import {faDesktop} from "@fortawesome/free-solid-svg-icons/faDesktop";
 import styled from "styled-components";
+import {Fields as ResourceFields} from '../../components/ResourcesForm/fields';
 
 const H4 = styled.h4`
 margin: 20px;
 `;
-
 const VMForm = (props: FormikPropsValues) => {
   const {data: {pools}} = useQuery<PoolList.Query>(PoolList.Document);
   const poolOptions = useReactSelectFromRecord(pools);
@@ -75,7 +75,7 @@ const VMForm = (props: FormikPropsValues) => {
   }, [props.values.template]);
   return (
     <FormContext.Provider value={props}>
-      <Form>
+      <form className="form-horizontal">
         <H4><FormattedMessage {...messages.infrastructure} /></H4>
         <Field name="pool"
                component={Select}
@@ -194,17 +194,7 @@ const VMForm = (props: FormikPropsValues) => {
               )
               }
               <H4><FormattedMessage {...messages.resources} /></H4>
-              <Field name="vcpus"
-                     component={Input}
-                     type="number"
-                     addonIcon={faMicrochip}
-              />
-              <Field name="ram"
-                     component={Input}
-                     type="number"
-                     addonIcon={faMemory}
-                     appendAddonText={"MB"}
-              />
+              <ResourceFields/>
               <Field name="hdd"
                      component={Input}
                      type="number"
@@ -218,7 +208,7 @@ const VMForm = (props: FormikPropsValues) => {
           Create
         </Button>
 
-      </Form>
+      </form>
     </FormContext.Provider>
   )
 

@@ -14,9 +14,8 @@ import Network from "./subforms/network";
 import Storage from "./subforms/storage";
 import AccessView from '../../components/AccessView';
 import Vm = VmInfo.Vm;
-import VmAccessSet = VmAccessSetMutation.VmAccessSet;
 import XenObjectHeader from "../XenObjectHeader";
-
+import {ResourcesFormContainer} from "../ResourcesForm";
 
 interface Props {
   vm: Vm;
@@ -135,7 +134,11 @@ const VmsettingsForm = ({vm}: Props) => {
         <TabPane tabId={Tab.CPU}>
           <Row>
             <Col sm="12">
-              
+              <ResourcesFormContainer
+                vm={vm}
+                mutationNode={VmEditOptions.Document}
+                mutationName="vm"
+              />
             </Col>
           </Row>
         </TabPane>

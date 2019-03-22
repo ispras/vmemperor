@@ -39,6 +39,16 @@ fragment VMInfoFragment on GVM {
   ref
   nameLabel
   nameDescription
+  memoryStaticMin
+  memoryStaticMax
+  memoryDynamicMin
+  memoryDynamicMax
+  VCPUsAtStartup
+  VCPUsAtStartup
+  VCPUsMax
+  platform {
+    coresPerSocket
+  }
   VIFs {
     ...VMVIFFragment
   }
@@ -57,6 +67,7 @@ fragment VMInfoFragment on GVM {
   }
   myActions
   isOwner
+
 }
 
 query VMInfo ($ref: ID!) {

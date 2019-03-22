@@ -34,6 +34,8 @@ import {AccessController} from "../AccessController";
 
 import * as Sentry from '@sentry/browser';
 import Templates from "../TemplateList";
+import styled from "styled-components";
+import {GlobalStyle} from '../../global-styles';
 
 
 interface State {
@@ -62,9 +64,16 @@ class App extends React.Component<{}, State> {
         <a onClick={() => Sentry.showReportDialog()}>Report feedback</a>
       );
     }
-
+    const AppWrapper = styled.div`
+  margin: 0 auto;
+  background-color: #fafafafa
+  display: flex;
+  min-height: 100%;
+  padding: 0 16px;
+  flex-direction: column;
+`;
     return (
-      <div>
+      <AppWrapper>
         <Navbar/>
         <Switch>
           <Route exact path="/" component={HomePage}/>
@@ -78,7 +87,8 @@ class App extends React.Component<{}, State> {
           <PrivateRoute path="/resources" component={AccessController}/>
           <Route component={NotFoundPage}/>
         </Switch>
-      </div>
+        <GlobalStyle/>
+      </AppWrapper>
     );
   }
 }

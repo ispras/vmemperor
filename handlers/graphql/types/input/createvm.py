@@ -76,8 +76,8 @@ def createvm(ctx : ContextProtocol, task_id : str, user: str,
                 password=install_params.password if install_params else None,
                 partition=install_params.partition if install_params else None,
                 fullname=install_params.fullname if install_params else None,
-                vcpus = VCPUs,
-                user = user if not user == "root" else None,
+                VCPUs_at_startup=VCPUs,
+                user=user if not user == "root" else None,
         )
         finally:
             XenAdapterPool().unget(xen)
@@ -97,7 +97,8 @@ class CreateVM(graphene.Mutation):
         network = graphene.Argument(graphene.ID, description="Network ID to connect to")
         iso = graphene.Argument(graphene.ID, description="ISO image mounted if conf parameter is null")
         install_params = graphene.Argument(AutoInstall, description="Automatic installation parameters, the installation is done via internet. Only available when template.os_kind is not empty")
-        VCPUs = graphene.Argument(graphene.Int, default_value=1, description="Number of created virtual CPUs")
+        VCPUs_at_startup = graphene.Argument(graphene.Int, default_value=1, description="Number of created virtual CPUs")
+        cores_per_socket = graphene.Argument(graphene.Int, default_value=1, description="Number of cores per socket")
 
 
     @staticmethod
@@ -113,6 +114,11 @@ class CreateVM(graphene.Mutation):
         ctx :ContextProtocol = info.context
         if 'VDI' in kwargs and kwargs['VDI'].type != 'iso':
             raise TypeError("VDI argument is not ISO image")
+
+        if not 0 < kwargs['VCPUs_at_startup'] <= 256 or kwargs['VCPUs_at_startup'] % kwargs['cores_per_socket'] != 0:
+            raise ValueError("Incorrect CPU configuration: should be 0 < 'VCPUs_at_startup' <= 256 and VCPUs_at_startup mod 'cores_per_socket' == 0")
+
+
         tornado.ioloop.IOLoop.current().run_in_executor(ctx.executor,
         lambda: createvm(ctx, task_id, user=ctx.user_authenticator.get_id(), *args, **kwargs))
         return CreateVM(task_id=task_id, granted=True)

@@ -37,21 +37,79 @@ export interface NetworkConfiguration {
 }
 
 export interface TemplateInput {
-  /** Template ID */
+  /** Object's ref */
   ref: string;
+  /** Object's human-readable name */
+  nameLabel?: Maybe<string>;
+  /** Object's human-readable description */
+  nameDescription?: Maybe<string>;
+  /** VM domain type: 'pv', 'hvm', 'pv_in_pvh' */
+  domainType?: Maybe<DomainType>;
+  /** VCPU platform properties */
+  platform?: Maybe<PlatformInput>;
+  /** Number of VCPUs at startup */
+  VCPUsAtStartup?: Maybe<number>;
+  /** Maximum number of VCPUs */
+  VCPUsMax?: Maybe<number>;
+  /** Set the memory allocation in bytes - Sets all of memory_static_max, memory_dynamic_min, and memory_dynamic_max to the given value, and leaves memory_static_min untouched */
+  memory?: Maybe<number>;
+  /** Dynamic memory min in bytes */
+  memoryDynamicMin?: Maybe<number>;
+  /** Dynamic memory max in bytes */
+  memoryDynamicMax?: Maybe<number>;
+  /** Static memory min in bytes */
+  memoryStaticMin?: Maybe<number>;
+  /** Static memory max in bytes */
+  memoryStaticMax?: Maybe<number>;
   /** Should this template be enabled, i.e. used in VMEmperor by users */
   enabled?: Maybe<boolean>;
 }
 
+export interface PlatformInput {
+  coresPerSocket?: Maybe<number>;
+
+  timeoffset?: Maybe<number>;
+
+  nx?: Maybe<boolean>;
+
+  deviceModel?: Maybe<string>;
+
+  pae?: Maybe<boolean>;
+
+  hpet?: Maybe<boolean>;
+
+  apic?: Maybe<boolean>;
+
+  acpi?: Maybe<number>;
+
+  videoram?: Maybe<number>;
+}
+
 export interface VmInput {
-  /** VM ref */
+  /** Object's ref */
   ref: string;
-  /** VM human-readable name */
+  /** Object's human-readable name */
   nameLabel?: Maybe<string>;
-  /** VM human-readable description */
+  /** Object's human-readable description */
   nameDescription?: Maybe<string>;
   /** VM domain type: 'pv', 'hvm', 'pv_in_pvh' */
   domainType?: Maybe<DomainType>;
+  /** VCPU platform properties */
+  platform?: Maybe<PlatformInput>;
+  /** Number of VCPUs at startup */
+  VCPUsAtStartup?: Maybe<number>;
+  /** Maximum number of VCPUs */
+  VCPUsMax?: Maybe<number>;
+  /** Set the memory allocation in bytes - Sets all of memory_static_max, memory_dynamic_min, and memory_dynamic_max to the given value, and leaves memory_static_min untouched */
+  memory?: Maybe<number>;
+  /** Dynamic memory min in bytes */
+  memoryDynamicMin?: Maybe<number>;
+  /** Dynamic memory max in bytes */
+  memoryDynamicMax?: Maybe<number>;
+  /** Static memory min in bytes */
+  memoryStaticMin?: Maybe<number>;
+  /** Static memory max in bytes */
+  memoryStaticMax?: Maybe<number>;
 }
 
 export interface VmStartInput {
@@ -69,6 +127,8 @@ export enum VmActions {
   Rename = "rename",
   ChangeDomainType = "change_domain_type",
   Vnc = "VNC",
+  ChangingVcpUs = "changing_VCPUs",
+  ChangingMemoryLimits = "changing_memory_limits",
   Snapshot = "snapshot",
   Clone = "clone",
   Copy = "copy",
@@ -335,7 +395,8 @@ export namespace Console {
 
 export namespace CreateVm {
   export type Variables = {
-    VCPUs?: Maybe<number>;
+    VCPUsAtStartup?: Maybe<number>;
+    coresPerSocket?: Maybe<number>;
     disks?: Maybe<(Maybe<NewVdi>)[]>;
     installParams?: Maybe<AutoInstall>;
     nameLabel: string;
@@ -1446,6 +1507,22 @@ export namespace VmInfoFragment {
 
     nameDescription: string;
 
+    memoryStaticMin: number;
+
+    memoryStaticMax: number;
+
+    memoryDynamicMin: number;
+
+    memoryDynamicMax: number;
+
+    VCPUsAtStartup: number;
+
+    VCPUsAtStartup: number;
+
+    VCPUsMax: number;
+
+    platform: Maybe<Platform>;
+
     VIFs: (Maybe<ViFs>)[];
 
     VBDs: (Maybe<VbDs>)[];
@@ -1463,6 +1540,12 @@ export namespace VmInfoFragment {
     myActions: (Maybe<VmActions>)[];
 
     isOwner: boolean;
+  };
+
+  export type Platform = {
+    __typename?: "Platform";
+
+    coresPerSocket: Maybe<number>;
   };
 
   export type ViFs = VmvifFragment.Fragment;
@@ -1707,6 +1790,16 @@ export namespace VmInfoFragment {
       ref
       nameLabel
       nameDescription
+      memoryStaticMin
+      memoryStaticMax
+      memoryDynamicMin
+      memoryDynamicMax
+      VCPUsAtStartup
+      VCPUsAtStartup
+      VCPUsMax
+      platform {
+        coresPerSocket
+      }
       VIFs {
         ...VMVIFFragment
       }
@@ -1999,7 +2092,8 @@ export namespace Console {
 export namespace CreateVm {
   export const Document = gql`
     mutation createVm(
-      $VCPUs: Int
+      $VCPUsAtStartup: Int
+      $coresPerSocket: Int
       $disks: [NewVDI]
       $installParams: AutoInstall
       $nameLabel: String!
@@ -2011,7 +2105,8 @@ export namespace CreateVm {
     ) {
       createVm(
         nameLabel: $nameLabel
-        VCPUs: $VCPUs
+        VCPUsAtStartup: $VCPUsAtStartup
+        coresPerSocket: $coresPerSocket
         disks: $disks
         installParams: $installParams
         nameDescription: $nameDescription
@@ -4353,6 +4448,8 @@ export namespace GvmResolvers {
       TypeParent,
       TContext
     >;
+    /** CPU platform parameters */
+    platform?: PlatformResolver<Maybe<Platform>, TypeParent, TContext>;
 
     VCPUsAtStartup?: VcpUsAtStartupResolver<number, TypeParent, TContext>;
 
@@ -4429,6 +4526,11 @@ export namespace GvmResolvers {
   > = Resolver<R, Parent, TContext>;
   export type PvDriversVersionResolver<
     R = Maybe<PvDriversVersion>,
+    Parent = Gvm,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PlatformResolver<
+    R = Maybe<Platform>,
     Parent = Gvm,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
@@ -4588,6 +4690,78 @@ export namespace PvDriversVersionResolvers {
   export type BuildResolver<
     R = Maybe<number>,
     Parent = PvDriversVersion,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+}
+
+export namespace PlatformResolvers {
+  export interface Resolvers<TContext = {}, TypeParent = Platform> {
+    coresPerSocket?: CoresPerSocketResolver<
+      Maybe<number>,
+      TypeParent,
+      TContext
+    >;
+
+    timeoffset?: TimeoffsetResolver<Maybe<number>, TypeParent, TContext>;
+
+    nx?: NxResolver<Maybe<boolean>, TypeParent, TContext>;
+
+    deviceModel?: DeviceModelResolver<Maybe<string>, TypeParent, TContext>;
+
+    pae?: PaeResolver<Maybe<boolean>, TypeParent, TContext>;
+
+    hpet?: HpetResolver<Maybe<boolean>, TypeParent, TContext>;
+
+    apic?: ApicResolver<Maybe<boolean>, TypeParent, TContext>;
+
+    acpi?: AcpiResolver<Maybe<number>, TypeParent, TContext>;
+
+    videoram?: VideoramResolver<Maybe<number>, TypeParent, TContext>;
+  }
+
+  export type CoresPerSocketResolver<
+    R = Maybe<number>,
+    Parent = Platform,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TimeoffsetResolver<
+    R = Maybe<number>,
+    Parent = Platform,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NxResolver<
+    R = Maybe<boolean>,
+    Parent = Platform,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DeviceModelResolver<
+    R = Maybe<string>,
+    Parent = Platform,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PaeResolver<
+    R = Maybe<boolean>,
+    Parent = Platform,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type HpetResolver<
+    R = Maybe<boolean>,
+    Parent = Platform,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ApicResolver<
+    R = Maybe<boolean>,
+    Parent = Platform,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type AcpiResolver<
+    R = Maybe<number>,
+    Parent = Platform,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VideoramResolver<
+    R = Maybe<number>,
+    Parent = Platform,
     TContext = {}
   > = Resolver<R, Parent, TContext>;
 }
@@ -5971,7 +6145,9 @@ export namespace MutationResolvers {
   > = Resolver<R, Parent, TContext, CreateVmArgs>;
   export interface CreateVmArgs {
     /** Number of created virtual CPUs */
-    VCPUs?: number;
+    VCPUsAtStartup?: number;
+    /** Number of cores per socket */
+    coresPerSocket?: number;
 
     disks?: Maybe<(Maybe<NewVdi>)[]>;
     /** Automatic installation parameters, the installation is done via internet. Only available when template.os_kind is not empty */
@@ -7179,6 +7355,7 @@ export type IResolvers<TContext = {}> = {
   User?: UserResolvers.Resolvers<TContext>;
   GvmAccessEntry?: GvmAccessEntryResolvers.Resolvers<TContext>;
   PvDriversVersion?: PvDriversVersionResolvers.Resolvers<TContext>;
+  Platform?: PlatformResolvers.Resolvers<TContext>;
   OsVersion?: OsVersionResolvers.Resolvers<TContext>;
   Gvif?: GvifResolvers.Resolvers<TContext>;
   GNetwork?: GNetworkResolvers.Resolvers<TContext>;
@@ -7365,6 +7542,8 @@ export interface Gvm extends GAclXenObject {
   PVDriversUpToDate?: Maybe<boolean>;
   /** PV drivers version, if available */
   PVDriversVersion?: Maybe<PvDriversVersion>;
+  /** CPU platform parameters */
+  platform?: Maybe<Platform>;
 
   VCPUsAtStartup: number;
 
@@ -7422,6 +7601,26 @@ export interface PvDriversVersion {
   micro?: Maybe<number>;
 
   build?: Maybe<number>;
+}
+
+export interface Platform {
+  coresPerSocket?: Maybe<number>;
+
+  timeoffset?: Maybe<number>;
+
+  nx?: Maybe<boolean>;
+
+  deviceModel?: Maybe<string>;
+
+  pae?: Maybe<boolean>;
+
+  hpet?: Maybe<boolean>;
+
+  apic?: Maybe<boolean>;
+
+  acpi?: Maybe<number>;
+
+  videoram?: Maybe<number>;
 }
 
 /** OS version reported by Xen tools */
@@ -8126,7 +8325,9 @@ export interface SelectedItemsQueryArgs {
 }
 export interface CreateVmMutationArgs {
   /** Number of created virtual CPUs */
-  VCPUs?: number;
+  VCPUsAtStartup?: number;
+  /** Number of cores per socket */
+  coresPerSocket?: number;
 
   disks?: Maybe<(Maybe<NewVdi>)[]>;
   /** Automatic installation parameters, the installation is done via internet. Only available when template.os_kind is not empty */

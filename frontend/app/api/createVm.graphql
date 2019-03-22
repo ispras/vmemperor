@@ -1,8 +1,9 @@
-mutation createVm($VCPUs: Int, $disks: [NewVDI], $installParams: AutoInstall,
-  $nameLabel:String!, $nameDescription:String!, $iso:ID, $template:ID!, $network:ID, $ram:Float!) {
+mutation createVm($VCPUsAtStartup: Int, $coresPerSocket : Int,  $disks: [NewVDI], $installParams: AutoInstall,
+$nameLabel:String!, $nameDescription:String!, $iso:ID, $template:ID!, $network:ID, $ram:Float!) {
   createVm(
     nameLabel:$nameLabel,
-    VCPUs:$VCPUs,
+    VCPUsAtStartup:$VCPUsAtStartup,
+    coresPerSocket:$coresPerSocket,
     disks:$disks,
     installParams:$installParams,
     nameDescription:$nameDescription,

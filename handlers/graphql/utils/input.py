@@ -28,9 +28,10 @@ def set_subtype(field_name: str):
                 else:
                     yield key, old_dict[key]
 
-            yield from input_dict
+            yield from input_dict.items()
 
-        getattr(obj, f'set_{field_name}')({k:v for k,v in item_yielder()})
+        arg = {k:v for k,v in item_yielder()}
+        getattr(obj, f'set_{field_name}')(arg)
     return setter
 
 
@@ -41,7 +42,7 @@ def validate_subtype(field_name):
         :param input:
         :return:
         '''
-        if not input:
+        if not getattr(input, field_name):
             return False, None
         ret = any(map(lambda item: item != {}, dict(**getattr(input, field_name)).values()))
         return ret, None

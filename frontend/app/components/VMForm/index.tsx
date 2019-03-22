@@ -17,7 +17,7 @@ import VMForm from "./form";
 import {networkTypeOptions, Values} from "./props";
 import {useMutation} from "react-apollo-hooks";
 import {AutoInstall, CreateVm, NetworkConfiguration} from "../../generated-models";
-
+import {schema as resourceSchema} from '../../components/ResourcesForm/schema';
 
 const initialValues: Values = {
   pool: null,
@@ -31,7 +31,8 @@ const initialValues: Values = {
   password2: '',
   nameDescription: '',
   nameLabel: '',
-  vcpus: 1,
+  VCPUsAtStartup: 1,
+  coresPerSocket: 1,
   ram: 1024,
   hdd: 9,
   ip: '',
@@ -93,7 +94,8 @@ const VMFormContainer: React.FunctionComponent = () => {
         template: values.template.value,
         network: values.network.value,
         ram: values.ram,
-        VCPUs: values.vcpus,
+        VCPUsAtStartup: values.VCPUsAtStartup,
+        coresPerSocket: values.coresPerSocket,
         iso: values.autoMode ? null : values.iso.value,
         disks: [{
           SR: values.storage.value,
@@ -124,13 +126,10 @@ const VMFormContainer: React.FunctionComponent = () => {
               // @ts-ignore
               password2: string().required().label("Confirm password").test('pass-match', 'Passwords must match',
                 function (value) {
-                  console.log("Test password!");
                   return this.parent.password === value;
                 }),
               nameDescription: string(),
               nameLabel: string().required(),
-              vcpus: number().integer().min(1).max(32).required(),
-              ram: number().integer().min(256).max(1572864).required(),
               ip: requiredIpWhenNetwork("Enter valid IP"),
               netmask: requiredIpWhenNetwork("Enter valid netmask)"),
               gateway: requiredIpWhenNetwork("Enter valid gateway"),
@@ -143,7 +142,7 @@ const VMFormContainer: React.FunctionComponent = () => {
                   otherwise: object().nullable(true)
                 }),
               hdd: number().integer().positive().required().max(2043),
-
+              ...resourceSchema
             })}
             component={VMForm}
     />

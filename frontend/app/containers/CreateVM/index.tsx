@@ -6,7 +6,6 @@
 
 import React, {useState} from 'react';
 import {FormattedMessage} from 'react-intl';
-import messages from './messages';
 import styles from './styles.css'
 import {Button, Modal} from 'reactstrap';
 
