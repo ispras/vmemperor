@@ -1,4 +1,5 @@
-import {number} from "yup";
+import {number, object} from "yup";
+import {Res} from "awesome-typescript-loader/dist/checker/protocol";
 
 export const schema = {
   VCPUsAtStartup: number().integer().min(1).max(32).required(),
@@ -10,3 +11,12 @@ export const schema = {
   ),
   ram: number().integer().min(256).max(1572864).required(),
 };
+
+export interface ResourceFormValues {
+  VCPUsAtStartup: number;
+  coresPerSocket: number;
+  ram: number; //MB
+}
+
+export default object().shape<ResourceFormValues>(schema);
+

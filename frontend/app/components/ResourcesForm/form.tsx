@@ -1,7 +1,7 @@
-import {ResourceFormValues} from "./index";
+import {ResourceFormValues} from "./schema";
 import {FormikProps} from "formik";
 import * as React from "react";
-import {Button, Form} from "reactstrap";
+import {Button, Form, FormFeedback} from "reactstrap";
 import {Fields} from "./fields";
 import ButtonGroup from "reactstrap/lib/ButtonGroup";
 
@@ -25,6 +25,11 @@ export const ResourcesForm: React.FunctionComponent<ResourcesFormProps> =
               Reset
             </Button>
           </ButtonGroup>
+          {props.status && props.status.error && (
+            <FormFeedback>
+              {props.status.error}
+            </FormFeedback>
+          )}
         </Form>
       </FormContext.Provider>
     )

@@ -135,12 +135,10 @@ const client = new ApolloClient(
                 console.log(
                   `[GraphQL error]: Message: ${error.message}, Location: ${error.locations}, Path: ${error.path}`,
                 );
-                Sentry.captureException(error);
               }
             );
           if (networkError) {
             console.log(`[Network error]: ${networkError}`);
-            Sentry.captureException(networkError);
           }
 
         }),
@@ -151,6 +149,17 @@ const client = new ApolloClient(
         dataIdFromObject: dataIdFromObject
       }
     ),
+    defaultOptions: {
+      mutate: {
+        errorPolicy: "none",
+      },
+      query: {
+        errorPolicy: "none"
+      },
+      watchQuery: {
+        errorPolicy: "none",
+      }
+    },
     typeDefs: localSchema,
     resolvers: resolvers,
   }

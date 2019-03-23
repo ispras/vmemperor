@@ -22,25 +22,9 @@ from typing import Optional, List
 
 from graphql import GraphQLList, ResolveInfo, GraphQLUnionType
 from graphql.language.ast import Field, FragmentSpread, FragmentDefinition
-from graphql.utils.ast_to_dict import ast_to_dict
 from graphql.utils.get_field_def import get_field_def
 
-def underscore(string : str):
-    l = list()
-    for n, symbol in enumerate(string):
-
-        if symbol.isupper() and n > 0 and  not string[n-1].isupper():
-            if string[n:] == 'Vms': # VMs may be camelCased that way
-                l.append('_VMs')
-                break
-
-            l.extend(['_', symbol.lower()])
-        else:
-            l.append(symbol)
-
-    return "".join(l)
-
-
+from handlers.graphql.utils.string import underscore
 
 
 def collect_fields(node : Field , fragments, return_type, get_field_type):

@@ -1,7 +1,7 @@
 import {FormikProps} from "formik";
 import React from "react";
 import {Option} from '../../hooks/form';
-import {ResourceFormValues} from "../ResourcesForm";
+import {ResourceFormValues} from "../ResourcesForm/schema";
 
 export interface Values extends ResourceFormValues {
   pool: Option;

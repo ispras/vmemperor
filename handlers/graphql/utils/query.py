@@ -8,7 +8,7 @@ from constants import re as re
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.types.objecttype import ObjectType
 from handlers.graphql.utils.paging import do_paging
-from handlers.graphql.utils.querybuilder.get_fields import underscore
+from handlers.graphql.utils.string import underscore
 from handlers.graphql.utils.querybuilder.querybuilder import QueryBuilder
 from handlers.graphql.utils.type import get_xentype, check_access_of_return_value
 

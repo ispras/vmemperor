@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Callable, Sequence, Any, Optional, Tuple, Union, List, Generic, TypeVar
 from serflag import SerFlag
 from handlers.graphql.graphql_handler import ContextProtocol
+from handlers.graphql.utils.string import camelcase
 from xenadapter.xenobject import XenObject
 from functools import partial
 
@@ -61,15 +62,16 @@ class MutationHelper:
                     if not reason: # if Reason is None, we're instructed to skip this mutation as user didn't supply anything
                         continue
                     else:
-                        return False, f'{item.func[0].__name__}: {reason}'
+                        return False, f'{camelcase(item.func[0].__name__)}: {reason}'
 
             if not(item.access_action is None and \
                     self.ctx.user_authenticator.is_admin() or \
                     self.mutable_object.check_access(self.ctx.user_authenticator, item.access_action)):
+
                 if item.access_action:
-                    return False, f"{item.func.__name__}: Access denied: object {self.mutable_object}; action: {item.access_action}"
+                    return False, f"{camelcase(item.func.__name__)}: Access denied: object {self.mutable_object}; action: {item.access_action}"
                 else:
-                    return False, f"{item.func.__name__}: Access denied: not an administrator"
+                    return False, f"{camelcase(item.func.__name__)}: Access denied: not an administrator"
             else:
                 if isinstance(item.func, str):
                     callables.append(partial(getattr(self.mutable_object, f'set_{item.func}'), getattr(changes, item.func)))
@@ -79,7 +81,7 @@ class MutationHelper:
             for dep_check in dep_checks:
                 ret = dep_check()
                 if not ret[0]:
-                    return False, f"{item.func if isinstance(item.func, str) else item.func[0].__name__}: {ret[1]}"
+                    return False, f"{camelcase(item.func if isinstance(item.func, str) else item.func[0].__name__)}: {ret[1]}"
 
         for item in callables:
             item()

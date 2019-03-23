@@ -21,13 +21,14 @@ from datetime import  datetime
 
 
 def error_status(exception):
-    if isinstance(exception, web.HTTPError):
-        return exception.status_code
-    elif isinstance(exception, (ExecutionError, GraphQLError)):
-        return 400
-    else:
-        return 500
-
+    '''    if isinstance(exception, web.HTTPError):
+            return exception.status_code
+        elif isinstance(exception, (ExecutionError, GraphQLError)):
+            return 400
+        else:
+            return 500
+    '''
+    return 200 # Apollo Client fucks off when I throw anything
 
 def error_format(exception):
     if isinstance(exception, ExecutionError):
