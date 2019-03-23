@@ -2,19 +2,18 @@ import {useMutation} from "react-apollo-hooks";
 import {Formik, FormikActions, FormikConfig} from "formik";
 import {useCallback} from "react";
 import {
-  dirtyFormValuesToVariables, invert,
-  MapperTypeMap,
+  difference, filterNullValuesAndTypename, findDeepField,
   mutationResponseToFormikErrors, setXenAdapterAPIError,
-  variablesToMutationArguments
 } from "./utils";
 import {DocumentNode} from "graphql";
 import * as React from "react";
+import {merge} from 'lodash';
 
 export interface AbstractSettingsFormProps<T> {
-  initialValues: T
+  initialValues: Partial<T>,
+  defaultValues: Partial<T>
   mutationNode: DocumentNode; //Represents a settings mutation
   mutationName: string; //Represents a settings mutation name and root key
-  mapFromFormValuesToMutationValues: MapperTypeMap<T>;
   validationSchema: FormikConfig<T>['validationSchema'];
   component: FormikConfig<T>['component'];
   mutableObject: {
@@ -23,24 +22,26 @@ export interface AbstractSettingsFormProps<T> {
 
 }
 
-export function AbstractSettingsForm<T>({
-                                          initialValues,
-                                          mutationNode,
-                                          mutationName,
-                                          mapFromFormValuesToMutationValues,
-                                          validationSchema,
-                                          component,
-                                          mutableObject,
-                                        }: AbstractSettingsFormProps<T>) {
+function mergeDefaults<T>(defaults: Partial<T>, initialValues: Partial<T>): T {
+  return merge({}, defaults, filterNullValuesAndTypename(initialValues));
+}
 
+export function AbstractSettingsForm<T extends object>({
+                                                         initialValues: _inits,
+                                                         defaultValues,
+                                                         mutationNode,
+                                                         mutationName,
+                                                         validationSchema,
+                                                         component,
+                                                         mutableObject,
+                                                       }: AbstractSettingsFormProps<T>) {
+  const initialValues = mergeDefaults(defaultValues, _inits);
   const mutate = useMutation(mutationNode);
   const onSubmit: FormikConfig<T>['onSubmit'] = useCallback(async (values: T, formikActions: FormikActions<T>) => {
-    const dirtyValues = dirtyFormValuesToVariables(initialValues, values, mapFromFormValuesToMutationValues);
+    const dirtyValues = difference(initialValues, values);
     console.log("Dirty values: ", dirtyValues);
     if (!dirtyValues)
       return;
-    const args = variablesToMutationArguments(dirtyValues);
-    console.log("Arguments for mutation", args);
     try {
       const {data} = await mutate({
         errorPolicy: "none",
@@ -48,7 +49,7 @@ export function AbstractSettingsForm<T>({
           [mutationName]:
             {
               ref: mutableObject.ref,
-              ...args,
+              ...dirtyValues,
             }
         }
       });
@@ -59,13 +60,15 @@ export function AbstractSettingsForm<T>({
 
         const [field, message] = errorData;
         if (field) //Trace field returned from the server by inverting dirtyValues.
-          formikActions.setFieldError(invert(dirtyValues)[field], message);
+          formikActions.setFieldError(findDeepField(values, field), message);
         else
           formikActions.setFormikState({'error': message});
       }
     } catch (e) {
-      const [field, message] = setXenAdapterAPIError(e, invert(dirtyValues));
+      const [field, message] = setXenAdapterAPIError(e, values);
+      console.log("Set error for field: ", field, message);
       formikActions.setFieldError(field, message);
+
     }
 
     formikActions.setSubmitting(false);

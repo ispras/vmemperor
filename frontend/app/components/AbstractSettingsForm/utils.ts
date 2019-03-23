@@ -1,3 +1,7 @@
+import {transform, isEqual, isObject} from "lodash";
+
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
+
 interface Response {
   reason?: string;
   granted: boolean;
@@ -6,32 +10,54 @@ interface Response {
 export function filterNullValuesAndTypename(obj: object) {
   const ret = Object.assign({},
     ...Object.keys(obj).filter(key => key !== '__typename' && obj[key] !== null)
-      .map(key => ({[key]: obj[key]})));
+      .map(key => {
+        const value = (obj, key) => {
+          if (typeof obj[key] === "object") {
+            return filterNullValuesAndTypename(obj[key])
+          } else {
+            return obj[key];
+          }
+        };
+        return {
+          [key]: value(obj, key)
+        }
+      }));
   return ret;
 }
 
-export type MapperTypeMap<T> = Map<keyof T, (any) => object>;
+/**
+ * Deep diff between two object, using lodash
+ * @param  {Object} object Object compared
+ * @param  {Object} base   Object to compare with
+ * @return {Object}        Return a new object who represent the diff
+ */
+export function difference(object, base) {
+  function changes(object, base) {
+    return transform(object, function (result, value, key) {
+      if (!isEqual(value, base[key])) {
+        result[key] = (isObject(value) && isObject(base[key])) ? changes(value, base[key]) : value;
+      }
+    });
+  }
 
-export function dirtyFormValuesToVariables<T>(initialValues: T, values: T, mappers: MapperTypeMap<T>) {
-  /**
-   * returns an object whose keys are original form value names and values are byproducts of mapper function.
-   * Initial values are filtered out.
-   * It is needed so that if server reports an error on  some value, we then trace it to original form value and show error in correct place
-   */
-  const filtered = Object.keys(values).filter(key => values[key] !== initialValues[key]);
-  const ret =
-    //@ts-ignore
-    Object.assign({}, ...Object.entries(filtered.map(key => mappers.get(key)(values[key]))).map(([number, value]) => ({[filtered[number]]: value})));
-  return ret;
+  return changes(object, base);
 }
 
-export function invert(obj) {
-  /* Invert value returned by dirtyFormValuesToVariables */
-  return Object.assign({},
-    ...Object.values(Object.assign({},
-      ...Object.entries(obj).map(([key, value]) =>
-        Object.keys(value).map(valueKey =>
-          ({[valueKey]: key}))))))
+export function findDeepField(obj: object, fieldName: string, prefix: string = "") {
+  if (prefix === null || prefix === undefined) {
+    prefix = "";
+  }
+  for (const [key, value] of Object.entries(obj)) {
+    if (fieldName === key)
+      return prefix + fieldName;
+
+    if (typeof value === "object") {
+      const found = findDeepField(value, fieldName, prefix + key + ".");
+      if (found)
+        return found;
+    }
+  }
+  return null;
 }
 
 export function split(string: string, separator: string, splits: number) {
@@ -39,11 +65,6 @@ export function split(string: string, separator: string, splits: number) {
   const splitted = array.slice(0, splits);
   const joined = array.slice(splits);
   return [...splitted, joined.join(separator)]
-}
-
-export function variablesToMutationArguments(variables) {
-  /* convert value from dirtyFormValuesToVariables to mutation arguments */
-  return Object.assign({}, ...Object.values(variables));
 }
 
 export function mutationResponseToFormikErrors(response: Response) {
@@ -60,11 +81,7 @@ export function mutationResponseToFormikErrors(response: Response) {
     throw new Error(`invalid reason format: ${response.reason}`)
 }
 
-export function mutationErrorToFormikError(error) {
-  console.log("mutationErrorToFormikError:", error);
-}
-
-export function setXenAdapterAPIError(e, invertedVariables) {
+export function setXenAdapterAPIError(e, values) {
   const split = e.message.split("<XenAdapterAPIError>: ");
   console.log(split);
   if (split.length != 2)
@@ -72,7 +89,7 @@ export function setXenAdapterAPIError(e, invertedVariables) {
   const message = JSON.parse(split[1]);
   let methodName = message.message.split("::")[1];
   if (methodName.slice(0, 4) == 'set_')
-    methodName = methodName.slice(4) // remove set prefix
+    methodName = methodName.slice(4); // remove set prefix
   //Convert to camelcase
   const toCamelCase = (string: string): string => {
     return string.split('_').map((value, index) => {
@@ -83,5 +100,5 @@ export function setXenAdapterAPIError(e, invertedVariables) {
     }).join('');
   };
   const ourMethodName = toCamelCase(methodName);
-  return [invertedVariables[ourMethodName], message.details[1]];
+  return [findDeepField(values, ourMethodName), message.details[1]];
 }

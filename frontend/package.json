@@ -246,6 +246,7 @@
     "compression": "^1.7.3",
     "cross-env": "^5.1.4",
     "css-loader": "git+https://github.com/mikeumus/css-loader.git#patch-1",
+    "dlv": "^1.1.2",
     "emotion": "^9.2.6",
     "es6-promise": "^4.2.4",
     "express": "^4.16.3",

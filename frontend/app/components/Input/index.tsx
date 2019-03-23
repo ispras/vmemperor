@@ -7,19 +7,6 @@
 import React, {HTMLAttributes} from 'react';
 // import styled from 'styled-components';
 
-import AutoInput from './autoInput';
-/*
-class Input extends React.Component { // eslint-disable-line react/prefer-stateless-function
-  render() {
-    return (
-      <AvInput
-        tag={AutoInput}
-        {...this.props} />
-    );
-  }
-
-}
-*/
 import {FieldProps} from "formik";
 import {Col, FormFeedback, Input, InputGroupText, Label} from 'reactstrap';
 import {Icon} from "@fortawesome/fontawesome-svg-core";
@@ -28,6 +15,7 @@ import InputGroupAddon from "reactstrap/lib/InputGroupAddon";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {InputProps} from "reactstrap";
 import {FormGroup} from "../MarginFormGroup";
+import {getFeedback, getInvalid} from "./utils";
 
 interface InputComponentProps {
   addonIcon?: Icon,
@@ -76,11 +64,9 @@ const InputComponent: React.FunctionComponent<FieldProps & InputProps & InputCom
         )
         }
         <Input {...props} {...fields}
-               invalid={Boolean(form.touched[fields.name]
-                 && form.errors[fields.name])}
+               invalid={getInvalid(form, fields.name)}
         />
-        {form.touched[fields.name] && form.errors[fields.name] &&
-        (<FormFeedback> {form.errors[fields.name]} </FormFeedback>)}
+        {getFeedback(form, fields.name)}
 
         {appendAddonIcon && (
           <InputGroupAddon style={{"line-height": "1!important"}} addonType="append">
