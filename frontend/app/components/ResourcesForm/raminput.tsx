@@ -9,111 +9,112 @@ import InputGroupAddon from "reactstrap/lib/InputGroupAddon";
 import dlv from 'dlv';
 
 export const RAMInputComponent: React.FunctionComponent<FieldProps<ResourceFormValues>> = ({form}) => {
-  enum fields {
-    dmin = "memoryDynamicMin",
-    dmax = "memoryDynamicMax",
-    smin = "memoryStaticMin",
-    smax = "memoryStaticMax",
-  }
+    enum fields {
+      dmin = "memoryDynamicMin",
+      dmax = "memoryDynamicMax",
+      smin = "memoryStaticMin",
+      smax = "memoryStaticMax",
+    }
 
-  const smin = fields.smin;
-  const smax = fields.smax;
-  const dmin = fields.dmin;
-  const dmax = fields.dmax;
-  const convertValue = useCallback((value: number) => {
-    //Now bytes to megabytes - API values are bytes, user input is megabytes
-    return value / 1024 / 1024;
-  }, []);
+    const convertValue = useCallback((value: number) => {
+      //Now bytes to megabytes - API values are bytes, user input is megabytes
+      return value / 1024 / 1024;
+    }, []);
 
-  const convertInputValue = useCallback((value: string) => {
-    return Math.floor(Number.parseFloat(value) * 1024 * 1024);
-  }, []);
-  const handleChangeSmin = useCallback((e: ChangeInputEvent) => {
-    const value = convertInputValue(e.target.value);
-    form.setFieldValue(smin, value);
-    console.log(form.values[smin])
-  }, [form, convertInputValue]);
-
-
-  const handleChangeSmax = useCallback((e: ChangeInputEvent) => {
-    form.setFieldValue(smax, convertInputValue(e.target.value));
-  }, [form, convertInputValue]);
-
-
-  const handleChangeDmin = useCallback((e: ChangeInputEvent) => {
-    form.setFieldValue(dmin, convertInputValue(e.target.value));
-  }, [form, convertInputValue]);
-
-  const handleChangeDmax = useCallback((e: ChangeInputEvent) => {
-    form.setFieldValue(dmax, convertInputValue(e.target.value));
-  }, [form, convertInputValue]);
-
-  const getMemoryInput = useCallback((name: fields) => {
-    const handleChange = () => {
-      switch (name) {
-        case dmin:
-          return handleChangeDmin;
-        case dmax:
-          return handleChangeDmax;
-        case smin:
-          return handleChangeSmin;
-        case smax:
-          return handleChangeSmax;
+    const convertInputValue = useCallback((value: string) => {
+      return Math.floor(Number.parseFloat(value) * 1024 * 1024);
+    }, []);
+    const setValue = useCallback((value: number, field: fields) => {
+      if (Number.isNaN(value)) {
+        form.setFieldValue(field, 0);
+        return;
       }
-    };
+      form.setFieldValue(field, value);
+
+
+      switch (field) {
+        case fields.smin:
+          if (value > dlv(form.values, fields.dmin)) //
+            setValue(value, fields.dmin);
+          break;
+        case fields.dmin:
+          if (value < dlv(form.values, fields.smin))
+            setValue(value, fields.smin);
+          if (value > dlv(form.values, fields.dmax))
+            setValue(value, fields.dmax);
+          break;
+        case fields.dmax:
+          if (value < dlv(form.values, fields.dmin))
+            setValue(value, fields.dmin);
+          if (value > dlv(form.values, fields.smax))
+            setValue(value, fields.smax);
+          break;
+        case fields.smax:
+          if (value < dlv(form.values, fields.dmax))
+            setValue(value, fields.dmax);
+          break;
+      }
+    }, [form]);
+
+    const getMemoryInput = useCallback((name: fields) => {
+      const handleChange = (e: ChangeInputEvent) => {
+        const value = convertInputValue(e.target.value);
+        setValue(value, name);
+      };
+
+      return (
+        <InputGroup>
+          {getInput(form, name, "number", handleChange, convertValue(dlv(form.values, name)))}
+          <InputGroupAddon addonType="append"
+                           style={{"line-height": "1!important"}}
+          >
+            <InputGroupText>
+              MB
+            </InputGroupText>
+          </InputGroupAddon>
+        </InputGroup>
+      )
+    }, [form, convertValue, convertInputValue]);
+
 
     return (
-      <InputGroup>
-        {getInput(form, name, "number", handleChange(), convertValue(dlv(form.values, name)))}
-        <InputGroupAddon addonType="append"
-                         style={{"line-height": "1!important"}}
-        >
-          <InputGroupText>
-            MB
-          </InputGroupText>
-        </InputGroupAddon>
-      </InputGroup>
+      <Fragment>
+        <Label>RAM settings</Label>
+        <Row form="true">
+          <Col sm={3}>
+            <FormGroup>
+              <Label for={fields.smin}>
+                Static minimum
+              </Label>
+              {getMemoryInput(fields.smin)}
+            </FormGroup>
+          </Col>
+          <Col sm={3}>
+            <FormGroup>
+              <Label for={fields.dmin}>
+                Dynamic minimum
+              </Label>
+              {getMemoryInput(fields.dmin)}
+            </FormGroup>
+          </Col>
+          <Col sm={3}>
+            <FormGroup>
+              <Label for={fields.dmax}>
+                Dynamic maximum
+              </Label>
+              {getMemoryInput(fields.dmax)}
+            </FormGroup>
+          </Col>
+          <Col sm={3}>
+            <FormGroup>
+              <Label for={fields.smax}>
+                Static maximum
+              </Label>
+              {getMemoryInput(fields.smax)}
+            </FormGroup>
+          </Col>
+        </Row>
+      </Fragment>
     )
-  }, [form, convertValue]);
-
-
-  return (
-    <Fragment>
-      <Label>RAM settings</Label>
-      <Row form="true">
-        <Col sm={3}>
-          <FormGroup>
-            <Label for={smin}>
-              Static minimum
-            </Label>
-            {getMemoryInput(smin)}
-          </FormGroup>
-        </Col>
-        <Col sm={3}>
-          <FormGroup>
-            <Label for={dmin}>
-              Dynamic minimum
-            </Label>
-            {getMemoryInput(dmin)}
-          </FormGroup>
-        </Col>
-        <Col sm={3}>
-          <FormGroup>
-            <Label for={dmax}>
-              Dynamic maximum
-            </Label>
-            {getMemoryInput(dmax)}
-          </FormGroup>
-        </Col>
-        <Col sm={3}>
-          <FormGroup>
-            <Label for={smax}>
-              Static maximum
-            </Label>
-            {getMemoryInput(smax)}
-          </FormGroup>
-        </Col>
-      </Row>
-    </Fragment>
-  )
-};
+  }
+;

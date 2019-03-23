@@ -3,6 +3,7 @@ import graphene
 from handlers.graphql.types.input.namedinput import NamedInput
 from handlers.graphql.types.objecttype import InputObjectType
 from handlers.graphql.types.vm import DomainType
+from handlers.graphql.utils.input import validate_subtype
 from xenadapter.abstractvm import AbstractVM
 class PlatformInput(InputObjectType):
     cores_per_socket = graphene.Argument(graphene.Int, default_value={})
@@ -66,7 +67,7 @@ def set_memory(input: AbstractVMInput, vm: AbstractVM):
             vm.set_memory_dynamic_max(dmax)
 
 
-def memory_input_validator(input: AbstractVMInput):
+def memory_input_validator(input: AbstractVMInput, _):
     smin : float = input.memory_static_min
     smax : float = input.memory_static_max
     dmin : float = input.memory_dynamic_min
@@ -79,4 +80,29 @@ def memory_input_validator(input: AbstractVMInput):
         has_values = True
 
     return has_values, None
+
+def vcpus_input_validator(input: AbstractVMInput, vm: AbstractVM):
+    if not input.VCPUs_at_startup and not input.VCPUs_max:
+        return False, None
+
+    if input.VCPUs_max and vm.get_power_state() != 'Halted':
+        return False, f"VCPUsMax: Setting VCPUs maximum requires {vm} to be in Halted state"
+
+    return True, None
+
+def set_VCPUs(input: AbstractVMInput, vm: AbstractVM):
+    current_startup = vm.get_VCPUs_at_startup()
+    if current_startup > input.VCPUs_max:
+        if not input.VCPUs_at_startup:
+            raise ValueError()
+        vm.set_VCPUs_at_startup(input.VCPUs_at_startup)
+        vm.set_VCPUs_max(input.VCPUs_max)
+    else:
+        if input.VCPUs_max:
+            vm.set_VCPUs_max(input.VCPUs_max)
+        if input.VCPUs_at_startup:
+            vm.set_VCPUs_at_startup(input.VCPUs_at_startup)
+
+def platform_validator(input, vm):
+    return validate_subtype('platform')(input, vm)
 

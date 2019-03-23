@@ -24,7 +24,8 @@ class MutationMethod:
         deps: Tuple of dependencies:  lambdas that are called with our object as first argument and returning tuple of Boolean and reason string
     '''
     Input = TypeVar('Input')
-    func: Union[str, Tuple[Callable[[Input, "XenObject"], None], Callable[[Input], Tuple[bool, Optional[str]]]]]
+                # std function            custom callable                      custom validator
+    func: Union[str, Tuple[Callable[[Input, "XenObject"], None], Callable[[Input, "XenObject"], Tuple[bool, Optional[str]]]]]
     access_action: Optional[SerFlag]
     deps: Tuple[Callable[["XenObject"], Tuple[bool, str]]] = tuple()
 
@@ -57,21 +58,21 @@ class MutationHelper:
                 if getattr(changes, item.func) is None:
                     continue
             else:
-                granted, reason = item.func[1](changes)
+                granted, reason = item.func[1](changes, self.mutable_object)
                 if not granted:
                     if not reason: # if Reason is None, we're instructed to skip this mutation as user didn't supply anything
                         continue
                     else:
-                        return False, f'{camelcase(item.func[0].__name__)}: {reason}'
+                        return False, reason
 
             if not(item.access_action is None and \
                     self.ctx.user_authenticator.is_admin() or \
                     self.mutable_object.check_access(self.ctx.user_authenticator, item.access_action)):
 
                 if item.access_action:
-                    return False, f"{camelcase(item.func.__name__)}: Access denied: object {self.mutable_object}; action: {item.access_action}"
+                    return False, f"{camelcase(item.func if isinstance(item.func, str) else item.func[0].__name__)}: Access denied: object {self.mutable_object}; action: {item.access_action}"
                 else:
-                    return False, f"{camelcase(item.func.__name__)}: Access denied: not an administrator"
+                    return False, f"{camelcase(item.func if isinstance(item.func, str) else item.func[0].__name__)}: Access denied: not an administrator"
             else:
                 if isinstance(item.func, str):
                     callables.append(partial(getattr(self.mutable_object, f'set_{item.func}'), getattr(changes, item.func)))
@@ -81,7 +82,7 @@ class MutationHelper:
             for dep_check in dep_checks:
                 ret = dep_check()
                 if not ret[0]:
-                    return False, f"{camelcase(item.func if isinstance(item.func, str) else item.func[0].__name__)}: {ret[1]}"
+                    return False, f"{camelcase(item.func if isinstance(item.func, str) else '')}: {ret[1]}"
 
         for item in callables:
             item()

@@ -8,7 +8,7 @@ export const schema = {
     VCPUsMax: number().integer().max(32).required().test(
       'VCPUs-max', "Maxiumum number of cores should be not less than number of cores at startup",
       function (value) {
-        return this.parent.VCPUsAtStartup <= value;
+        return this.options.context['VCPUsAtStartup'] <= value;
       }
     ),
     platform: object({
@@ -16,30 +16,30 @@ export const schema = {
         number().required().label("VCPU cores per socket").required().test(
           "vcpus-multiplier-cores", "Number of cores should be a multiplier of number of cores per socket",
           function (value) {
-            return this.parent.VCPUsAtStartup % value === 0;
+            return this.options.context['VCPUsAtStartup'] % value === 0;
           })
     }),
     memoryStaticMax:
-      number().integer().min(1).max(MEMORY_MAX).required("memoryStaticMax is required"),
+      number().min(1).max(MEMORY_MAX).required("memoryStaticMax is required"),
     memoryDynamicMax:
-      number().integer().min(1).required().test(
+      number().min(1).required().test(
         "memory-dynamic-max", "Dynamic memory maximum should not be more than static memory maximum",
         function (value) {
-          return this.parent.memoryStaticMax >= value;
+          return this.options.context['memoryStaticMax'] >= value;
         }
       ),
     memoryDynamicMin:
-      number().integer().min(1).required().test(
-        "memory-dynamic-min", "Dynamic memory minimum should not be more than static memory minimum",
+      number().min(1).required().test(
+        "memory-dynamic-min", "Dynamic memory minimum should not be more than dynamic memory maximum",
         function (value) {
-          return this.parent.memoryDynamicMax >= value;
+          return this.options.context['memoryDynamicMax'] >= value;
         }
       ),
     memoryStaticMin:
-      number().integer().min(1).required().test(
+      number().min(1).required().test(
         "memory-static-min", "Static memory minimum should not be more than dynamic memory minimum",
         function (value) {
-          return this.parent.memoryDynamicMin >= value;
+          return this.options.context['memoryDynamicMin'] >= value;
         }
       ),
 

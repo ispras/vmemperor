@@ -36,7 +36,7 @@ def set_subtype(field_name: str):
 
 
 def validate_subtype(field_name):
-    def validator(input):
+    def validator(input, _):
         '''
         If all items are defaults (empty dict), dont alter anything
         :param input:

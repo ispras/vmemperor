@@ -16,7 +16,7 @@ export const CPUInputComponent: React.FunctionComponent<FieldProps<ResourceFormV
     if (value > form.values.VCPUsMax) {
       form.setFieldValue(VCPUsMax, value);
     }
-    form.handleChange(VCPUsStartup)(e);
+    form.setFieldValue(VCPUsStartup, value);
   }
 
   function handleChangeVCPUsMax(e: ChangeInputEvent) {
@@ -24,7 +24,7 @@ export const CPUInputComponent: React.FunctionComponent<FieldProps<ResourceFormV
     if (value < form.values.VCPUsAtStartup) {
       form.setFieldValue(VCPUsStartup, value);
     }
-    form.handleChange(VCPUsMax)(e);
+    form.setFieldValue(VCPUsMax, value);
   }
 
   return (

@@ -1,13 +1,11 @@
 import {useMutation} from "react-apollo-hooks";
 import {Formik, FormikActions, FormikConfig} from "formik";
-import {useCallback} from "react";
-import {
-  difference, filterNullValuesAndTypename, findDeepField,
-  mutationResponseToFormikErrors, setXenAdapterAPIError,
-} from "./utils";
-import {DocumentNode} from "graphql";
 import * as React from "react";
-import {merge} from 'lodash';
+import {useCallback} from "react";
+import {difference, findDeepField, mutationResponseToFormikErrors, setXenAdapterAPIError,} from "./utils";
+import {DocumentNode} from "graphql";
+import {mergeDefaults, validation} from "../../utils/forms";
+import {err} from "../../containers/App/actions";
 
 export interface AbstractSettingsFormProps<T> {
   initialValues: Partial<T>,
@@ -22,9 +20,6 @@ export interface AbstractSettingsFormProps<T> {
 
 }
 
-function mergeDefaults<T>(defaults: Partial<T>, initialValues: Partial<T>): T {
-  return merge({}, defaults, filterNullValuesAndTypename(initialValues));
-}
 
 export function AbstractSettingsForm<T extends object>({
                                                          initialValues: _inits,
@@ -38,10 +33,12 @@ export function AbstractSettingsForm<T extends object>({
   const initialValues = mergeDefaults(defaultValues, _inits);
   const mutate = useMutation(mutationNode);
   const onSubmit: FormikConfig<T>['onSubmit'] = useCallback(async (values: T, formikActions: FormikActions<T>) => {
-    const dirtyValues = difference(initialValues, values);
-    console.log("Dirty values: ", dirtyValues);
-    if (!dirtyValues)
+    const dirtyValues = difference(values, initialValues);
+    if (!dirtyValues || Object.keys(dirtyValues).length == 0)
       return;
+    else {
+      console.log("Dirty values", dirtyValues, dirtyValues.length);
+    }
     try {
       const {data} = await mutate({
         errorPolicy: "none",
@@ -57,12 +54,10 @@ export function AbstractSettingsForm<T extends object>({
       const response = data[mutationName];
       const errorData = mutationResponseToFormikErrors(response);
       if (errorData) {
-
-        const [field, message] = errorData;
-        if (field) //Trace field returned from the server by inverting dirtyValues.
-          formikActions.setFieldError(findDeepField(values, field), message);
+        if (errorData[0] !== null && values.hasOwnProperty(errorData[0]))
+          formikActions.setFieldError(errorData[0], errorData[1]);
         else
-          formikActions.setFormikState({'error': message});
+          formikActions.setStatus({'error': errorData[1]});
       }
     } catch (e) {
       const [field, message] = setXenAdapterAPIError(e, values);
@@ -74,13 +69,13 @@ export function AbstractSettingsForm<T extends object>({
     formikActions.setSubmitting(false);
 
   }, [initialValues, mutableObject.ref]);
-
+  const validator = validation(validationSchema);
   return (
     <Formik initialValues={initialValues}
-            validationSchema={validationSchema}
             isInitialValid={true}
             enableReinitialize={true}
             onSubmit={onSubmit}
+            validate={validator}
             component={component}
     />
   );

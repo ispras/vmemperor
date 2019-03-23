@@ -1,7 +1,7 @@
 import {ResourceFormValues} from "./schema";
 import {FormikProps} from "formik";
 import * as React from "react";
-import {Button, Form, FormFeedback} from "reactstrap";
+import {Alert, Button, Form, FormFeedback} from "reactstrap";
 import {Fields} from "./fields";
 import ButtonGroup from "reactstrap/lib/ButtonGroup";
 
@@ -26,9 +26,9 @@ export const ResourcesForm: React.FunctionComponent<ResourcesFormProps> =
             </Button>
           </ButtonGroup>
           {props.status && props.status.error && (
-            <FormFeedback>
+            <Alert color={"danger"}>
               {props.status.error}
-            </FormFeedback>
+            </Alert>
           )}
         </Form>
       </FormContext.Provider>
