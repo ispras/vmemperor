@@ -1,11 +1,11 @@
-from typing import Sequence, Optional
+from typing import Sequence
 
 from rethinkdb.errors import ReqlTimeoutError, ReqlDriverError
 from sentry_sdk import capture_exception
 import constants.re as re
+from input.vm import AutoInstall, VMInput
 
 from handlers.graphql.types.vm import SetDisksEntry, VMActions, GVM
-from handlers.graphql.types.vbd import VBDMode, VBDType
 from rethinkdb_tools.helper import CHECK_ER
 from xenadapter.vif import VIF
 from xenadapter.abstractvm import AbstractVM
@@ -13,9 +13,8 @@ from xenadapter.helpers import use_logger
 import XenAPI
 import provision
 from xenadapter.xenobjectdict import XenObjectDict
-from xenadapter.xenobject import XenObject
 
-from .osdetect import OSChooser
+from xentools.os import OSChooser
 from exc import *
 
 
@@ -130,44 +129,24 @@ class VM (AbstractVM):
 
 
     @use_logger
-    def create(self, user, insert_log_entry, provision_config : Sequence[SetDisksEntry], net, ram_size, VCPUs_at_startup, cores_per_socket, template, ip=None, install_url=None, override_pv_args=None, iso=None,
-               username=None, password=None, hostname=None, partition=None, fullname=None):
+    def create(self, user, insert_log_entry, provision_config : Sequence[SetDisksEntry], net, options : VMInput, template : "Template",  override_pv_args=None, iso=None, install_params: AutoInstall=None):
         '''
         Creates a virtual machine and installs an OS
 
         :param insert_log_entry: A function of signature (uuid : str, state : str, message : str) -> None to insert log entries into task status
         :param provision_config: For help see self.set_disks
         :param net: Network object
-        :param ram_size: RAM size in megabytes
-        :param hostname: Host name
-        :param template: Template object from which this VM was cloned
-        :param ip: IP configuration as in AutoInstall object. Default: auto configuration
-        :param install_url: URL to install OS from
-        :scenario_url: preseed/kickstart file url. It's Preseed for debian-based systems, Kickstart for RedHat. If os_kind is ubuntu and scenario_url is kickstart, provide a tuple (url, 'ks')
-        :param mode: 'pv' or 'hvm'. Refer to http://xapi-project.github.io/xen-api/vm-lifecycle
-        :param name_label: Name for created VM
-        :param start: if True, start VM immediately
-        :param override_pv_args: if specified, overrides all pv_args for Linux kernel
         :param iso: ISO Image object. If specified, will be mounted
 
         '''
-        if VCPUs_at_startup % cores_per_socket != 0:
-            raise ValueError(f"VCPUs_at_startup should be divisible on cores_per_socket")
 
         self.user = user
         self.insert_log_entry = lambda *args, **kwargs: insert_log_entry(self.ref, *args, **kwargs)
         self.install = True
         self.remove_tags('vmemperor')
         self.manage_actions(self.Actions.ALL, user=user)
-        self.set_ram_size(ram_size)
-        self.set_VCPUs_max(VCPUs_at_startup)
-        self.set_VCPUs_at_startup(VCPUs_at_startup)
 
-        # Set VCPU cores per socket configuration
-        platform = self.get_platform()
-
-        platform['cores-per-socket'] = cores_per_socket
-        self.set_platform(platform)
+        self.set_options(options)
 
         self.set_disks(provision_config)
         if iso:
@@ -189,12 +168,12 @@ class VM (AbstractVM):
                 self.log.debug(f"Plugged in network: {net}")
 
         else:
-            if template.get_os_kind():
-                self.log.warning(f"os_kind specified as {template.get_os_kind()}, but no network specified. The OS won't install automatically")
+            if template.get_distro():
+                self.log.warning(f"os_kind specified as {template.get_distro()}, but no network specified. The OS won't install automatically")
 
 
-        if template.get_os_kind():
-            self.os_detect(template.get_os_kind(), device, ip, hostname, install_url, override_pv_args, fullname, username, password, partition)
+        if template.get_distro():
+            self.os_detect(template.get_distro(), device, install_params)
             self.log.debug(f"OS successfully detected, proceeding with auto installation mode")
 
 
@@ -335,42 +314,35 @@ class VM (AbstractVM):
 
 
     @use_logger
-    def os_detect(self, os_kind, guest_device, net_conf, hostname, install_url, override_pv_args, fullname, username, password, partition):
+    def os_detect(self, os_kind, guest_device, install_params : AutoInstall):
         '''
         call only during install
         :param guest_device: Guest CD device name as seen by guest
-        :param os_kind:
-        :param net_conf: NetworkConfiguration object
-        :param hostname:
-        :param scenario_url:
-        :param override_pv_args:
-        :return:
+        :param os_kind
+        :param install_params: parameters for automatic installation
         '''
 
         if not hasattr(self, 'install'):
             raise RuntimeError("Not an installation process")
         other_config = self.get_other_config()
-        os = OSChooser.get_os(os_kind, other_config)
+        os = OSChooser.get_os(other_config)
 
         if os:
-            if net_conf:
-                os.set_network_parameters(**net_conf)
+            if install_params.static_ip_config:
+                os.set_network_parameters(**install_params.static_ip_config)
 
-            os.set_hostname(hostname)
 
-            os.set_install_url(install_url)
 
-            self.set_other_config(os.other_config)
-            os.fullname = fullname
-            os.username = username
-            os.password = password
-            os.partition = partition
+            os.set_install_repository(install_params.mirror_url)
+
+            os.hostname = install_params.hostname
+            os.fullname = install_params.fullname
+            os.username = install_params.username
+            os.password = install_params.password
+            os.partition = install_params.partition
             os.device = guest_device
 
-            if not override_pv_args:
-                pv_args = os.pv_args()
-            else:
-                pv_args = override_pv_args
+            pv_args = os.get_pv_args()
             self.set_PV_args(pv_args)
 
             self.log.debug(f"Set PV args: {pv_args}")

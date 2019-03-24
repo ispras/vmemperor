@@ -18,39 +18,28 @@ import {networkTypeOptions, Values} from "./props";
 import {useMutation} from "react-apollo-hooks";
 import {AutoInstall, CreateVm, NetworkConfiguration} from "../../generated-models";
 import {schema as resourceSchema} from '../../components/ResourcesForm/schema';
+import {Omit} from "../AbstractSettingsForm/utils";
 
-const initialValues: Values = {
-  pool: null,
-  template: null,
-  storage: null,
-  network: null,
-  fullname: '',
-  username: '',
-  hostname: '',
-  password: '',
-  password2: '',
-  nameDescription: '',
-  nameLabel: '',
-  VCPUsAtStartup: 1,
-  coresPerSocket: 1,
-  ram: 1024,
-  hdd: 9,
-  ip: '',
-  netmask: '',
-  gateway: '',
-  dns0: '',
-  dns1: '',
-  iso: null,
-  networkType: networkTypeOptions.filter(t => t.value === "dhcp")[0],
-  autoMode: false,
-};
+
 const IP_REGEX = RegExp('^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$');
 const HOSTNAME_REGEX = RegExp('^[a-zA-Z0-9]([a-zA-Z0-9-])*$');
 const USERNAME_REGEX = RegExp('^[a-z_][a-z0-9_]*$');
 const PASSWORD_REGEX = RegExp('^[\x00-\x7F]*$');
 
+type MyAutoInstall = Omit<AutoInstall, "partition" | "mirrorUrl">; //Partitioning is not implemented yet.
 
 const VMFormContainer: React.FunctionComponent = () => {
+  const initialValues: Values = {
+    pool: null,
+    template: null,
+    storage: null,
+    network: null,
+    vmOptions: null,
+    iso: null,
+    networkType: networkTypeOptions.filter(t => t.value === "dhcp")[0],
+    autoMode: false,
+    installParams: null,
+  };
   const requiredIpWhenNetwork = (message: string, required = true) => {
     console.log("requiredIp: ", required);
     return string().when(['autoMode', 'network', 'networkType'], {
@@ -60,7 +49,7 @@ const VMFormContainer: React.FunctionComponent = () => {
       then: string().notRequired().nullable(true),
       otherwise: required ? string().matches(IP_REGEX, message).required() : string().matches(IP_REGEX, message)
     });
-  }
+  };
   const autoModeRequired = (t) => ({
     is: true,
     then: t().required(),
@@ -89,13 +78,8 @@ const VMFormContainer: React.FunctionComponent = () => {
 
     const taskId = await createVM({
       variables: {
-        nameLabel: values.nameLabel,
-        nameDescription: values.nameDescription,
         template: values.template.value,
         network: values.network.value,
-        ram: values.ram,
-        VCPUsAtStartup: values.VCPUsAtStartup,
-        coresPerSocket: values.coresPerSocket,
         iso: values.autoMode ? null : values.iso.value,
         disks: [{
           SR: values.storage.value,
@@ -119,8 +103,12 @@ const VMFormContainer: React.FunctionComponent = () => {
               storage: OptionShape().required(),
               network: OptionShape().when('autoMode', autoModeRequired(object)),
               networkType: OptionShape().when('autoMode', autoModeRequired(object)),
+              installParams: object().shape<AutoInstall>(
+                {
+                  hostname: string().min(1).max(255).matches(HOSTNAME_REGEX).when('autoMode', autoModeRequired(string)),
+                }
+              ),
               fullname: string(),
-              hostname: string().min(1).max(255).matches(HOSTNAME_REGEX).when('autoMode', autoModeRequired(string)),
               username: string().min(1).max(31).matches(USERNAME_REGEX).when('autoMode', autoModeRequired(string)),
               password: string().min(1).matches(PASSWORD_REGEX).when('autoMode', autoModeRequired(string)),
               // @ts-ignore

@@ -36,7 +36,7 @@ export interface NetworkConfiguration {
   dns1?: Maybe<string>;
 }
 
-export interface TemplateInput {
+export interface VmInput {
   /** Object's ref */
   ref: string;
   /** Object's human-readable name */
@@ -51,8 +51,6 @@ export interface TemplateInput {
   VCPUsAtStartup?: Maybe<number>;
   /** Maximum number of VCPUs */
   VCPUsMax?: Maybe<number>;
-  /** Set the memory allocation in bytes - Sets all of memory_static_max, memory_dynamic_min, and memory_dynamic_max to the given value, and leaves memory_static_min untouched */
-  memory?: Maybe<number>;
   /** Dynamic memory min in bytes */
   memoryDynamicMin?: Maybe<number>;
   /** Dynamic memory max in bytes */
@@ -61,8 +59,6 @@ export interface TemplateInput {
   memoryStaticMin?: Maybe<number>;
   /** Static memory max in bytes */
   memoryStaticMax?: Maybe<number>;
-  /** Should this template be enabled, i.e. used in VMEmperor by users */
-  enabled?: Maybe<boolean>;
 }
 
 export interface PlatformInput {
@@ -85,7 +81,7 @@ export interface PlatformInput {
   videoram?: Maybe<number>;
 }
 
-export interface VmInput {
+export interface TemplateInput {
   /** Object's ref */
   ref: string;
   /** Object's human-readable name */
@@ -100,8 +96,6 @@ export interface VmInput {
   VCPUsAtStartup?: Maybe<number>;
   /** Maximum number of VCPUs */
   VCPUsMax?: Maybe<number>;
-  /** Set the memory allocation in bytes - Sets all of memory_static_max, memory_dynamic_min, and memory_dynamic_max to the given value, and leaves memory_static_min untouched */
-  memory?: Maybe<number>;
   /** Dynamic memory min in bytes */
   memoryDynamicMin?: Maybe<number>;
   /** Dynamic memory max in bytes */
@@ -110,6 +104,8 @@ export interface VmInput {
   memoryStaticMin?: Maybe<number>;
   /** Static memory max in bytes */
   memoryStaticMax?: Maybe<number>;
+  /** Should this template be enabled, i.e. used in VMEmperor by users */
+  enabled?: Maybe<boolean>;
 }
 
 export interface VmStartInput {
@@ -395,16 +391,12 @@ export namespace Console {
 
 export namespace CreateVm {
   export type Variables = {
-    VCPUsAtStartup?: Maybe<number>;
-    coresPerSocket?: Maybe<number>;
+    vmOptions: VmInput;
     disks?: Maybe<(Maybe<NewVdi>)[]>;
     installParams?: Maybe<AutoInstall>;
-    nameLabel: string;
-    nameDescription: string;
     iso?: Maybe<string>;
     template: string;
     network?: Maybe<string>;
-    ram: number;
   };
 
   export type Mutation = {
@@ -417,6 +409,10 @@ export namespace CreateVm {
     __typename?: "CreateVM";
 
     taskId: Maybe<string>;
+
+    granted: boolean;
+
+    reason: Maybe<string>;
   };
 }
 
@@ -2092,30 +2088,24 @@ export namespace Console {
 export namespace CreateVm {
   export const Document = gql`
     mutation createVm(
-      $VCPUsAtStartup: Int
-      $coresPerSocket: Int
+      $vmOptions: VMInput!
       $disks: [NewVDI]
       $installParams: AutoInstall
-      $nameLabel: String!
-      $nameDescription: String!
       $iso: ID
       $template: ID!
       $network: ID
-      $ram: Float!
     ) {
       createVm(
-        nameLabel: $nameLabel
-        VCPUsAtStartup: $VCPUsAtStartup
-        coresPerSocket: $coresPerSocket
         disks: $disks
         installParams: $installParams
-        nameDescription: $nameDescription
         template: $template
         network: $network
-        ram: $ram
         iso: $iso
+        vmOptions: $vmOptions
       ) {
         taskId
+        granted
+        reason
       }
     }
   `;
@@ -6144,26 +6134,17 @@ export namespace MutationResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext, CreateVmArgs>;
   export interface CreateVmArgs {
-    /** Number of created virtual CPUs */
-    VCPUsAtStartup?: number;
-    /** Number of cores per socket */
-    coresPerSocket?: number;
-
     disks?: Maybe<(Maybe<NewVdi>)[]>;
     /** Automatic installation parameters, the installation is done via internet. Only available when template.os_kind is not empty */
     installParams?: Maybe<AutoInstall>;
     /** ISO image mounted if conf parameter is null */
     iso?: Maybe<string>;
-    /** VM human-readable description */
-    nameDescription: string;
-    /** VM human-readable name */
-    nameLabel: string;
     /** Network ID to connect to */
     network?: Maybe<string>;
-    /** RAM size in megabytes */
-    ram: number;
     /** Template ID */
     template: string;
+    /** Basic VM options. Leave fields empty to use Template options */
+    vmOptions: VmInput;
   }
 
   export type TemplateResolver<
@@ -8324,26 +8305,17 @@ export interface SelectedItemsQueryArgs {
   tableId: Table;
 }
 export interface CreateVmMutationArgs {
-  /** Number of created virtual CPUs */
-  VCPUsAtStartup?: number;
-  /** Number of cores per socket */
-  coresPerSocket?: number;
-
   disks?: Maybe<(Maybe<NewVdi>)[]>;
   /** Automatic installation parameters, the installation is done via internet. Only available when template.os_kind is not empty */
   installParams?: Maybe<AutoInstall>;
   /** ISO image mounted if conf parameter is null */
   iso?: Maybe<string>;
-  /** VM human-readable description */
-  nameDescription: string;
-  /** VM human-readable name */
-  nameLabel: string;
   /** Network ID to connect to */
   network?: Maybe<string>;
-  /** RAM size in megabytes */
-  ram: number;
   /** Template ID */
   template: string;
+  /** Basic VM options. Leave fields empty to use Template options */
+  vmOptions: VmInput;
 }
 export interface TemplateMutationArgs {
   /** Template to change */

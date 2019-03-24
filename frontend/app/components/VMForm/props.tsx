@@ -2,26 +2,18 @@ import {FormikProps} from "formik";
 import React from "react";
 import {Option} from '../../hooks/form';
 import {ResourceFormValues} from "../ResourcesForm/schema";
+import {AutoInstall, CreateVm, VmInput} from "../../generated-models";
+import {Omit} from "react-apollo-hooks/lib/utils";
 
-export interface Values extends ResourceFormValues {
+
+export interface Values {
   pool: Option;
   template: Option;
   storage: Option;
   network: Option;
   networkType: Option;
-  fullname: string;
-  username: string;
-  password: string;
-  password2: string;
-  hostname: string;
-  nameLabel: string;
-  nameDescription: string;
-  hdd: number; //GB
-  ip: string;
-  netmask: string;
-  gateway: string;
-  dns0: string;
-  dns1: string;
+  installParams?: AutoInstall
+  vmOptions?: VmInput
   iso: Option;
   autoMode: boolean,
 }

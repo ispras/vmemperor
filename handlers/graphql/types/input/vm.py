@@ -6,18 +6,13 @@ from authentication import with_authentication, with_default_authentication, ret
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils.mutationmethod import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
-from handlers.graphql.types.input.abstractvm import AbstractVMInput, memory_input_validator, set_memory, \
+from handlers.graphql.types.input.abstractvm import memory_input_validator, set_memory, \
     vcpus_input_validator, set_VCPUs, platform_validator
-from handlers.graphql.types.input.namedinput import NamedInput
 from handlers.graphql.types.objecttype import InputObjectType
-from handlers.graphql.utils.input import set_subtype, validate_subtype
-from xenadapter import Host
+from input.vm import VMInput
+from xenadapter.xenobject import set_subtype
 from xenadapter.vm import VM
-from handlers.graphql.types.vm import DomainType
-
-class VMInput(AbstractVMInput):
-    pass
-
+from handlers.graphql.utils.input import set_subtype_field
 
 class VMMutation(graphene.Mutation):
     '''
@@ -42,7 +37,7 @@ class VMMutation(graphene.Mutation):
             MutationMethod(func="name_label", access_action=VM.Actions.rename),
             MutationMethod(func="name_description", access_action=VM.Actions.rename),
             MutationMethod(func="domain_type", access_action=VM.Actions.change_domain_type),
-            MutationMethod(func=(set_subtype("platform"), platform_validator), access_action=VM.Actions.changing_VCPUs),
+            MutationMethod(func=(set_subtype_field("platform"), platform_validator), access_action=VM.Actions.changing_VCPUs),
             MutationMethod(func=(set_VCPUs, vcpus_input_validator), access_action=VM.Actions.changing_VCPUs),
             MutationMethod(func=(set_memory, memory_input_validator), access_action=VM.Actions.changing_memory_limits)
         ]

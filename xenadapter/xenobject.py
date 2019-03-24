@@ -13,12 +13,40 @@ from exc import *
 from authentication import BasicAuthenticator
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
+from handlers.graphql.types.objecttype import InputObjectType
 from rethinkdb_tools.helper import CHECK_ER
 from xenadapter.xenobjectmeta import XenObjectMeta
 from xentools.dict_deep_convert import dict_deep_convert
 from xentools.xenadapter import XenAdapter
 from typing import Optional, Type, Collection
 
+def set_subtype(field_name: str):
+    def setter(input_dict: dict, obj: XenObject):
+        '''
+        Update values in original dict or field_name but not replace whole dict in its entirety
+        :param input:
+        :param obj:
+        :return:
+        '''
+        old_dict = getattr(obj, f'get_{field_name}')()
+        to_delete = filter(lambda item: input_dict[item] is None, input_dict.keys())
+
+        def item_yielder():
+            for delete_key in to_delete:
+                del input_dict[delete_key]
+                del old_dict[delete_key]
+
+            for key in old_dict:
+                if key in input_dict:
+                    yield key, input_dict.pop(key)
+                else:
+                    yield key, old_dict[key]
+
+            yield from input_dict.items()
+
+        arg = {k:v for k,v in item_yielder()}
+        getattr(obj, f'set_{field_name}')(arg)
+    return setter
 
 class XenObject(metaclass=XenObjectMeta):
     '''
@@ -262,5 +290,17 @@ class XenObject(metaclass=XenObjectMeta):
                 raise XenAdapterAPIError(self.log, f"Failed to execute {self.api_class}::{name}", f.details)
 
         return method
+
+    def set_options(self, options: Mapping):
+
+        for key in options.keys():
+            if not options[key]:
+                continue
+
+            if isinstance(options[key], Mapping):
+                set_subtype(key)(options[key], self)
+            else:
+                attr = getattr(self, f'set_{key}')
+                attr(options[key])
 
 

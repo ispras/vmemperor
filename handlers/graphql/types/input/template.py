@@ -1,15 +1,36 @@
 import graphene
 
 from handlers.graphql.graphql_handler import ContextProtocol
+from handlers.graphql.mutation_utils.cleanup import cleanup_defaults
 from handlers.graphql.mutation_utils.mutationmethod import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
 from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
-from handlers.graphql.types.input.abstractvm import AbstractVMInput
+from input.template import TemplateInput, InstallOSOptionsInput
 from xenadapter.template import Template
+from xentools.os import Distro
 
-class TemplateInput(AbstractVMInput):
-    enabled = graphene.InputField(graphene.Boolean,
-                                description="Should this template be enabled, i.e. used in VMEmperor by users")
+
+def set_install_options(input: InstallOSOptionsInput, tmpl : Template):
+    clean_input = cleanup_defaults(input)
+    if clean_input != {}:
+        tmpl.set_install_options(input)
+
+def install_options_validator(input: TemplateInput):
+    '''
+    Use the fact that both {} and None are falsy values.
+    Either distro  is not set (or cleared) or if distro is set other parameters should be set
+    :param input:
+    :return:
+    '''
+    opts: InstallOSOptionsInput = input.install_options
+    if not opts:
+        return False, None
+    if opts.distro:
+        if not (opts.release and opts.arch and opts.install_repository):
+            return False, "Specify release, arch and installRepository for distro"
+
+    return True, None
+
 
 
 class TemplateMutation(graphene.Mutation):
@@ -28,7 +49,8 @@ class TemplateMutation(graphene.Mutation):
         t = Template(xen=ctx.xen, ref=template.ref)
 
         mutations = [
-            MutationMethod(func="enabled", access_action=None)
+            MutationMethod(func="enabled", access_action=None),
+            MutationMethod(func=(set_install_options, install_options_validator), access_action=Template.Actions.change_install_os_options)
         ]
 
         helper = MutationHelper(mutations, ctx, t)
@@ -63,3 +85,5 @@ class TemplateDestroyMutation(graphene.Mutation):
     @return_if_access_is_not_granted([("Template", "ref", Template.Actions.destroy)])
     def mutate(root, info, ref, Template : Template):
         return TemplateDestroyMutation(granted=True, task_id=Template.async_destroy())
+
+

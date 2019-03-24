@@ -1,38 +1,5 @@
-from handlers.graphql.types.objecttype import InputObjectType
-from xenadapter.xenobject import XenObject
-
-
-
-def set_subtype(field_name: str):
-    def setter(input: InputObjectType, obj: XenObject):
-        '''
-        Input object values format:
-        Empty dict input: don't alter original map's key (this should be the default)
-        None: remove this from original map
-        :param input:
-        :param obj:
-        :return:
-        '''
-        input_dict = {k:v for k,v in {**getattr(input, field_name)}.items() if v != {}}
-        old_dict = getattr(obj, f'get_{field_name}')()
-        to_delete = filter(lambda item: input_dict[item] is None, input_dict.keys())
-
-        def item_yielder():
-            for delete_key in to_delete:
-                del input_dict[delete_key]
-                del old_dict[delete_key]
-
-            for key in old_dict:
-                if key in input_dict:
-                    yield key, input_dict.pop(key)
-                else:
-                    yield key, old_dict[key]
-
-            yield from input_dict.items()
-
-        arg = {k:v for k,v in item_yielder()}
-        getattr(obj, f'set_{field_name}')(arg)
-    return setter
+from handlers.graphql.mutation_utils.cleanup import cleanup_defaults
+from xenadapter.xenobject import set_subtype
 
 
 def validate_subtype(field_name):
@@ -47,3 +14,14 @@ def validate_subtype(field_name):
         ret = any(map(lambda item: item != {}, dict(**getattr(input, field_name)).values()))
         return ret, None
     return validator
+
+def set_subtype_field(field_name):
+    '''
+    Sets a subtype named field_name of XenObject, cleaning input dict of defaults (empty dict)
+    :param field_name:
+    :return:
+    '''
+    thunk = set_subtype(field_name)
+    def setter(input, obj):
+        thunk(cleanup_defaults(input), obj)
+    return setter
