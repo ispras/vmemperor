@@ -1,8 +1,8 @@
 import graphene
 
+from handlers.graphql.interfaces.abstractvm import GDomainType
 from handlers.graphql.types.input.namedinput import NamedInput
 from handlers.graphql.types.objecttype import InputObjectType
-from handlers.graphql.types.vm import DomainType
 
 
 class PlatformInput(InputObjectType):
@@ -18,7 +18,7 @@ class PlatformInput(InputObjectType):
 
 
 class AbstractVMInput(NamedInput):
-    domain_type = graphene.InputField(DomainType, description="VM domain type: 'pv', 'hvm', 'pv_in_pvh'")
+    domain_type = graphene.InputField(GDomainType, description="VM domain type: 'pv', 'hvm', 'pv_in_pvh'")
     platform = graphene.InputField(PlatformInput, description="VCPU platform properties")
     VCPUs_at_startup = graphene.InputField(graphene.Int, description="Number of VCPUs at startup")
     VCPUs_max = graphene.InputField(graphene.Int, description="Maximum number of VCPUs")

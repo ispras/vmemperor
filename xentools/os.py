@@ -192,7 +192,7 @@ class CentOS(GenericOS):
 
     def get_pv_args(self):
         '''
-        TODO: rewrite for CentOS
+        TODO: rewrite for CentOS 6
         :return:
         '''
         if self.dhcp:

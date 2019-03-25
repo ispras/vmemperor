@@ -4,6 +4,7 @@ import graphene
 from serflag import SerFlag
 
 from handlers.graphql.action_deserializers.abstractvm_deserializer import AbstractVMDeserializer
+from handlers.graphql.interfaces.abstractvm import GAbstractVM
 from handlers.graphql.interfaces.xenobject import GAclXenObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
@@ -27,14 +28,14 @@ GTemplateAccessEntry = create_access_type("GTemplateAccessEntry", GTemplateActio
 class InstallOSOptions(GSubtypeObjectType):
     distro = graphene.Field(GDistro, required=True)
     arch = graphene.Field(GArch)
-    version = graphene.Field(graphene.String)
+    release = graphene.Field(graphene.String)
     install_repository = graphene.Field(graphene.String)
 
 
 
 class GTemplate(GXenObjectType):
     class Meta:
-        interfaces = (GAclXenObject,)
+        interfaces = (GAclXenObject, GAbstractVM)
 
     access = graphene.Field(graphene.List(GTemplateAccessEntry), required=True,
                             resolver=resolve_accessentries(TemplateActions))
