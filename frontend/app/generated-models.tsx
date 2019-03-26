@@ -1083,6 +1083,20 @@ export namespace Tasks {
   export type Value = TaskFragment.Fragment | DeletedFragment.Fragment;
 }
 
+export namespace TemplateInfo {
+  export type Variables = {
+    ref: string;
+  };
+
+  export type Query = {
+    __typename?: "Query";
+
+    template: Maybe<Template>;
+  };
+
+  export type Template = TemplateInfoFragment.Fragment;
+}
+
 export namespace TemplateList {
   export type Variables = {};
 
@@ -1396,6 +1410,52 @@ export namespace TaskFragment {
     result: Maybe<string>;
 
     residentOn: Maybe<string>;
+  };
+}
+
+export namespace TemplateInfoFragment {
+  export type Fragment = {
+    __typename?: "GTemplate";
+
+    enabled: boolean;
+
+    myActions: (Maybe<TemplateActions>)[];
+
+    access: (Maybe<Access>)[];
+
+    installOptions: Maybe<InstallOptions>;
+
+    isOwner: boolean;
+  } & (AbstractVmFragment.Fragment | AclXenObjectFragment.Fragment);
+
+  export type Access = {
+    __typename?: "GTemplateAccessEntry";
+
+    userId: UserId;
+
+    actions: TemplateActions[];
+  };
+
+  export type UserId = {
+    __typename?: "User";
+
+    id: string;
+
+    name: string;
+
+    username: string;
+  };
+
+  export type InstallOptions = {
+    __typename?: "InstallOSOptions";
+
+    distro: Distro;
+
+    arch: Maybe<Arch>;
+
+    release: Maybe<string>;
+
+    installRepository: Maybe<string>;
   };
 }
 
@@ -1747,6 +1807,61 @@ export namespace TaskFragment {
   `;
 }
 
+export namespace AbstractVmFragment {
+  export const FragmentDoc = gql`
+    fragment AbstractVMFragment on GAbstractVM {
+      memoryStaticMin
+      memoryStaticMax
+      memoryDynamicMin
+      memoryDynamicMax
+      VCPUsAtStartup
+      VCPUsMax
+      platform {
+        coresPerSocket
+      }
+    }
+  `;
+}
+
+export namespace AclXenObjectFragment {
+  export const FragmentDoc = gql`
+    fragment ACLXenObjectFragment on GAclXenObject {
+      ref
+      nameLabel
+      nameDescription
+    }
+  `;
+}
+
+export namespace TemplateInfoFragment {
+  export const FragmentDoc = gql`
+    fragment TemplateInfoFragment on GTemplate {
+      ...AbstractVMFragment
+      ...ACLXenObjectFragment
+      enabled
+      myActions
+      access {
+        userId {
+          id
+          name
+          username
+        }
+        actions
+      }
+      installOptions {
+        distro
+        arch
+        release
+        installRepository
+      }
+      isOwner
+    }
+
+    ${AbstractVmFragment.FragmentDoc}
+    ${AclXenObjectFragment.FragmentDoc}
+  `;
+}
+
 export namespace TemplateListFragment {
   export const FragmentDoc = gql`
     fragment TemplateListFragment on GTemplate {
@@ -1791,32 +1906,6 @@ export namespace StorageAttachVdiListFragment {
       nameLabel
       nameDescription
       virtualSize
-    }
-  `;
-}
-
-export namespace AclXenObjectFragment {
-  export const FragmentDoc = gql`
-    fragment ACLXenObjectFragment on GAclXenObject {
-      ref
-      nameLabel
-      nameDescription
-    }
-  `;
-}
-
-export namespace AbstractVmFragment {
-  export const FragmentDoc = gql`
-    fragment AbstractVMFragment on GAbstractVM {
-      memoryStaticMin
-      memoryStaticMax
-      memoryDynamicMin
-      memoryDynamicMax
-      VCPUsAtStartup
-      VCPUsMax
-      platform {
-        coresPerSocket
-      }
     }
   `;
 }
@@ -3830,6 +3919,48 @@ export namespace Tasks {
     >(Document, operationOptions);
   }
 }
+export namespace TemplateInfo {
+  export const Document = gql`
+    query TemplateInfo($ref: ID!) {
+      template(ref: $ref) {
+        ...TemplateInfoFragment
+      }
+    }
+
+    ${TemplateInfoFragment.FragmentDoc}
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Query<Query, Variables>
+          query={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
+    TChildProps;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
 export namespace TemplateList {
   export const Document = gql`
     query TemplateList {
@@ -4246,7 +4377,7 @@ export namespace QueryResolvers {
     /** All Templates available to user */
     templates?: TemplatesResolver<(Maybe<GTemplate>)[], TypeParent, TContext>;
 
-    template?: TemplateResolver<Maybe<Gvm>, TypeParent, TContext>;
+    template?: TemplateResolver<Maybe<GTemplate>, TypeParent, TContext>;
 
     hosts?: HostsResolver<(Maybe<GHost>)[], TypeParent, TContext>;
 
@@ -4330,7 +4461,7 @@ export namespace QueryResolvers {
     TContext = {}
   > = Resolver<R, Parent, TContext>;
   export type TemplateResolver<
-    R = Maybe<Gvm>,
+    R = Maybe<GTemplate>,
     Parent = {},
     TContext = {}
   > = Resolver<R, Parent, TContext, TemplateArgs>;
@@ -7703,7 +7834,7 @@ export interface Query {
   /** All Templates available to user */
   templates: (Maybe<GTemplate>)[];
 
-  template?: Maybe<Gvm>;
+  template?: Maybe<GTemplate>;
 
   hosts: (Maybe<GHost>)[];
 
