@@ -1,5 +1,5 @@
-mutation VMEditOptions ($object : VMInput!) {
-  vm (vm: $object ) {
+mutation VMEditOptions ($vm : VMInput!) {
+  vm (vm: $vm ) {
     reason
     granted
   }

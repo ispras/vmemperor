@@ -1,5 +1,5 @@
 import {number, object} from "yup";
-import {VmActions} from "../../generated-models";
+import {AbstractVmFragment, VmActions} from "../../generated-models";
 import {Omit} from "../AbstractSettingsForm/utils";
 
 export const MEMORY_MAX = 1572864 * 1024 * 1024;
@@ -46,21 +46,8 @@ export const schema = {
   }
 ;
 
-export interface AbstractVM {
-  memoryStaticMin: number;
-  memoryStaticMax: number;
-  memoryDynamicMin: number;
-  memoryDynamicMax: number;
-  VCPUsAtStartup: number;
-  VCPUsMax: number;
-  platform: {
-    coresPerSocket?: number;
-  }
-  ref: string;
-}
 
-
-export type ResourceFormValues = Omit<AbstractVM, "ref">
+export type ResourceFormValues = AbstractVmFragment.Fragment;
 
 export default object().shape<ResourceFormValues>(schema);
 

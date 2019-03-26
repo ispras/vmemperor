@@ -3,3 +3,9 @@ fragment XenObjectFragment on GXenObject {
   nameLabel,
   nameDescription
 }
+
+fragment ACLXenObjectFragment on GAclXenObject {
+  ref,
+  nameLabel,
+  nameDescription
+}

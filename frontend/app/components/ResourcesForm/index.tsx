@@ -1,34 +1,29 @@
 import React, {useMemo} from "react";
 import {DocumentNode} from "graphql";
-import schema, {AbstractVM, ResourceFormValues} from "./schema";
+import schema from "./schema";
 import {AbstractSettingsForm} from "../AbstractSettingsForm";
 import {ResourcesForm} from "./form";
+import {XenObjectFragment} from "../../generated-models";
 
-interface Props {
-  object: AbstractVM;
+interface Props<T extends XenObjectFragment.Fragment> {
+  object: T;
   mutationName: string;
   mutationNode: DocumentNode;
+  defaultValues: Partial<T>;
 }
 
-const defaults = {
-  platform: {
-    coresPerSocket: 1,
-  }
-};
 
-
-export const ResourcesFormContainer: React.FunctionComponent<Props> = ({object, mutationName, mutationNode}) => {
-  const {ref, myActions, ...rest} = object;
+export function ResourcesFormContainer<T extends XenObjectFragment.Fragment>({object, mutationName, mutationNode, defaultValues}: Props<T>) {
 
   return (
     <AbstractSettingsForm
-      initialValues={rest}
-      defaultValues={defaults}
+      initialValues={object}
+      defaultValues={defaultValues}
       mutationNode={mutationNode}
       mutationName={mutationName}
       validationSchema={schema}
       component={ResourcesForm}
-      mutableObject={object}/>
+    />
 
   );
-};
+}

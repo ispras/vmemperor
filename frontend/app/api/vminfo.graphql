@@ -1,4 +1,5 @@
 # import AbstractVMFragment from "abstractVmFragment.graphql"
+# import ACLXenObjectFragment from "xenObjectFragment.graphql"
 
 fragment VMVIFFragment on GVIF {
   network {
@@ -38,6 +39,7 @@ fragment VMAccessFragment on GVMAccessEntry {
 }
 
 fragment VMInfoFragment on GVM {
+  ...ACLXenObjectFragment
   ...AbstractVMFragment
   VIFs {
     ...VMVIFFragment

@@ -502,7 +502,7 @@ export namespace DeleteVm {
 
 export namespace VmEditOptions {
   export type Variables = {
-    object: VmInput;
+    vm: VmInput;
   };
 
   export type Mutation = {
@@ -1216,7 +1216,7 @@ export namespace AbstractVmFragment {
     VCPUsMax: number;
 
     platform: Maybe<Platform>;
-  } & XenObjectFragment.Fragment;
+  };
 
   export type Platform = {
     __typename?: "Platform";
@@ -1576,7 +1576,7 @@ export namespace VmInfoFragment {
     myActions: (Maybe<VmActions>)[];
 
     isOwner: boolean;
-  } & AbstractVmFragment.Fragment;
+  } & (AclXenObjectFragment.Fragment | AbstractVmFragment.Fragment);
 
   export type ViFs = VmvifFragment.Fragment;
 
@@ -1610,6 +1610,18 @@ export namespace VmListFragment {
 export namespace XenObjectFragment {
   export type Fragment = {
     __typename?: "GXenObject";
+
+    ref: string;
+
+    nameLabel: string;
+
+    nameDescription: string;
+  };
+}
+
+export namespace AclXenObjectFragment {
+  export type Fragment = {
+    __typename?: "GAclXenObject";
 
     ref: string;
 
@@ -1783,9 +1795,9 @@ export namespace StorageAttachVdiListFragment {
   `;
 }
 
-export namespace XenObjectFragment {
+export namespace AclXenObjectFragment {
   export const FragmentDoc = gql`
-    fragment XenObjectFragment on GXenObject {
+    fragment ACLXenObjectFragment on GAclXenObject {
       ref
       nameLabel
       nameDescription
@@ -1796,7 +1808,6 @@ export namespace XenObjectFragment {
 export namespace AbstractVmFragment {
   export const FragmentDoc = gql`
     fragment AbstractVMFragment on GAbstractVM {
-      ...XenObjectFragment
       memoryStaticMin
       memoryStaticMax
       memoryDynamicMin
@@ -1807,8 +1818,6 @@ export namespace AbstractVmFragment {
         coresPerSocket
       }
     }
-
-    ${XenObjectFragment.FragmentDoc}
   `;
 }
 
@@ -1863,6 +1872,7 @@ export namespace VmAccessFragment {
 export namespace VmInfoFragment {
   export const FragmentDoc = gql`
     fragment VMInfoFragment on GVM {
+      ...ACLXenObjectFragment
       ...AbstractVMFragment
       VIFs {
         ...VMVIFFragment
@@ -1883,6 +1893,7 @@ export namespace VmInfoFragment {
       isOwner
     }
 
+    ${AclXenObjectFragment.FragmentDoc}
     ${AbstractVmFragment.FragmentDoc}
     ${VmvifFragment.FragmentDoc}
     ${VmvbdFragment.FragmentDoc}
@@ -1898,6 +1909,16 @@ export namespace VmListFragment {
       powerState
       myActions
       isOwner
+    }
+  `;
+}
+
+export namespace XenObjectFragment {
+  export const FragmentDoc = gql`
+    fragment XenObjectFragment on GXenObject {
+      ref
+      nameLabel
+      nameDescription
     }
   `;
 }
@@ -2343,8 +2364,8 @@ export namespace DeleteVm {
 }
 export namespace VmEditOptions {
   export const Document = gql`
-    mutation VMEditOptions($object: VMInput!) {
-      vm(vm: $object) {
+    mutation VMEditOptions($vm: VMInput!) {
+      vm(vm: $vm) {
         reason
         granted
       }

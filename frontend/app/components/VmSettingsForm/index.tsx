@@ -16,6 +16,7 @@ import AccessView from '../../components/AccessView';
 import XenObjectHeader from "../XenObjectHeader";
 import {ResourcesFormContainer} from "../ResourcesForm";
 import {SettingsComponentProps} from "../../containers/Settings";
+import {defaults} from "./defaults";
 
 
 enum Tab {
@@ -28,7 +29,8 @@ enum Tab {
 }
 
 
-const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Query>> = ({object: {vm}}) => {
+const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Query>> = ({object}) => {
+  const {vm} = object;
   const [activeTab, setActiveTab] = useState(Tab.Overview);
   const [vncActivated, setVncActivated] = useState(false);
 
@@ -132,9 +134,10 @@ const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Quer
           <Row>
             <Col sm="12">
               <ResourcesFormContainer
-                vm={vm}
+                object={vm}
                 mutationNode={VmEditOptions.Document}
                 mutationName="vm"
+                defaultValues={defaults}
               />
             </Col>
           </Row>

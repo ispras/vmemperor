@@ -5,7 +5,7 @@ import {useCallback} from "react";
 import {difference, findDeepField, mutationResponseToFormikErrors, setXenAdapterAPIError,} from "./utils";
 import {DocumentNode} from "graphql";
 import {mergeDefaults, validation} from "../../utils/forms";
-import {err} from "../../containers/App/actions";
+import {XenObjectFragment} from "../../generated-models";
 
 export interface AbstractSettingsFormProps<T> {
   initialValues: Partial<T>,
@@ -14,23 +14,20 @@ export interface AbstractSettingsFormProps<T> {
   mutationName: string; //Represents a settings mutation name and root key
   validationSchema: FormikConfig<T>['validationSchema'];
   component: FormikConfig<T>['component'];
-  mutableObject: {
-    ref: string;
-  }
-
 }
 
 
-export function AbstractSettingsForm<T extends object>({
-                                                         initialValues: _inits,
-                                                         defaultValues,
-                                                         mutationNode,
-                                                         mutationName,
-                                                         validationSchema,
-                                                         component,
-                                                         mutableObject,
-                                                       }: AbstractSettingsFormProps<T>) {
-  const initialValues = mergeDefaults(defaultValues, _inits);
+export function AbstractSettingsForm<T extends XenObjectFragment.Fragment>({
+                                                                             initialValues: {ref, ...rest},
+                                                                             defaultValues,
+                                                                             mutationNode,
+                                                                             mutationName,
+                                                                             validationSchema,
+                                                                             component,
+                                                                           }: AbstractSettingsFormProps<T>) {
+
+  //@ts-ignore
+  const initialValues = mergeDefaults(defaultValues, rest);
   const mutate = useMutation(mutationNode);
   const onSubmit: FormikConfig<T>['onSubmit'] = useCallback(async (values: T, formikActions: FormikActions<T>) => {
     const dirtyValues = difference(values, initialValues);
@@ -45,7 +42,7 @@ export function AbstractSettingsForm<T extends object>({
         variables: {
           [mutationName]:
             {
-              ref: mutableObject.ref,
+              ref,
               ...dirtyValues,
             }
         }
@@ -68,7 +65,7 @@ export function AbstractSettingsForm<T extends object>({
 
     formikActions.setSubmitting(false);
 
-  }, [initialValues, mutableObject.ref]);
+  }, [initialValues]);
   const validator = validation(validationSchema);
   return (
     <Formik initialValues={initialValues}
