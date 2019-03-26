@@ -1,0 +1,31 @@
+# import AbstractVMFragment from "abstractVmFragment.graphql"
+# import ACLXenObjectFragment from "xenObjectFragment.graphql"
+
+
+fragment TemplateInfoFragment on GTemplate {
+  ...AbstractVMFragment
+  ...ACLXenObjectFragment
+  enabled
+  myActions
+  access {
+    userId {
+      id
+      name
+      username
+    }
+    actions
+  }
+  installOptions {
+    distro
+    arch
+    release
+    installRepository
+  }
+  isOwner
+}
+
+query TemplateInfo ($ref: ID!)  {
+  template (ref: $ref) {
+    ...TemplateInfoFragment
+  }
+}

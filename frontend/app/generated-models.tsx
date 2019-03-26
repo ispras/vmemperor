@@ -1426,7 +1426,7 @@ export namespace TemplateInfoFragment {
     installOptions: Maybe<InstallOptions>;
 
     isOwner: boolean;
-  } & (AbstractVmFragment.Fragment | AclXenObjectFragment.Fragment);
+  } & (AbstractVmFragment.Fragment & AclXenObjectFragment.Fragment);
 
   export type Access = {
     __typename?: "GTemplateAccessEntry";
@@ -1474,8 +1474,6 @@ export namespace TemplateListFragment {
     access: (Maybe<Access>)[];
 
     installOptions: Maybe<InstallOptions>;
-
-    enabled: boolean;
 
     isOwner: boolean;
   };
@@ -1883,7 +1881,6 @@ export namespace TemplateListFragment {
         release
         installRepository
       }
-      enabled
       isOwner
     }
   `;

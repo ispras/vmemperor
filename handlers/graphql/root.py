@@ -46,7 +46,7 @@ class Query(ObjectType):
     vm = graphene.Field(GVM, ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
 
     templates = graphene.List(GTemplate, required=True, resolver=resolve_all(), description="All Templates available to user")
-    template = graphene.Field(GVM,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
+    template = graphene.Field(GTemplate,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
 
     hosts = graphene.List(GHost, required=True, resolver=resolve_all())
     host = graphene.Field(GHost,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one())

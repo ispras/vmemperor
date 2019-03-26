@@ -4,13 +4,12 @@ import * as React from "react";
 import {Fragment} from "react";
 import {Edit} from "../Editable";
 import ContentEditable from "react-sane-contenteditable";
+import {XenObjectFragment} from "../../generated-models";
+import {Omit} from "../AbstractSettingsForm/utils";
 
 
-interface XenObject {
-  nameLabel: string;
-  nameDescription: string;
+interface XenObject extends Omit<XenObjectFragment.Fragment, "__typename"> {
   myActions: any[];
-  ref: string,
 }
 
 interface Props {

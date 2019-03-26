@@ -18,7 +18,6 @@ fragment TemplateListFragment on GTemplate {
     release
     installRepository
   }
-  enabled
   isOwner
 }
 

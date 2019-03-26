@@ -1,17 +1,28 @@
-# This file was generated based on ".graphqlconfig" at Fri Feb 08 22:10:50 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Tue Mar 26 21:17:21 MSK 2019. Do not edit manually.
 
-interface DiskImage {
-  SR: GSR
-  VMs: [GVM]
-  "a human-readable description"
-  nameDescription: String!
-  "a human-readable name"
-  nameLabel: String!
-  "Unique constant identifier/object reference"
-  ref: ID!
-  "Unique session-dependent identifier/object reference"
-  uuid: ID!
-  virtualSize: Float!
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+interface GAbstractVM {
+  VCPUsAtStartup: Int!
+  VCPUsMax: Int!
+  domainType: DomainType!
+  guestMetrics: ID!
+  installTime: DateTime!
+  memoryActual: Float!
+  memoryDynamicMax: Float!
+  memoryDynamicMin: Float!
+  memoryStaticMax: Float!
+  memoryStaticMin: Float!
+  "CPU platform parameters"
+  platform: Platform
+}
+
+interface GAccessEntry {
+  userId: User!
 }
 
 interface GAclXenObject {
@@ -20,9 +31,9 @@ interface GAclXenObject {
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
-  "Unique constant identifier/object reference"
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
-  "Unique session-dependent identifier/object reference"
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
 }
 
@@ -31,20 +42,38 @@ interface GXenObject {
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
-  "Unique constant identifier/object reference"
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
-  "Unique session-dependent identifier/object reference"
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
 }
 
-type BlockDevice {
-  VDI: DiskImage
-  attached: Boolean!
-  bootable: Boolean!
-  device: String!
-  id: ID!
-  mode: String!
-  type: String!
+union GHostOrDeleted = Deleted | GHost
+
+union GPoolOrDeleted = Deleted | GPool
+
+union GTaskOrDeleted = Deleted | GTask
+
+union GTemplateOrDeleted = Deleted | GTemplate
+
+union GVMOrDeleted = Deleted | GVM
+
+union PlaybookTaskOrDeleted = Deleted | PlaybookTask
+
+type AttachNetworkMutation {
+  granted: Boolean!
+  reason: String
+  "Attach/Detach task ID. If already attached/detached, returns null"
+  taskId: ID
+}
+
+type AttachVDIMutation {
+  "Returns True if access is granted"
+  granted: Boolean!
+  "If access is not granted, return the reason"
+  reason: String
+  "Attach/Detach task ID. If already attached/detached, returns null"
+  taskId: ID
 }
 
 type CpuInfo {
@@ -63,13 +92,21 @@ type CpuInfo {
 }
 
 type CreateVM {
+  granted: Boolean!
+  reason: String
   "Installation task ID"
-  taskId: ID!
+  taskId: ID
 }
 
-type GAccessEntry {
-  access: [String]!
-  userid: String!
+type CurrentUserInformation {
+  groups: [User]
+  isAdmin: Boolean!
+  user: User
+}
+
+type Deleted {
+  "Deleted object's ref"
+  ref: ID!
 }
 
 type GHost implements GXenObject {
@@ -94,61 +131,52 @@ type GHost implements GXenObject {
   "When live status was last updated"
   liveUpdated: DateTime
   "Available memory as measured by the host in kilobytes"
-  memoryAvailable: Int
+  memoryAvailable: Float
   "Free memory in kilobytes"
-  memoryFree: Int
+  memoryFree: Float
   "Virtualization overhead in kilobytes"
-  memoryOverhead: Int
+  memoryOverhead: Float
   "Total memory in kilobytes"
-  memoryTotal: Int
+  memoryTotal: Float
   metrics: ID!
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
-  "Unique constant identifier/object reference"
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
   "VMs currently resident on host"
   residentVms: [GVM]!
   softwareVersion: SoftwareVersion!
-  "Unique session-dependent identifier/object reference"
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
 }
 
 type GHostsSubscription {
   "Change type"
   changeType: Change!
-  value: GHost!
-}
-
-type GISO implements DiskImage & GAclXenObject {
-  SR: GSR
-  VMs: [GVM]
-  access: [GAccessEntry]!
-  location: String!
-  "a human-readable description"
-  nameDescription: String!
-  "a human-readable name"
-  nameLabel: String!
-  "Unique constant identifier/object reference"
-  ref: ID!
-  "Unique session-dependent identifier/object reference"
-  uuid: ID!
-  virtualSize: Float!
+  value: GHostOrDeleted!
 }
 
 type GNetwork implements GAclXenObject {
-  VMs: [GVM]
-  access: [GAccessEntry]!
+  VIFs: [GVIF]
+  access: [GNetworkAccessEntry]!
+  isOwner: Boolean!
+  myActions: [NetworkActions]!
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
   otherConfig: JSONString
-  "Unique constant identifier/object reference"
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
-  "Unique session-dependent identifier/object reference"
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
+}
+
+type GNetworkAccessEntry implements GAccessEntry {
+  actions: NetworkActions!
+  userId: User!
 }
 
 """
@@ -157,12 +185,13 @@ between a host and a SR
 """
 type GPBD {
   SR: GSR!
+  currentlyAttached: Boolean!
   deviceConfig: JSONString!
   "Host to which the SR is supposed to be connected to"
   host: GHost!
   "Unique constant identifier/object reference"
   ref: ID!
-  "Unique session-dependent identifier/object reference"
+  "Unique non-primary identifier/object reference"
   uuid: ID!
 }
 
@@ -185,64 +214,74 @@ type GPool implements GXenObject {
   "Default SR"
   defaultSr: GSR
   "Pool master"
-  master: GHost!
+  master: GHost
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
-  "Unique constant identifier/object reference"
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
-  "Unique session-dependent identifier/object reference"
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
 }
 
 type GPoolsSubscription {
   "Change type"
   changeType: Change!
-  value: GPool!
+  value: GPoolOrDeleted!
 }
 
-type GSR implements GXenObject {
+type GSR implements GAclXenObject {
   "Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI"
   PBDs: [GPBD]!
-  VDIs: [DiskImage]
-  contentType: String!
+  VDIs: [GVDI]
+  access: [GSRAccessEntry]!
+  contentType: SRContentType!
+  isOwner: Boolean!
   "This SR contains XenServer Tools"
   isToolsSr: Boolean!
+  myActions: [SRActions]!
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
   "Physical size in kilobytes"
   physicalSize: Float!
-  "Physical utilisation in kilobytes"
+  "Physical utilisation in bytes"
   physicalUtilisation: Float!
-  "Unique constant identifier/object reference"
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
-  "Available space in kilobytes"
+  "Available space in bytes"
   spaceAvailable: Float!
   type: String!
-  "Unique session-dependent identifier/object reference"
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
   "Virtual allocation in kilobytes"
   virtualAllocation: Float!
 }
 
+type GSRAccessEntry implements GAccessEntry {
+  actions: SRActions!
+  userId: User!
+}
+
 type GTask implements GAclXenObject {
-  access: [GAccessEntry]!
+  access: [GTaskAccessEntry]!
   "Task creation time"
   created: DateTime!
   "Error strings, if failed"
   errorInfo: [String]
   "Task finish time"
   finished: DateTime!
+  isOwner: Boolean!
+  myActions: [TaskActions]!
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
   "Task progress"
   progress: Float!
-  "Unique constant identifier/object reference"
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
   "ref of a host that runs this task"
   residentOn: ID
@@ -252,114 +291,193 @@ type GTask implements GAclXenObject {
   status: String
   "Task result type"
   type: String
-  "Unique session-dependent identifier/object reference"
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
 }
 
-type GTemplate implements GAclXenObject {
-  access: [GAccessEntry]!
+type GTaskAccessEntry implements GAccessEntry {
+  actions: [TaskActions!]!
+  userId: User!
+}
+
+type GTasksSubscription {
+  "Change type"
+  changeType: Change!
+  value: GTaskOrDeleted!
+}
+
+type GTemplate implements GAbstractVM & GAclXenObject {
+  VCPUsAtStartup: Int!
+  VCPUsMax: Int!
+  access: [GTemplateAccessEntry]!
+  domainType: DomainType!
   "True if this template is available for regular users"
   enabled: Boolean!
+  guestMetrics: ID!
   "True if this template works with hardware assisted virtualization"
   hvm: Boolean!
+  "If the template supports unattended installation, its options are there"
+  installOptions: InstallOSOptions
+  installTime: DateTime!
+  "This template is preinstalled with XenServer"
+  isDefaultTemplate: Boolean!
+  isOwner: Boolean!
+  memoryActual: Float!
+  memoryDynamicMax: Float!
+  memoryDynamicMin: Float!
+  memoryStaticMax: Float!
+  memoryStaticMin: Float!
+  myActions: [TemplateActions]!
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
-  "If a template supports auto-installation, here a distro name is provided"
-  osKind: String
-  "Unique constant identifier/object reference"
+  "CPU platform parameters"
+  platform: Platform
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
-  "Unique session-dependent identifier/object reference"
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
 }
 
-type GVDI implements DiskImage & GAclXenObject {
+type GTemplateAccessEntry implements GAccessEntry {
+  actions: [TemplateActions!]!
+  userId: User!
+}
+
+type GTemplatesSubscription {
+  "Change type"
+  changeType: Change!
+  value: GTemplateOrDeleted!
+}
+
+type GVBD {
+  VDI: GVDI
+  VM: GVM
+  bootable: Boolean!
+  currentlyAttached: Boolean!
+  mode: VBDMode!
+  "Unique constant identifier/object reference"
+  ref: ID!
+  type: VBDType!
+  userdevice: Int!
+  "Unique non-primary identifier/object reference"
+  uuid: ID!
+}
+
+type GVDI implements GAclXenObject {
   SR: GSR
-  VMs: [GVM]
+  VBDs: [GVBD]!
   access: [GAccessEntry]!
+  contentType: SRContentType!
+  isOwner: Boolean!
+  myActions: [VDIActions]!
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
-  "Unique constant identifier/object reference"
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
-  "Unique session-dependent identifier/object reference"
+  type: VDIType!
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
   virtualSize: Float!
 }
 
-type GVM implements GAclXenObject {
+type GVIF {
+  "MAC address"
+  MAC: ID!
+  VM: GVM
+  currentlyAttached: Boolean!
+  "Device ID"
+  device: ID!
+  ip: String
+  ipv4: String
+  ipv6: String
+  network: GNetwork
+  "Unique constant identifier/object reference (primary)"
+  ref: ID!
+}
+
+type GVM implements GAbstractVM & GAclXenObject {
   "True if PV drivers are up to date, reported if Guest Additions are installed"
   PVDriversUpToDate: Boolean
   "PV drivers version, if available"
   PVDriversVersion: PvDriversVersion
+  "Virtual block devices"
+  VBDs: [GVBD]!
   VCPUsAtStartup: Int!
   VCPUsMax: Int!
-  access: [GAccessEntry]!
-  disks: [BlockDevice]
+  VIFs: [GVIF]!
+  access: [GVMAccessEntry]!
   domainType: DomainType!
   guestMetrics: ID!
   installTime: DateTime!
-  "Network adapters connected to a VM"
-  interfaces: [Interface]
-  memoryActual: Int!
-  memoryDynamicMax: Int!
-  memoryDynamicMin: Int!
-  memoryStaticMax: Int!
-  memoryStaticMin: Int!
+  isOwner: Boolean!
+  memoryActual: Float!
+  memoryDynamicMax: Float!
+  memoryDynamicMin: Float!
+  memoryStaticMax: Float!
+  memoryStaticMin: Float!
   metrics: ID!
+  myActions: [VMActions]!
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
   osVersion: OSVersion
+  "CPU platform parameters"
+  platform: Platform
   powerState: PowerState!
-  "Unique constant identifier/object reference"
+  "Unique constant identifier/object reference (primary)"
   ref: ID!
-  startTime: DateTime!
-  "Unique session-dependent identifier/object reference"
+  startTime: DateTime
+  "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
+}
+
+type GVMAccessEntry implements GAccessEntry {
+  actions: [VMActions!]!
+  userId: User!
 }
 
 type GVMsSubscription {
   "Change type"
   changeType: Change!
-  value: GVM!
+  value: GVMOrDeleted!
 }
 
-type Interface {
-  MAC: String!
-  VIF: ID!
-  attached: Boolean!
-  id: ID!
-  ip: String
-  ipv6: String
-  network: GNetwork!
-  status: String
+type InstallOSOptions {
+  arch: Arch
+  distro: Distro!
+  installRepository: String
+  release: String
 }
 
 type Mutation {
   "Create a new VM"
   createVm(
-    #Number of created virtual CPUs
-    VCPUs: Int = 1,
     disks: [NewVDI],
     #Automatic installation parameters, the installation is done via internet. Only available when template.os_kind is not empty
     installParams: AutoInstall,
     #ISO image mounted if conf parameter is null
     iso: ID,
-    #VM human-readable description
-    nameDescription: String!,
-    #VM human-readable name
-    nameLabel: String!,
     #Network ID to connect to
     network: ID,
-    #RAM size in megabytes
-    ram: Float!,
     #Template ID
-    template: ID!
+    template: ID!,
+    #Basic VM options. Leave fields empty to use Template options
+    vmOptions: VMInput!
   ): CreateVM
+  "Set network access rights"
+  netAccessSet(actions: [NetworkActions!]!, ref: ID!, revoke: Boolean!, user: String!): NetAccessSet
+  "Attach VM to a Network by creating a new Interface"
+  netAttach(
+    #True if attach, False if detach
+    isAttach: Boolean!,
+    netRef: ID!,
+    vmRef: ID!
+  ): AttachNetworkMutation
   "Launch an Ansible Playbook on specified VMs"
   playbookLaunch(
     #Playbook ID
@@ -369,34 +487,61 @@ type Mutation {
     #VM UUIDs to run Playbook on. Ignored if this is a Playbook with provided Inventory
     vms: [ID]
   ): PlaybookLaunchMutation
+  "Set SR access rights"
+  srAccessSet(actions: [SRActions!]!, ref: ID!, revoke: Boolean!, user: String!): SRAccessSet
   "Edit template options"
   template(
     #Template to change
-    template: TemplateInput
+    template: TemplateInput!
   ): TemplateMutation
+  "Clone template"
+  templateClone(
+    #New name label
+    nameLabel: String!,
+    ref: ID!
+  ): TemplateCloneMutation
+  "Delete template"
+  templateDelete(ref: ID!): TemplateDestroyMutation
+  "Set VDI access rights"
+  vdiAccessSet(actions: [VDIActions!]!, ref: ID!, revoke: Boolean!, user: String!): VDIAccessSet
+  "Attach VDI to a VM by creating a new virtual block device"
+  vdiAttach(
+    #True if attach, False if detach
+    isAttach: Boolean!,
+    vdiRef: ID!,
+    vmRef: ID!
+  ): AttachVDIMutation
   "Edit VM options"
   vm(
     #VM to change
     vm: VMInput!
   ): VMMutation
+  "Set VM access rights"
+  vmAccessSet(actions: [VMActions!]!, ref: ID!, revoke: Boolean!, user: String!): VMAccessSet
   "Delete a Halted VM"
-  vmDelete(uuid: ID!): VMDeleteMutation
+  vmDelete(ref: ID!): VMDeleteMutation
   "If VM is Running, pause VM. If Paused, unpause VM"
-  vmPause(uuid: ID!): VMPauseMutation
+  vmPause(ref: ID!): VMPauseMutation
   "Reboot VM"
   vmReboot(
     #Force reboot in a hard or clean way. Default: clean
     force: ShutdownForce,
-    uuid: ID!
+    ref: ID!
   ): VMRebootMutation
   "Shut down VM"
   vmShutdown(
     #Force shutdown in a hard or clean way
     force: ShutdownForce,
-    uuid: ID!
+    ref: ID!
   ): VMShutdownMutation
   "Start VM"
-  vmStart(options: VMStartInput, uuid: ID!): VMStartMutation
+  vmStart(options: VMStartInput, ref: ID!): VMStartMutation
+  "If VM is Running, suspend VM. If Suspended, resume VM"
+  vmSuspend(ref: ID!): VMSuspendMutation
+}
+
+type NetAccessSet {
+  success: Boolean!
 }
 
 "OS version reported by Xen tools"
@@ -406,6 +551,18 @@ type OSVersion {
   minor: Int
   name: String
   uname: String
+}
+
+type Platform {
+  acpi: Int
+  apic: Boolean
+  coresPerSocket: Int
+  deviceModel: String
+  hpet: Boolean
+  nx: Boolean
+  pae: Boolean
+  timeoffset: Int
+  videoram: Int
 }
 
 type PlaybookLaunchMutation {
@@ -432,7 +589,7 @@ type PlaybookTask {
 type PlaybookTasksSubscription {
   "Change type"
   changeType: Change!
-  value: PlaybookTask!
+  value: PlaybookTaskOrDeleted!
 }
 
 "Drivers version. We don't want any fancy resolver except for the thing that we know that it's a dict in VM document"
@@ -444,35 +601,54 @@ type PvDriversVersion {
 }
 
 type Query {
-  host(uuid: ID): GHost!
+  "One-time link to RFB console for a VM"
+  console(vmRef: ID!): String
+  "current user or group information"
+  currentUser: CurrentUserInformation
+  findUser(query: String!): [User]!
+  "All registered groups"
+  groups: [User]!
+  host(ref: ID!): GHost
   hosts: [GHost]!
-  "Information about a single ISO image"
-  iso(uuid: ID): GVDI!
-  "All ISO images available for user"
-  isos: [GISO]!
   "Information about a single network"
-  network(uuid: ID): GNetwork!
+  network(ref: ID!): GNetwork
   "All Networks available to user"
   networks: [GNetwork]!
   "Information about Ansible-powered playbook"
-  playbook(id: ID): GPlaybook!
+  playbook(id: ID): GPlaybook
+  "Info about a playbook task"
+  playbookTask(id: ID!): PlaybookTask
+  "All Playbook Tasks"
+  playbookTasks: [PlaybookTask]!
   "List of Ansible-powered playbooks"
   playbooks: [GPlaybook]!
-  pool(uuid: ID): GPool!
+  pool(ref: ID!): GPool
   pools: [GPool]!
   "Information about a single storage repository"
-  sr(uuid: ID): GSR!
+  sr(ref: ID!): GSR
   "All Storage repositories available to user"
   srs: [GSR]!
-  "All templates"
+  template(ref: ID!): GTemplate
+  "All Templates available to user"
   templates: [GTemplate]!
+  "User or group information"
+  user(id: ID): User
+  "All registered users (excluding root)"
+  users: [User]!
   "Information about a single virtual disk image (hard disk)"
-  vdi(uuid: ID): GVDI!
+  vdi(ref: ID!): GVDI
   "All Virtual Disk Images (hard disks), available for user"
-  vdis: [GVDI]!
-  vm(uuid: ID): GVM!
+  vdis(
+    #True - print only ISO images; False - print everything but ISO images; null - print everything
+    onlyIsos: Boolean
+  ): [GVDI]!
+  vm(ref: ID!): GVM
   "All VMs available to user"
   vms: [GVM]!
+}
+
+type SRAccessSet {
+  success: Boolean!
 }
 
 type SoftwareVersion {
@@ -498,57 +674,124 @@ type SoftwareVersion {
 "All subscriptions must return  Observable"
 type Subscription {
   "Updates for a particular Host"
-  host(uuid: ID): GHost
+  host(ref: ID!): GHost
   "Updates for all Hosts"
-  hosts: GHostsSubscription!
+  hosts(withInitials: Boolean): GHostsSubscription!
   "Updates for a particular Playbook installation Task"
-  playbookTask(id: ID): PlaybookTask!
+  playbookTask(id: ID!): PlaybookTask
   "Updates for all Playbook Tasks"
-  playbookTasks: PlaybookTasksSubscription!
+  playbookTasks(withInitials: Boolean): PlaybookTasksSubscription!
   "Updates for a particular Pool"
-  pool(uuid: ID): GPool!
+  pool(ref: ID!): GPool
   "Updates for all pools available in VMEmperor"
-  pools: GPoolsSubscription!
+  pools(withInitials: Boolean): GPoolsSubscription!
   "Updates for a particular XenServer Task"
-  task(uuid: ID): GTask
+  task(ref: ID!): GTask
+  "Updates for all XenServer tasks"
+  tasks(withInitials: Boolean): GTasksSubscription!
+  "Updates for a particular Template"
+  template(ref: ID!): GTemplate
+  "Updates for all Templates"
+  templates(withInitials: Boolean): GTemplatesSubscription!
   "Updates for a particular VM"
-  vm(uuid: ID): GVM
+  vm(ref: ID!): GVM
   "Updates for all VMs"
-  vms: GVMsSubscription!
+  vms(withInitials: Boolean): GVMsSubscription!
+}
+
+type TemplateCloneMutation {
+  "Shows if access to clone is granted"
+  granted: Boolean!
+  reason: String
+  "clone task ID"
+  taskId: ID
+}
+
+type TemplateDestroyMutation {
+  "Shows if access to destroy is granted"
+  granted: Boolean!
+  reason: String
+  "destroy task ID"
+  taskId: ID
 }
 
 type TemplateMutation {
+  "If access is granted"
+  granted: Boolean!
+  "If access is not granted, return reason why"
+  reason: String
+}
+
+type User {
+  id: ID!
+  name: String!
+  username: String!
+}
+
+type VDIAccessSet {
+  success: Boolean!
+}
+
+type VMAccessSet {
   success: Boolean!
 }
 
 type VMDeleteMutation {
+  "Shows if access to delete is granted"
+  granted: Boolean!
+  reason: String
   "Deleting task ID"
-  taskId: ID!
+  taskId: ID
 }
 
 "This class represents synchronous mutations for VM, i.e. you can change name_label, name_description, etc."
 type VMMutation {
-  success: Boolean!
+  granted: Boolean!
+  reason: String
 }
 
 type VMPauseMutation {
+  "Shows if access to pause/unpause is granted"
+  granted: Boolean!
+  reason: String
   "Pause/unpause task ID"
-  taskId: ID!
+  taskId: ID
 }
 
 type VMRebootMutation {
+  "Shows if access to reboot is granted"
+  granted: Boolean!
   "Reboot task ID"
-  taskId: ID!
+  taskId: ID
 }
 
 type VMShutdownMutation {
+  "Shows if access to shutdown is granted"
+  granted: Boolean!
   "Shutdown task ID"
-  taskId: ID!
+  taskId: ID
 }
 
 type VMStartMutation {
+  "Shows if access to start is granted"
+  granted: Boolean!
+  reason: String
   "Start task ID"
-  taskId: ID!
+  taskId: ID
+}
+
+type VMSuspendMutation {
+  "Shows if access to suspend/resume is granted"
+  granted: Boolean!
+  reason: String
+  "Suspend/resume task ID"
+  taskId: ID
+}
+
+"An enumeration."
+enum Arch {
+  I386
+  X86_64
 }
 
 enum Change {
@@ -558,6 +801,14 @@ enum Change {
   Remove
 }
 
+"An enumeration."
+enum Distro {
+  CentOS
+  Debian
+  SUSE
+}
+
+"An enumeration."
 enum DomainType {
   HVM
   PV
@@ -594,6 +845,13 @@ enum HostDisplay {
   Enabled
 }
 
+"An enumeration."
+enum NetworkActions {
+  ALL
+  NONE
+  attaching
+}
+
 enum PlaybookTaskState {
   ConfigurationWarning
   Error
@@ -610,9 +868,104 @@ enum PowerState {
   Suspended
 }
 
+"An enumeration."
+enum SRActions {
+  ALL
+  NONE
+  destroy
+  scan
+  vdi_clone
+  vdi_create
+  vdi_introduce
+}
+
+enum SRContentType {
+  Disk
+  ISO
+  User
+}
+
 enum ShutdownForce {
   CLEAN
   HARD
+}
+
+"An enumeration."
+enum TaskActions {
+  ALL
+  NONE
+  cancel
+}
+
+"An enumeration."
+enum TemplateActions {
+  ALL
+  NONE
+  change_install_os_options
+  clone
+  destroy
+}
+
+enum VBDMode {
+  RO
+  RW
+}
+
+enum VBDType {
+  CD
+  Disk
+  Floppy
+}
+
+"An enumeration."
+enum VDIActions {
+  ALL
+  NONE
+  plug
+}
+
+"VDI class supports only a subset of VDI types, that are listed below."
+enum VDIType {
+  Ephemeral
+  System
+  User
+}
+
+"An enumeration."
+enum VMActions {
+  ALL
+  NONE
+  VNC
+  attach_network
+  attach_vdi
+  change_domain_type
+  changing_VCPUs
+  changing_memory_limits
+  checkpoint
+  clean_reboot
+  clean_shutdown
+  clone
+  copy
+  create_template
+  csvm
+  destroy
+  hard_reboot
+  hard_shutdown
+  migrate_send
+  pause
+  pool_migrate
+  power_state_reset
+  rename
+  resume
+  resume_on
+  revert
+  shutdown
+  snapshot
+  snapshot_with_quiesce
+  start
+  start_on
+  suspend
+  unpause
 }
 
 input AutoInstall {
@@ -632,6 +985,13 @@ input AutoInstall {
   username: String!
 }
 
+input InstallOSOptionsInput {
+  arch: Arch
+  distro: Distro
+  installRepository: String
+  release: String
+}
+
 input NetworkConfiguration {
   dns0: String!
   dns1: String
@@ -647,27 +1007,87 @@ input NewVDI {
   size: Float!
 }
 
+input PlatformInput {
+  acpi: Int
+  apic: Boolean
+  coresPerSocket: Int
+  deviceModel: String
+  hpet: Boolean
+  nx: Boolean
+  pae: Boolean
+  timeoffset: Int
+  videoram: Int
+}
+
 input TemplateInput {
+  "Number of VCPUs at startup"
+  VCPUsAtStartup: Int
+  "Maximum number of VCPUs"
+  VCPUsMax: Int
+  "VM domain type: 'pv', 'hvm', 'pv_in_pvh'"
+  domainType: DomainType
   "Should this template be enabled, i.e. used in VMEmperor by users"
   enabled: Boolean
-  "Template ID"
-  uuid: ID!
+  installOptions: InstallOSOptionsInput
+  "Dynamic memory max in bytes"
+  memoryDynamicMax: Float
+  "Dynamic memory min in bytes"
+  memoryDynamicMin: Float
+  "Static memory max in bytes"
+  memoryStaticMax: Float
+  "Static memory min in bytes"
+  memoryStaticMin: Float
+  "Object's human-readable description"
+  nameDescription: String
+  "Object's human-readable name"
+  nameLabel: String
+  "VCPU platform properties"
+  platform: PlatformInput
+  "Object's ref"
+  ref: ID!
 }
 
 input VMInput {
+  "Number of VCPUs at startup"
+  VCPUsAtStartup: Int
+  "Maximum number of VCPUs"
+  VCPUsMax: Int
   "VM domain type: 'pv', 'hvm', 'pv_in_pvh'"
-  domainType: String
-  "VM human-readable description"
+  domainType: DomainType
+  "Dynamic memory max in bytes"
+  memoryDynamicMax: Float
+  "Dynamic memory min in bytes"
+  memoryDynamicMin: Float
+  "Static memory max in bytes"
+  memoryStaticMax: Float
+  "Static memory min in bytes"
+  memoryStaticMin: Float
+  "Object's human-readable description"
   nameDescription: String
-  "VM human-readable name"
+  "Object's human-readable name"
   nameLabel: String
-  "VM ID"
-  uuid: ID!
+  "VCPU platform properties"
+  platform: PlatformInput
+  "Object's ref"
+  ref: ID!
 }
 
 input VMStartInput {
   "Should this VM be started forcibly"
-  force: Boolean = false
+  force: Boolean
+  "Host to start VM on"
+  host: ID
   "Should this VM be started and immidiately paused"
-  paused: Boolean = false
+  paused: Boolean
 }
+
+
+"""
+The `DateTime` scalar type represents a DateTime
+value as specified by
+[iso8601](https://en.wikipedia.org/wiki/ISO_8601).
+"""
+scalar DateTime
+
+"JSON String"
+scalar JSONString

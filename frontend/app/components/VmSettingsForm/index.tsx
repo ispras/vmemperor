@@ -5,7 +5,15 @@
  */
 
 import React, {useCallback, useState} from 'react';
-import {PowerState, VmAccessSetMutation, VmActions, VmEditOptions, VmInfo} from "../../generated-models";
+import {
+  AclXenObjectFragment,
+  PowerState,
+  VmAccessSetMutation,
+  VmActions,
+  VmEditOptions,
+  VmInfo,
+  VmInfoFragment
+} from "../../generated-models";
 import Overview from './subforms/overview';
 import {Badge, Col, Nav, NavItem, NavLink, Row, TabContent, TabPane} from 'reactstrap';
 import classnames from 'classnames';
@@ -17,6 +25,7 @@ import XenObjectHeader from "../XenObjectHeader";
 import {ResourcesFormContainer} from "../ResourcesForm";
 import {SettingsComponentProps} from "../../containers/Settings";
 import {defaults} from "./defaults";
+import {Omit} from "../AbstractSettingsForm/utils";
 
 
 enum Tab {
@@ -28,9 +37,10 @@ enum Tab {
   Network = 'network',
 }
 
+type VM = Omit<VmInfoFragment.Fragment, "__typename">;
 
 const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Query>> = ({object}) => {
-  const {vm} = object;
+  const vm: VM = object.vm;
   const [activeTab, setActiveTab] = useState(Tab.Overview);
   const [vncActivated, setVncActivated] = useState(false);
 

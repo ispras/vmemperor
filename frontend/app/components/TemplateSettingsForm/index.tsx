@@ -5,3 +5,4 @@ enum Tab {
   Access = 'access',
 }
 
+const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<TemplateInfo.Query>>
