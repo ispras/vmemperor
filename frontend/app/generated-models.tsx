@@ -500,6 +500,26 @@ export namespace DeleteVm {
   };
 }
 
+export namespace TemplateEditOptions {
+  export type Variables = {
+    template: TemplateInput;
+  };
+
+  export type Mutation = {
+    __typename?: "Mutation";
+
+    template: Maybe<Template>;
+  };
+
+  export type Template = {
+    __typename?: "TemplateMutation";
+
+    reason: Maybe<string>;
+
+    granted: boolean;
+  };
+}
+
 export namespace VmEditOptions {
   export type Variables = {
     vm: VmInput;
@@ -1097,6 +1117,20 @@ export namespace TemplateInfo {
   export type Template = TemplateInfoFragment.Fragment;
 }
 
+export namespace TemplateInfoUpdate {
+  export type Variables = {
+    ref: string;
+  };
+
+  export type Subscription = {
+    __typename?: "Subscription";
+
+    template: Maybe<Template>;
+  };
+
+  export type Template = TemplateInfoFragment.Fragment;
+}
+
 export namespace TemplateList {
   export type Variables = {};
 
@@ -1634,7 +1668,7 @@ export namespace VmInfoFragment {
     myActions: (Maybe<VmActions>)[];
 
     isOwner: boolean;
-  } & (AclXenObjectFragment.Fragment | AbstractVmFragment.Fragment);
+  } & (AclXenObjectFragment.Fragment & AbstractVmFragment.Fragment);
 
   export type ViFs = VmvifFragment.Fragment;
 
@@ -2412,6 +2446,48 @@ export namespace DeleteVm {
     mutation DeleteVM($ref: ID!) {
       vmDelete(ref: $ref) {
         taskId
+      }
+    }
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Mutation<Mutation, Variables>
+          mutation={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
+    TChildProps;
+  export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
+      Document,
+      operationOptions
+    );
+  }
+}
+export namespace TemplateEditOptions {
+  export const Document = gql`
+    mutation TemplateEditOptions($template: TemplateInput!) {
+      template(template: $template) {
+        reason
+        granted
       }
     }
   `;
@@ -3956,6 +4032,50 @@ export namespace TemplateInfo {
       Document,
       operationOptions
     );
+  }
+}
+export namespace TemplateInfoUpdate {
+  export const Document = gql`
+    subscription TemplateInfoUpdate($ref: ID!) {
+      template(ref: $ref) {
+        ...TemplateInfoFragment
+      }
+    }
+
+    ${TemplateInfoFragment.FragmentDoc}
+  `;
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
+    render() {
+      return (
+        <ReactApollo.Subscription<Subscription, Variables>
+          subscription={Document}
+          {...(this as any)["props"] as any}
+        />
+      );
+    }
+  }
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
+    TChildProps;
+  export function HOC<TProps, TChildProps = any>(
+    operationOptions:
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
+      | undefined
+  ) {
+    return ReactApollo.graphql<
+      TProps,
+      Subscription,
+      Variables,
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 export namespace TemplateList {

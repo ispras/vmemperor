@@ -1,20 +1,5 @@
-/**
- *
- * App.js
- *
- * This queryComponent is the skeleton around the actual pages, and should only
- * contain code that should be seen on all pages. (e.g. navigation bar)
- *
- * NOTE: while this queryComponent should technically be a stateless functional
- * queryComponent (SFC), hot reloading does not currently support SFCs. If hot
- * reloading is not a necessity for you then you can refactor it and remove
- * the linting exception.
- */
-
-
 import React from 'react';
 import {Switch, Route} from 'react-router-dom';
-//import { ToastContainer } from 'react-toastify';
 
 import HomePage from '../../containers/HomePage/Loadable';
 import NotFoundPage from '../../containers/NotFoundPage/Loadable';
@@ -24,11 +9,8 @@ import VMs from '../VMList';
 import LoginPage from '../../containers/LoginPage/Loadable';
 import CreateVM from "../CreateVM";
 import Logout from '../../containers/Logout/Loadable';
+import TemplateSettings from '../../containers/TemplateSettings';
 
-
-import {compose} from 'redux';
-import injectReducer from '../../utils/injectReducer';
-import reducer from './reducer';
 import VMSettings from "../VMSettings";
 import {AccessController} from "../AccessController";
 
@@ -36,6 +18,8 @@ import * as Sentry from '@sentry/browser';
 import Templates from "../TemplateList";
 import styled from "styled-components";
 import {GlobalStyle} from '../../global-styles';
+import reducer from "./reducer";
+import {compose} from "redux";
 
 
 interface State {
@@ -80,7 +64,8 @@ class App extends React.Component<{}, State> {
           <Route path="/login" component={LoginPage}/>
           <PrivateRoute path="/vms" component={VMs}/>
           <PrivateRoute path="/templates" component={Templates}/>
-          <PrivateRoute path="/vmsettings/:ref" component={VMSettings}/>
+          <PrivateRoute path="/template/:ref" component={TemplateSettings}/>
+          <PrivateRoute path="/vm/:ref" component={VMSettings}/>
           <PrivateRoute path="/create-vm" component={CreateVM}/>
           <PrivateRoute path="/logout" component={Logout}/>
           {/*<PrivateRoute path="/desktop/:ref" component={VncView}/>*/}
@@ -93,8 +78,4 @@ class App extends React.Component<{}, State> {
   }
 }
 
-const withReducer = injectReducer({key: 'app', reducer});
-
-export default compose(
-  withReducer,
-)(App);
+export default App;

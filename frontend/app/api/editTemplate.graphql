@@ -1,0 +1,6 @@
+mutation TemplateEditOptions ($template : TemplateInput!) {
+  template(template: $template) {
+    reason
+    granted
+  }
+}

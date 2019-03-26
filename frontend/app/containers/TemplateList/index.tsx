@@ -77,6 +77,12 @@ const initialState: ReducerState<TemplateListReducer> = {
 
 
 const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
+
+  const onDoubleClick = useCallback((e: React.MouseEvent, row: TemplateListFragment.Fragment, index) => {
+    e.preventDefault();
+    history.push(`/template/${row.ref}`);
+  }, [history]);
+
   const {data: {templates}} = useQuery<TemplateList.Query>(TemplateList.Document);
   const {data: {currentUser}} = useQuery<CurrentUser.Query>(CurrentUser.Document);
   const client = useApolloClient();
@@ -220,6 +226,7 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
           filter: filterFactory(),
           rowClasses
         }}
+        onDoubleClick={onDoubleClick}
         onSelect={(key, isSelect) => dispatch({
           type: isSelect ? "Add" : "Remove",
           ref: key,

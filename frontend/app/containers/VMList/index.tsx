@@ -234,7 +234,7 @@ export default function ({history}: RouteComponentProps) {
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: VmListFragment.Fragment, index) => {
     e.preventDefault();
-    history.push(`/vmsettings/${row.ref}`);
+    history.push(`/vm/${row.ref}`);
   }, [history]);
 
   useSubscription<VmListUpdate.Subscription>(VmListUpdate.Document,

@@ -29,3 +29,8 @@ query TemplateInfo ($ref: ID!)  {
     ...TemplateInfoFragment
   }
 }
+subscription TemplateInfoUpdate ($ref: ID!) {
+  template(ref: $ref) {
+    ...TemplateInfoFragment
+  }
+}
