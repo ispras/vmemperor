@@ -2,7 +2,6 @@
 fragment TemplateListFragment on GTemplate {
   ref
   nameLabel
-  osKind
   enabled
   myActions
   access {
@@ -12,6 +11,12 @@ fragment TemplateListFragment on GTemplate {
       username
     }
     actions
+  }
+  installOptions {
+    distro
+    arch
+    release
+    installRepository
   }
   enabled
   isOwner

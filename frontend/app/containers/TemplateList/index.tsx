@@ -22,6 +22,8 @@ import {ListAction} from "../../utils/reducer";
 import {dataIdFromObject, handleAddRemove} from "../../utils/cacheUtils";
 import RecycleBinButton from "../../components/RecycleBinButton";
 import {useSubscription} from "../../hooks/subscription";
+import {installOptionsFormatter} from "./installoptions";
+
 
 type TemplateColumnType = ColumnType<TemplateListFragment.Fragment>;
 
@@ -39,11 +41,25 @@ const columns: TemplateColumnType[] = [
     formatter: checkBoxFormatter,
   },
   {
-    dataField: "osKind",
+    dataField: "installOptions",
     text: "Auto-install type",
+    formatter: installOptionsFormatter,
   },
 
 ];
+
+function rowClasses(row: TemplateListFragment.Fragment, rowIndex) {
+  if (row.installOptions) {
+    if (row.installOptions.installRepository && row.installOptions.release && row.installOptions.arch) {
+      return "table-success";
+    } else {
+      return "table-warning";
+    }
+  } else {
+    return "table-danger";
+  }
+}
+
 
 interface State {
   selectedForEnabling: Set<string>;
@@ -201,7 +217,8 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
         props={{
           striped: true,
           hover: true,
-          filter: filterFactory()
+          filter: filterFactory(),
+          rowClasses
         }}
         onSelect={(key, isSelect) => dispatch({
           type: isSelect ? "Add" : "Remove",
