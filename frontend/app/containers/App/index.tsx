@@ -29,7 +29,7 @@ import Logout from '../../containers/Logout/Loadable';
 import {compose} from 'redux';
 import injectReducer from '../../utils/injectReducer';
 import reducer from './reducer';
-import VMSettings from "../Vmsettings";
+import VMSettings from "../VMSettings";
 import {AccessController} from "../AccessController";
 
 import * as Sentry from '@sentry/browser';
@@ -66,7 +66,7 @@ class App extends React.Component<{}, State> {
     }
     const AppWrapper = styled.div`
   margin: 0 auto;
-  background-color: #fafafafa
+  background-color: #fafafafa;
   display: flex;
   min-height: 100%;
   padding: 0 16px;

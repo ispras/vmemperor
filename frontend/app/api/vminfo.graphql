@@ -1,3 +1,5 @@
+# import AbstractVMFragment from "abstractVmFragment.graphql"
+
 fragment VMVIFFragment on GVIF {
   network {
     ref
@@ -36,19 +38,7 @@ fragment VMAccessFragment on GVMAccessEntry {
 }
 
 fragment VMInfoFragment on GVM {
-  ref
-  nameLabel
-  nameDescription
-  memoryStaticMin
-  memoryStaticMax
-  memoryDynamicMin
-  memoryDynamicMax
-  VCPUsAtStartup
-  VCPUsAtStartup
-  VCPUsMax
-  platform {
-    coresPerSocket
-  }
+  ...AbstractVMFragment
   VIFs {
     ...VMVIFFragment
   }

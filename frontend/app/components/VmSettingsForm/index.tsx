@@ -1,6 +1,6 @@
 /**
  *
- * VmsettingsForm
+ * VmSettingsForm
  *
  */
 
@@ -13,13 +13,10 @@ import Vncview from '../../containers/Vncview';
 import Network from "./subforms/network";
 import Storage from "./subforms/storage";
 import AccessView from '../../components/AccessView';
-import Vm = VmInfo.Vm;
 import XenObjectHeader from "../XenObjectHeader";
 import {ResourcesFormContainer} from "../ResourcesForm";
+import {SettingsComponentProps} from "../../containers/Settings";
 
-interface Props {
-  vm: Vm;
-}
 
 enum Tab {
   Overview = 'overview',
@@ -31,7 +28,7 @@ enum Tab {
 }
 
 
-const VmsettingsForm = ({vm}: Props) => {
+const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Query>> = ({object: {vm}}) => {
   const [activeTab, setActiveTab] = useState(Tab.Overview);
   const [vncActivated, setVncActivated] = useState(false);
 
@@ -52,7 +49,7 @@ const VmsettingsForm = ({vm}: Props) => {
     <div>
       <XenObjectHeader
         xenObject={vm}
-        editMutationName={"vm"}
+        editMutationName={"object"}
         editMutation={VmEditOptions.Document}
       >
         <Badge color="primary">{vm.powerState}</Badge>
@@ -183,4 +180,4 @@ const VmsettingsForm = ({vm}: Props) => {
   )
 };
 
-export default VmsettingsForm;
+export default VmSettingsForm;

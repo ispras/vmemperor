@@ -5,7 +5,7 @@ import {AbstractSettingsForm} from "../AbstractSettingsForm";
 import {ResourcesForm} from "./form";
 
 interface Props {
-  vm: AbstractVM;
+  object: AbstractVM;
   mutationName: string;
   mutationNode: DocumentNode;
 }
@@ -17,8 +17,8 @@ const defaults = {
 };
 
 
-export const ResourcesFormContainer: React.FunctionComponent<Props> = ({vm, mutationName, mutationNode}) => {
-  const {ref, myActions, ...rest} = vm;
+export const ResourcesFormContainer: React.FunctionComponent<Props> = ({object, mutationName, mutationNode}) => {
+  const {ref, myActions, ...rest} = object;
 
   return (
     <AbstractSettingsForm
@@ -28,7 +28,7 @@ export const ResourcesFormContainer: React.FunctionComponent<Props> = ({vm, muta
       mutationName={mutationName}
       validationSchema={schema}
       component={ResourcesForm}
-      mutableObject={vm}/>
+      mutableObject={object}/>
 
   );
 };

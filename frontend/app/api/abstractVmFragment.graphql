@@ -1,0 +1,14 @@
+# import XenObjectFragment from "xenObjectFragment.graphql"
+
+fragment AbstractVMFragment on GAbstractVM {
+  ...XenObjectFragment
+  memoryStaticMin,
+  memoryStaticMax,
+  memoryDynamicMin,
+  memoryDynamicMax,
+  VCPUsAtStartup,
+  VCPUsMax,
+  platform {
+    coresPerSocket
+  }
+}

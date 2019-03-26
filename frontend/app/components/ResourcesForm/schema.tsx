@@ -56,12 +56,11 @@ export interface AbstractVM {
   platform: {
     coresPerSocket?: number;
   }
-  myActions: VmActions[];
   ref: string;
 }
 
 
-export type ResourceFormValues = Omit<AbstractVM, "myActions" | "ref">
+export type ResourceFormValues = Omit<AbstractVM, "ref">
 
 export default object().shape<ResourceFormValues>(schema);
 

@@ -2,7 +2,7 @@
 
 // Individual exports for testing
 import {VNC_REQUESTED} from "./constants";
-import { vnc } from 'api/vm';
+import { vnc } from 'api/object';
  import {vncAcquire, vncError} from "./actions";
 
 function* onVncRequested(action)

@@ -7,6 +7,23 @@ export interface NewVdi {
   size: number;
 }
 
+export interface AutoInstall {
+  /** VM hostname */
+  hostname: string;
+  /** Network installation URL */
+  mirrorUrl?: Maybe<string>;
+  /** Name of the newly created user */
+  username: string;
+  /** User and root password */
+  password: string;
+  /** User's full name */
+  fullname?: Maybe<string>;
+  /** Partition scheme (TODO) */
+  partition: string;
+  /** Static IP configuration, if needed */
+  staticIpConfig?: Maybe<NetworkConfiguration>;
+}
+
 export interface NetworkConfiguration {
   ip: string;
 
@@ -111,14 +128,12 @@ export interface VmStartInput {
   /** Should this VM be started forcibly */
   force?: Maybe<boolean>;
 }
-
 /** An enumeration. */
 export enum DomainType {
   Hvm = "HVM",
   Pv = "PV",
   PvInPvh = "PV_in_PVH"
 }
-
 /** An enumeration. */
 export enum VmActions {
   AttachVdi = "attach_vdi",
@@ -162,21 +177,18 @@ export enum PowerState {
   Running = "Running",
   Suspended = "Suspended"
 }
-
 /** An enumeration. */
 export enum NetworkActions {
   Attaching = "attaching",
   None = "NONE",
   All = "ALL"
 }
-
 /** An enumeration. */
 export enum VdiActions {
   Plug = "plug",
   None = "NONE",
   All = "ALL"
 }
-
 /** An enumeration. */
 export enum SrActions {
   Scan = "scan",
@@ -211,7 +223,6 @@ export enum SrContentType {
   Disk = "Disk",
   Iso = "ISO"
 }
-
 /** VDI class supports only a subset of VDI types, that are listed below. */
 export enum VdiType {
   System = "System",
@@ -229,7 +240,6 @@ export enum VbdMode {
   Ro = "RO",
   Rw = "RW"
 }
-
 /** An enumeration. */
 export enum TemplateActions {
   Clone = "clone",
@@ -238,14 +248,12 @@ export enum TemplateActions {
   None = "NONE",
   All = "ALL"
 }
-
 /** An enumeration. */
 export enum Distro {
   Debian = "Debian",
   CentOs = "CentOS",
   Suse = "SUSE"
 }
-
 /** An enumeration. */
 export enum Arch {
   I386 = "I386",
@@ -279,7 +287,6 @@ export enum Change {
   Remove = "Remove",
   Change = "Change"
 }
-
 /** An enumeration. */
 export enum TaskActions {
   Cancel = "cancel",
@@ -495,7 +502,7 @@ export namespace DeleteVm {
 
 export namespace VmEditOptions {
   export type Variables = {
-    vm: VmInput;
+    object: VmInput;
   };
 
   export type Mutation = {
@@ -1192,6 +1199,32 @@ export namespace VmListUpdate {
   export type Value = VmListFragment.Fragment | DeletedFragment.Fragment;
 }
 
+export namespace AbstractVmFragment {
+  export type Fragment = {
+    __typename?: "GAbstractVM";
+
+    memoryStaticMin: number;
+
+    memoryStaticMax: number;
+
+    memoryDynamicMin: number;
+
+    memoryDynamicMax: number;
+
+    VCPUsAtStartup: number;
+
+    VCPUsMax: number;
+
+    platform: Maybe<Platform>;
+  } & XenObjectFragment.Fragment;
+
+  export type Platform = {
+    __typename?: "Platform";
+
+    coresPerSocket: Maybe<number>;
+  };
+}
+
 export namespace DeletedFragment {
   export type Fragment = {
     __typename?: "Deleted";
@@ -1526,28 +1559,6 @@ export namespace VmInfoFragment {
   export type Fragment = {
     __typename?: "GVM";
 
-    ref: string;
-
-    nameLabel: string;
-
-    nameDescription: string;
-
-    memoryStaticMin: number;
-
-    memoryStaticMax: number;
-
-    memoryDynamicMin: number;
-
-    memoryDynamicMax: number;
-
-    VCPUsAtStartup: number;
-
-    VCPUsAtStartup: number;
-
-    VCPUsMax: number;
-
-    platform: Maybe<Platform>;
-
     VIFs: (Maybe<ViFs>)[];
 
     VBDs: (Maybe<VbDs>)[];
@@ -1565,13 +1576,7 @@ export namespace VmInfoFragment {
     myActions: (Maybe<VmActions>)[];
 
     isOwner: boolean;
-  };
-
-  export type Platform = {
-    __typename?: "Platform";
-
-    coresPerSocket: Maybe<number>;
-  };
+  } & AbstractVmFragment.Fragment;
 
   export type ViFs = VmvifFragment.Fragment;
 
@@ -1599,6 +1604,18 @@ export namespace VmListFragment {
     myActions: (Maybe<VmActions>)[];
 
     isOwner: boolean;
+  };
+}
+
+export namespace XenObjectFragment {
+  export type Fragment = {
+    __typename?: "GXenObject";
+
+    ref: string;
+
+    nameLabel: string;
+
+    nameDescription: string;
   };
 }
 
@@ -1766,6 +1783,35 @@ export namespace StorageAttachVdiListFragment {
   `;
 }
 
+export namespace XenObjectFragment {
+  export const FragmentDoc = gql`
+    fragment XenObjectFragment on GXenObject {
+      ref
+      nameLabel
+      nameDescription
+    }
+  `;
+}
+
+export namespace AbstractVmFragment {
+  export const FragmentDoc = gql`
+    fragment AbstractVMFragment on GAbstractVM {
+      ...XenObjectFragment
+      memoryStaticMin
+      memoryStaticMax
+      memoryDynamicMin
+      memoryDynamicMax
+      VCPUsAtStartup
+      VCPUsMax
+      platform {
+        coresPerSocket
+      }
+    }
+
+    ${XenObjectFragment.FragmentDoc}
+  `;
+}
+
 export namespace VmvifFragment {
   export const FragmentDoc = gql`
     fragment VMVIFFragment on GVIF {
@@ -1817,19 +1863,7 @@ export namespace VmAccessFragment {
 export namespace VmInfoFragment {
   export const FragmentDoc = gql`
     fragment VMInfoFragment on GVM {
-      ref
-      nameLabel
-      nameDescription
-      memoryStaticMin
-      memoryStaticMax
-      memoryDynamicMin
-      memoryDynamicMax
-      VCPUsAtStartup
-      VCPUsAtStartup
-      VCPUsMax
-      platform {
-        coresPerSocket
-      }
+      ...AbstractVMFragment
       VIFs {
         ...VMVIFFragment
       }
@@ -1849,6 +1883,7 @@ export namespace VmInfoFragment {
       isOwner
     }
 
+    ${AbstractVmFragment.FragmentDoc}
     ${VmvifFragment.FragmentDoc}
     ${VmvbdFragment.FragmentDoc}
     ${VmAccessFragment.FragmentDoc}
@@ -1884,8 +1919,9 @@ export namespace VmAccessSetMutation {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -1895,17 +1931,19 @@ export namespace VmAccessSetMutation {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -1922,8 +1960,9 @@ export namespace VdiAttach {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -1933,17 +1972,19 @@ export namespace VdiAttach {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -1960,8 +2001,9 @@ export namespace VdiDetach {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -1971,17 +2013,19 @@ export namespace VdiDetach {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -1998,8 +2042,9 @@ export namespace NetAttach {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2009,17 +2054,19 @@ export namespace NetAttach {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2036,8 +2083,9 @@ export namespace NetDetach {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2047,17 +2095,19 @@ export namespace NetDetach {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2072,8 +2122,9 @@ export namespace Console {
       console(vmRef: $id)
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2083,16 +2134,18 @@ export namespace Console {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2125,8 +2178,9 @@ export namespace CreateVm {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2136,17 +2190,19 @@ export namespace CreateVm {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2171,8 +2227,9 @@ export namespace CurrentUser {
 
     ${UserFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2182,16 +2239,18 @@ export namespace CurrentUser {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2208,8 +2267,9 @@ export namespace DeleteTemplate {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2219,17 +2279,19 @@ export namespace DeleteTemplate {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2246,8 +2308,9 @@ export namespace DeleteVm {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2257,17 +2320,19 @@ export namespace DeleteVm {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2278,15 +2343,16 @@ export namespace DeleteVm {
 }
 export namespace VmEditOptions {
   export const Document = gql`
-    mutation VMEditOptions($vm: VMInput!) {
-      vm(vm: $vm) {
+    mutation VMEditOptions($object: VMInput!) {
+      vm(vm: $object) {
         reason
         granted
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2296,17 +2362,19 @@ export namespace VmEditOptions {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2325,8 +2393,9 @@ export namespace FilterUsers {
 
     ${UserFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2336,16 +2405,18 @@ export namespace FilterUsers {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2364,8 +2435,9 @@ export namespace HostList {
 
     ${HostListFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2375,16 +2447,18 @@ export namespace HostList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2408,8 +2482,9 @@ export namespace HostListUpdate {
     ${HostListFragment.FragmentDoc}
     ${DeletedFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Subscription<Subscription, Variables>
@@ -2419,22 +2494,26 @@ export namespace HostListUpdate {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Subscription, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Subscription,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
-    return ReactApollo.graphql<TProps,
+    return ReactApollo.graphql<
+      TProps,
       Subscription,
       Variables,
-      Props<TChildProps>>(Document, operationOptions);
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 export namespace IsosCreateVmList {
@@ -2447,8 +2526,9 @@ export namespace IsosCreateVmList {
 
     ${IsoCreateVmListFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2458,16 +2538,18 @@ export namespace IsosCreateVmList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2482,8 +2564,9 @@ export namespace DiskAttachTableSelection {
       selectedItems(tableId: DiskAttach) @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2493,16 +2576,18 @@ export namespace DiskAttachTableSelection {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2515,11 +2600,12 @@ export namespace DiskAttachTableSelect {
   export const Document = gql`
     mutation DiskAttachTableSelect($item: ID!, $isSelect: Boolean!) {
       selectedItems(tableId: DiskAttach, items: [$item], isSelect: $isSelect)
-      @client
+        @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2529,17 +2615,19 @@ export namespace DiskAttachTableSelect {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2552,11 +2640,12 @@ export namespace DiskAttachTableSelectAll {
   export const Document = gql`
     mutation DiskAttachTableSelectAll($items: [ID!]!, $isSelect: Boolean!) {
       selectedItems(tableId: DiskAttach, items: $items, isSelect: $isSelect)
-      @client
+        @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2566,17 +2655,19 @@ export namespace DiskAttachTableSelectAll {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2591,8 +2682,9 @@ export namespace NetAttachTableSelection {
       selectedItems(tableId: NetworkAttach) @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2602,16 +2694,18 @@ export namespace NetAttachTableSelection {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2630,8 +2724,9 @@ export namespace NetAttachTableSelect {
       ) @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2641,17 +2736,19 @@ export namespace NetAttachTableSelect {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2664,11 +2761,12 @@ export namespace NetAttachTableSelectAll {
   export const Document = gql`
     mutation NetAttachTableSelectAll($items: [ID!]!, $isSelect: Boolean!) {
       selectedItems(tableId: NetworkAttach, items: $items, isSelect: $isSelect)
-      @client
+        @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2678,17 +2776,19 @@ export namespace NetAttachTableSelectAll {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2703,8 +2803,9 @@ export namespace SelectedItemsQuery {
       selectedItems(tableId: $tableId) @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2714,16 +2815,18 @@ export namespace SelectedItemsQuery {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2738,8 +2841,9 @@ export namespace TemplateTableSelection {
       selectedItems(tableId: Templates) @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2749,16 +2853,18 @@ export namespace TemplateTableSelection {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2771,11 +2877,12 @@ export namespace TemplateTableSelect {
   export const Document = gql`
     mutation TemplateTableSelect($item: ID!, $isSelect: Boolean!) {
       selectedItems(tableId: Templates, items: [$item], isSelect: $isSelect)
-      @client
+        @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2785,17 +2892,19 @@ export namespace TemplateTableSelect {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2808,11 +2917,12 @@ export namespace TemplateTableSelectAll {
   export const Document = gql`
     mutation TemplateTableSelectAll($items: [ID!]!, $isSelect: Boolean!) {
       selectedItems(tableId: Templates, items: $items, isSelect: $isSelect)
-      @client
+        @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2822,17 +2932,19 @@ export namespace TemplateTableSelectAll {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2847,8 +2959,9 @@ export namespace VmTableSelection {
       selectedItems(tableId: VMS) @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2858,16 +2971,18 @@ export namespace VmTableSelection {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2882,8 +2997,9 @@ export namespace VmTableSelect {
       selectedItems(tableId: VMS, items: [$item], isSelect: $isSelect) @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2893,17 +3009,19 @@ export namespace VmTableSelect {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2918,8 +3036,9 @@ export namespace VmTableSelectAll {
       selectedItems(tableId: VMS, items: $items, isSelect: $isSelect) @client
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -2929,17 +3048,19 @@ export namespace VmTableSelectAll {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -2957,8 +3078,9 @@ export namespace VmPowerState {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -2968,16 +3090,18 @@ export namespace VmPowerState {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -2996,8 +3120,9 @@ export namespace VmStateForButtonToolbar {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3007,16 +3132,18 @@ export namespace VmStateForButtonToolbar {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3035,8 +3162,9 @@ export namespace NetworkList {
 
     ${NetworkListFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3046,16 +3174,18 @@ export namespace NetworkList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3074,8 +3204,9 @@ export namespace PauseVm {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -3085,17 +3216,19 @@ export namespace PauseVm {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -3112,8 +3245,9 @@ export namespace PlaybookLaunch {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -3123,17 +3257,19 @@ export namespace PlaybookLaunch {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -3163,8 +3299,9 @@ export namespace PlaybookList {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3174,16 +3311,18 @@ export namespace PlaybookList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3202,8 +3341,9 @@ export namespace PlaybookTaskUpdate {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Subscription<Subscription, Variables>
@@ -3213,22 +3353,26 @@ export namespace PlaybookTaskUpdate {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Subscription, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Subscription,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
-    return ReactApollo.graphql<TProps,
+    return ReactApollo.graphql<
+      TProps,
       Subscription,
       Variables,
-      Props<TChildProps>>(Document, operationOptions);
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 export namespace PlaybookTask {
@@ -3241,8 +3385,9 @@ export namespace PlaybookTask {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3252,16 +3397,18 @@ export namespace PlaybookTask {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3280,8 +3427,9 @@ export namespace PoolList {
 
     ${PoolListFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3291,16 +3439,18 @@ export namespace PoolList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3324,8 +3474,9 @@ export namespace PoolListUpdate {
     ${PoolListFragment.FragmentDoc}
     ${DeletedFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Subscription<Subscription, Variables>
@@ -3335,22 +3486,26 @@ export namespace PoolListUpdate {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Subscription, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Subscription,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
-    return ReactApollo.graphql<TProps,
+    return ReactApollo.graphql<
+      TProps,
       Subscription,
       Variables,
-      Props<TChildProps>>(Document, operationOptions);
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 export namespace RebootVm {
@@ -3361,8 +3516,9 @@ export namespace RebootVm {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -3372,17 +3528,19 @@ export namespace RebootVm {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -3400,8 +3558,9 @@ export namespace TemplateSetEnabled {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -3411,17 +3570,19 @@ export namespace TemplateSetEnabled {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -3438,8 +3599,9 @@ export namespace ShutdownVm {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -3449,17 +3611,19 @@ export namespace ShutdownVm {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -3478,8 +3642,9 @@ export namespace StartVm {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -3489,17 +3654,19 @@ export namespace StartVm {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -3518,8 +3685,9 @@ export namespace StorageList {
 
     ${StorageListFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3529,16 +3697,18 @@ export namespace StorageList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3557,8 +3727,9 @@ export namespace SuspendVm {
       }
     }
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.MutationProps<Mutation, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.MutationProps<Mutation, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Mutation<Mutation, Variables>
@@ -3568,17 +3739,19 @@ export namespace SuspendVm {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.MutateProps<Mutation, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.MutateProps<Mutation, Variables>
+  > &
     TChildProps;
   export type MutationFn = ReactApollo.MutationFn<Mutation, Variables>;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Mutation,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Mutation,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Mutation, Variables, Props<TChildProps>>(
@@ -3602,8 +3775,9 @@ export namespace Tasks {
     ${TaskFragment.FragmentDoc}
     ${DeletedFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Subscription<Subscription, Variables>
@@ -3613,22 +3787,26 @@ export namespace Tasks {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Subscription, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Subscription,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
-    return ReactApollo.graphql<TProps,
+    return ReactApollo.graphql<
+      TProps,
       Subscription,
       Variables,
-      Props<TChildProps>>(Document, operationOptions);
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 export namespace TemplateList {
@@ -3641,8 +3819,9 @@ export namespace TemplateList {
 
     ${TemplateListFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3652,16 +3831,18 @@ export namespace TemplateList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3685,8 +3866,9 @@ export namespace TemplateListUpdate {
     ${TemplateListFragment.FragmentDoc}
     ${DeletedFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Subscription<Subscription, Variables>
@@ -3696,22 +3878,26 @@ export namespace TemplateListUpdate {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Subscription, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Subscription,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
-    return ReactApollo.graphql<TProps,
+    return ReactApollo.graphql<
+      TProps,
       Subscription,
       Variables,
-      Props<TChildProps>>(Document, operationOptions);
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 export namespace StorageAttachVdiList {
@@ -3724,8 +3910,9 @@ export namespace StorageAttachVdiList {
 
     ${StorageAttachVdiListFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3735,16 +3922,18 @@ export namespace StorageAttachVdiList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3763,8 +3952,9 @@ export namespace StorageAttachIsoList {
 
     ${StorageAttachVdiListFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3774,16 +3964,18 @@ export namespace StorageAttachIsoList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3802,8 +3994,9 @@ export namespace VmInfo {
 
     ${VmInfoFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3813,16 +4006,18 @@ export namespace VmInfo {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3841,8 +4036,9 @@ export namespace VmInfoUpdate {
 
     ${VmInfoFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Subscription<Subscription, Variables>
@@ -3852,22 +4048,26 @@ export namespace VmInfoUpdate {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Subscription, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Subscription,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
-    return ReactApollo.graphql<TProps,
+    return ReactApollo.graphql<
+      TProps,
       Subscription,
       Variables,
-      Props<TChildProps>>(Document, operationOptions);
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 export namespace VmList {
@@ -3880,8 +4080,9 @@ export namespace VmList {
 
     ${VmListFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.QueryProps<Query, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.QueryProps<Query, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Query<Query, Variables>
@@ -3891,16 +4092,18 @@ export namespace VmList {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Query, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Query, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Query,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Query,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
     return ReactApollo.graphql<TProps, Query, Variables, Props<TChildProps>>(
@@ -3924,8 +4127,9 @@ export namespace VmListUpdate {
     ${VmListFragment.FragmentDoc}
     ${DeletedFragment.FragmentDoc}
   `;
-
-  export class Component extends React.Component<Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>> {
+  export class Component extends React.Component<
+    Partial<ReactApollo.SubscriptionProps<Subscription, Variables>>
+  > {
     render() {
       return (
         <ReactApollo.Subscription<Subscription, Variables>
@@ -3935,22 +4139,26 @@ export namespace VmListUpdate {
       );
     }
   }
-
-  export type Props<TChildProps = any> = Partial<ReactApollo.DataProps<Subscription, Variables>> &
+  export type Props<TChildProps = any> = Partial<
+    ReactApollo.DataProps<Subscription, Variables>
+  > &
     TChildProps;
-
   export function HOC<TProps, TChildProps = any>(
     operationOptions:
-      | ReactApollo.OperationOption<TProps,
-      Subscription,
-      Variables,
-      Props<TChildProps>>
+      | ReactApollo.OperationOption<
+          TProps,
+          Subscription,
+          Variables,
+          Props<TChildProps>
+        >
       | undefined
   ) {
-    return ReactApollo.graphql<TProps,
+    return ReactApollo.graphql<
+      TProps,
       Subscription,
       Variables,
-      Props<TChildProps>>(Document, operationOptions);
+      Props<TChildProps>
+    >(Document, operationOptions);
   }
 }
 import {
@@ -3973,7 +4181,6 @@ export interface ISubscriptionResolverObject<Result, Parent, TContext, Args> {
     context: TContext,
     info: GraphQLResolveInfo
   ): AsyncIterator<R | Result> | Promise<AsyncIterator<R | Result>>;
-
   resolve?<R = Result, P = Parent>(
     parent: P,
     args: Args,
@@ -3982,13 +4189,15 @@ export interface ISubscriptionResolverObject<Result, Parent, TContext, Args> {
   ): R | Result | Promise<R | Result>;
 }
 
-export type SubscriptionResolver<Result,
+export type SubscriptionResolver<
+  Result,
   Parent = {},
   TContext = {},
-  Args = {}> =
+  Args = {}
+> =
   | ((
-  ...args: any[]
-) => ISubscriptionResolverObject<Result, Parent, TContext, Args>)
+      ...args: any[]
+    ) => ISubscriptionResolverObject<Result, Parent, TContext, Args>)
   | ISubscriptionResolverObject<Result, Parent, TContext, Args>;
 
 export type TypeResolveFn<Types, Parent = {}, TContext = {}> = (
@@ -4042,13 +4251,17 @@ export namespace QueryResolvers {
     /** Information about Ansible-powered playbook */
     playbook?: PlaybookResolver<Maybe<GPlaybook>, TypeParent, TContext>;
     /** Info about a playbook task */
-    playbookTask?: PlaybookTaskResolver<Maybe<PlaybookTask>,
+    playbookTask?: PlaybookTaskResolver<
+      Maybe<PlaybookTask>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** All Playbook Tasks */
-    playbookTasks?: PlaybookTasksResolver<(Maybe<PlaybookTask>)[],
+    playbookTasks?: PlaybookTasksResolver<
+      (Maybe<PlaybookTask>)[],
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** One-time link to RFB console for a VM */
     console?: ConsoleResolver<Maybe<string>, TypeParent, TContext>;
     /** All registered users (excluding root) */
@@ -4058,170 +4271,212 @@ export namespace QueryResolvers {
     /** User or group information */
     user?: UserResolver<Maybe<User>, TypeParent, TContext>;
     /** current user or group information */
-    currentUser?: CurrentUserResolver<Maybe<CurrentUserInformation>,
+    currentUser?: CurrentUserResolver<
+      Maybe<CurrentUserInformation>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
     findUser?: FindUserResolver<(Maybe<User>)[], TypeParent, TContext>;
 
     selectedItems?: SelectedItemsResolver<string[], TypeParent, TContext>;
 
-    vmSelectedReadyFor?: VmSelectedReadyForResolver<VmSelectedIdLists,
+    vmSelectedReadyFor?: VmSelectedReadyForResolver<
+      VmSelectedIdLists,
       TypeParent,
-      TContext>;
+      TContext
+    >;
   }
 
-  export type VmsResolver<R = (Maybe<Gvm>)[],
+  export type VmsResolver<
+    R = (Maybe<Gvm>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VmResolver<R = Maybe<Gvm>, Parent = {}, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VmResolver<R = Maybe<Gvm>, Parent = {}, TContext = {}> = Resolver<
+    R,
     Parent,
     TContext,
-    VmArgs>;
-
+    VmArgs
+  >;
   export interface VmArgs {
     ref: string;
   }
 
-  export type TemplatesResolver<R = (Maybe<GTemplate>)[],
+  export type TemplatesResolver<
+    R = (Maybe<GTemplate>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type TemplateResolver<R = Maybe<Gvm>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TemplateResolver<
+    R = Maybe<Gvm>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, TemplateArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, TemplateArgs>;
   export interface TemplateArgs {
     ref: string;
   }
 
-  export type HostsResolver<R = (Maybe<GHost>)[],
+  export type HostsResolver<
+    R = (Maybe<GHost>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type HostResolver<R = Maybe<GHost>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type HostResolver<
+    R = Maybe<GHost>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, HostArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, HostArgs>;
   export interface HostArgs {
     ref: string;
   }
 
-  export type PoolsResolver<R = (Maybe<GPool>)[],
+  export type PoolsResolver<
+    R = (Maybe<GPool>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PoolResolver<R = Maybe<GPool>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PoolResolver<
+    R = Maybe<GPool>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, PoolArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, PoolArgs>;
   export interface PoolArgs {
     ref: string;
   }
 
-  export type NetworksResolver<R = (Maybe<GNetwork>)[],
+  export type NetworksResolver<
+    R = (Maybe<GNetwork>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NetworkResolver<R = Maybe<GNetwork>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NetworkResolver<
+    R = Maybe<GNetwork>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, NetworkArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, NetworkArgs>;
   export interface NetworkArgs {
     ref: string;
   }
 
-  export type SrsResolver<R = (Maybe<Gsr>)[],
+  export type SrsResolver<
+    R = (Maybe<Gsr>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type SrResolver<R = Maybe<Gsr>, Parent = {}, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SrResolver<R = Maybe<Gsr>, Parent = {}, TContext = {}> = Resolver<
+    R,
     Parent,
     TContext,
-    SrArgs>;
-
+    SrArgs
+  >;
   export interface SrArgs {
     ref: string;
   }
 
-  export type VdisResolver<R = (Maybe<Gvdi>)[],
+  export type VdisResolver<
+    R = (Maybe<Gvdi>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VdisArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VdisArgs>;
   export interface VdisArgs {
     /** True - print only ISO images; False - print everything but ISO images; null - print everything */
     onlyIsos?: Maybe<boolean>;
   }
 
-  export type VdiResolver<R = Maybe<Gvdi>,
+  export type VdiResolver<
+    R = Maybe<Gvdi>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VdiArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VdiArgs>;
   export interface VdiArgs {
     ref: string;
   }
 
-  export type PlaybooksResolver<R = (Maybe<GPlaybook>)[],
+  export type PlaybooksResolver<
+    R = (Maybe<GPlaybook>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PlaybookResolver<R = Maybe<GPlaybook>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PlaybookResolver<
+    R = Maybe<GPlaybook>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, PlaybookArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, PlaybookArgs>;
   export interface PlaybookArgs {
     id?: Maybe<string>;
   }
 
-  export type PlaybookTaskResolver<R = Maybe<PlaybookTask>,
+  export type PlaybookTaskResolver<
+    R = Maybe<PlaybookTask>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, PlaybookTaskArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, PlaybookTaskArgs>;
   export interface PlaybookTaskArgs {
     id: string;
   }
 
-  export type PlaybookTasksResolver<R = (Maybe<PlaybookTask>)[],
+  export type PlaybookTasksResolver<
+    R = (Maybe<PlaybookTask>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ConsoleResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ConsoleResolver<
+    R = Maybe<string>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, ConsoleArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, ConsoleArgs>;
   export interface ConsoleArgs {
     vmRef: string;
   }
 
-  export type UsersResolver<R = (Maybe<User>)[],
+  export type UsersResolver<
+    R = (Maybe<User>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GroupsResolver<R = (Maybe<User>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GroupsResolver<
+    R = (Maybe<User>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type UserResolver<R = Maybe<User>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type UserResolver<
+    R = Maybe<User>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, UserArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, UserArgs>;
   export interface UserArgs {
     id?: Maybe<string>;
   }
 
-  export type CurrentUserResolver<R = Maybe<CurrentUserInformation>,
+  export type CurrentUserResolver<
+    R = Maybe<CurrentUserInformation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type FindUserResolver<R = (Maybe<User>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type FindUserResolver<
+    R = (Maybe<User>)[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, FindUserArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, FindUserArgs>;
   export interface FindUserArgs {
     query: string;
   }
 
-  export type SelectedItemsResolver<R = string[],
+  export type SelectedItemsResolver<
+    R = string[],
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, SelectedItemsArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, SelectedItemsArgs>;
   export interface SelectedItemsArgs {
     tableId: Table;
   }
 
-  export type VmSelectedReadyForResolver<R = VmSelectedIdLists,
+  export type VmSelectedReadyForResolver<
+    R = VmSelectedIdLists,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvmResolvers {
@@ -4263,13 +4518,17 @@ export namespace GvmResolvers {
 
     isOwner?: IsOwnerResolver<boolean, TypeParent, TContext>;
     /** True if PV drivers are up to date, reported if Guest Additions are installed */
-    PVDriversUpToDate?: PvDriversUpToDateResolver<Maybe<boolean>,
+    PVDriversUpToDate?: PvDriversUpToDateResolver<
+      Maybe<boolean>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** PV drivers version, if available */
-    PVDriversVersion?: PvDriversVersionResolver<Maybe<PvDriversVersion>,
+    PVDriversVersion?: PvDriversVersionResolver<
+      Maybe<PvDriversVersion>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
     metrics?: MetricsResolver<string, TypeParent, TContext>;
 
@@ -4284,84 +4543,136 @@ export namespace GvmResolvers {
     VBDs?: VbDsResolver<(Maybe<Gvbd>)[], TypeParent, TContext>;
   }
 
-  export type NameLabelResolver<R = string,
+  export type NameLabelResolver<
+    R = string,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NameDescriptionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NameDescriptionResolver<
+    R = string,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type RefResolver<R = string, Parent = Gvm, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = Gvm, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type UuidResolver<R = string, Parent = Gvm, TContext = {}> = Resolver<R,
+    TContext
+  >;
+  export type UuidResolver<R = string, Parent = Gvm, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type AccessResolver<R = (Maybe<GvmAccessEntry>)[],
+    TContext
+  >;
+  export type AccessResolver<
+    R = (Maybe<GvmAccessEntry>)[],
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PlatformResolver<R = Maybe<Platform>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PlatformResolver<
+    R = Maybe<Platform>,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VcpUsAtStartupResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VcpUsAtStartupResolver<
+    R = number,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VcpUsMaxResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VcpUsMaxResolver<
+    R = number,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type DomainTypeResolver<R = DomainType,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DomainTypeResolver<
+    R = DomainType,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GuestMetricsResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GuestMetricsResolver<
+    R = string,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type InstallTimeResolver<R = DateTime,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type InstallTimeResolver<
+    R = DateTime,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryActualResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryActualResolver<
+    R = number,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryStaticMinResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryStaticMinResolver<
+    R = number,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryStaticMaxResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryStaticMaxResolver<
+    R = number,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryDynamicMinResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryDynamicMinResolver<
+    R = number,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryDynamicMaxResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryDynamicMaxResolver<
+    R = number,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MyActionsResolver<R = (Maybe<VmActions>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<VmActions>)[],
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type IsOwnerResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PvDriversUpToDateResolver<R = Maybe<boolean>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PvDriversUpToDateResolver<
+    R = Maybe<boolean>,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PvDriversVersionResolver<R = Maybe<PvDriversVersion>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PvDriversVersionResolver<
+    R = Maybe<PvDriversVersion>,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MetricsResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MetricsResolver<
+    R = string,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type OsVersionResolver<R = Maybe<OsVersion>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type OsVersionResolver<
+    R = Maybe<OsVersion>,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PowerStateResolver<R = PowerState,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PowerStateResolver<
+    R = PowerState,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type StartTimeResolver<R = Maybe<DateTime>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type StartTimeResolver<
+    R = Maybe<DateTime>,
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ViFsResolver<R = (Maybe<Gvif>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ViFsResolver<
+    R = (Maybe<Gvif>)[],
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VbDsResolver<R = (Maybe<Gvbd>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VbDsResolver<
+    R = (Maybe<Gvbd>)[],
     Parent = Gvm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace UserResolvers {
@@ -4373,22 +4684,30 @@ export namespace UserResolvers {
     username?: UsernameResolver<string, TypeParent, TContext>;
   }
 
-  export type IdResolver<R = string, Parent = User, TContext = {}> = Resolver<R,
+  export type IdResolver<R = string, Parent = User, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type NameResolver<R = string, Parent = User, TContext = {}> = Resolver<R,
+    TContext
+  >;
+  export type NameResolver<R = string, Parent = User, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type UsernameResolver<R = string,
+    TContext
+  >;
+  export type UsernameResolver<
+    R = string,
     Parent = User,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace PlatformResolvers {
   export interface Resolvers<TContext = {}, TypeParent = Platform> {
-    coresPerSocket?: CoresPerSocketResolver<Maybe<number>,
+    coresPerSocket?: CoresPerSocketResolver<
+      Maybe<number>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
     timeoffset?: TimeoffsetResolver<Maybe<number>, TypeParent, TContext>;
 
@@ -4407,33 +4726,51 @@ export namespace PlatformResolvers {
     videoram?: VideoramResolver<Maybe<number>, TypeParent, TContext>;
   }
 
-  export type CoresPerSocketResolver<R = Maybe<number>,
+  export type CoresPerSocketResolver<
+    R = Maybe<number>,
     Parent = Platform,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type TimeoffsetResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TimeoffsetResolver<
+    R = Maybe<number>,
     Parent = Platform,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NxResolver<R = Maybe<boolean>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NxResolver<
+    R = Maybe<boolean>,
     Parent = Platform,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type DeviceModelResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DeviceModelResolver<
+    R = Maybe<string>,
     Parent = Platform,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PaeResolver<R = Maybe<boolean>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PaeResolver<
+    R = Maybe<boolean>,
     Parent = Platform,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type HpetResolver<R = Maybe<boolean>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type HpetResolver<
+    R = Maybe<boolean>,
     Parent = Platform,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ApicResolver<R = Maybe<boolean>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ApicResolver<
+    R = Maybe<boolean>,
     Parent = Platform,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type AcpiResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type AcpiResolver<
+    R = Maybe<number>,
     Parent = Platform,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VideoramResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VideoramResolver<
+    R = Maybe<number>,
     Parent = Platform,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvmAccessEntryResolvers {
@@ -4443,12 +4780,16 @@ export namespace GvmAccessEntryResolvers {
     actions?: ActionsResolver<VmActions[], TypeParent, TContext>;
   }
 
-  export type UserIdResolver<R = User,
+  export type UserIdResolver<
+    R = User,
     Parent = GvmAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ActionsResolver<R = VmActions[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ActionsResolver<
+    R = VmActions[],
     Parent = GvmAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** Drivers version. We don't want any fancy resolver except for the thing that we know that it's a dict in VM document */
 export namespace PvDriversVersionResolvers {
@@ -4462,18 +4803,26 @@ export namespace PvDriversVersionResolvers {
     build?: BuildResolver<Maybe<number>, TypeParent, TContext>;
   }
 
-  export type MajorResolver<R = Maybe<number>,
+  export type MajorResolver<
+    R = Maybe<number>,
     Parent = PvDriversVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MinorResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MinorResolver<
+    R = Maybe<number>,
     Parent = PvDriversVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MicroResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MicroResolver<
+    R = Maybe<number>,
     Parent = PvDriversVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type BuildResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type BuildResolver<
+    R = Maybe<number>,
     Parent = PvDriversVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** OS version reported by Xen tools */
 export namespace OsVersionResolvers {
@@ -4489,21 +4838,31 @@ export namespace OsVersionResolvers {
     minor?: MinorResolver<Maybe<number>, TypeParent, TContext>;
   }
 
-  export type NameResolver<R = Maybe<string>,
+  export type NameResolver<
+    R = Maybe<string>,
     Parent = OsVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type UnameResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type UnameResolver<
+    R = Maybe<string>,
     Parent = OsVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type DistroResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DistroResolver<
+    R = Maybe<string>,
     Parent = OsVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MajorResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MajorResolver<
+    R = Maybe<number>,
     Parent = OsVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MinorResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MinorResolver<
+    R = Maybe<number>,
     Parent = OsVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvifResolvers {
@@ -4517,9 +4876,11 @@ export namespace GvifResolvers {
     /** Device ID */
     device?: DeviceResolver<string, TypeParent, TContext>;
 
-    currentlyAttached?: CurrentlyAttachedResolver<boolean,
+    currentlyAttached?: CurrentlyAttachedResolver<
+      boolean,
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
     ip?: IpResolver<Maybe<string>, TypeParent, TContext>;
 
@@ -4530,33 +4891,51 @@ export namespace GvifResolvers {
     network?: NetworkResolver<Maybe<GNetwork>, TypeParent, TContext>;
   }
 
-  export type RefResolver<R = string, Parent = Gvif, TContext = {}> = Resolver<R,
+  export type RefResolver<R = string, Parent = Gvif, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type MacResolver<R = string, Parent = Gvif, TContext = {}> = Resolver<R,
+    TContext
+  >;
+  export type MacResolver<R = string, Parent = Gvif, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type VmResolver<R = Maybe<Gvm>,
+    TContext
+  >;
+  export type VmResolver<
+    R = Maybe<Gvm>,
     Parent = Gvif,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type DeviceResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DeviceResolver<
+    R = string,
     Parent = Gvif,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type CurrentlyAttachedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type CurrentlyAttachedResolver<
+    R = boolean,
     Parent = Gvif,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type IpResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IpResolver<
+    R = Maybe<string>,
     Parent = Gvif,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type Ipv4Resolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type Ipv4Resolver<
+    R = Maybe<string>,
     Parent = Gvif,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type Ipv6Resolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type Ipv6Resolver<
+    R = Maybe<string>,
     Parent = Gvif,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NetworkResolver<R = Maybe<GNetwork>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NetworkResolver<
+    R = Maybe<GNetwork>,
     Parent = Gvif,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GNetworkResolvers {
@@ -4570,13 +4949,17 @@ export namespace GNetworkResolvers {
     /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    access?: AccessResolver<(Maybe<GNetworkAccessEntry>)[],
+    access?: AccessResolver<
+      (Maybe<GNetworkAccessEntry>)[],
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
-    myActions?: MyActionsResolver<(Maybe<NetworkActions>)[],
+    myActions?: MyActionsResolver<
+      (Maybe<NetworkActions>)[],
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
     isOwner?: IsOwnerResolver<boolean, TypeParent, TContext>;
 
@@ -4585,33 +4968,51 @@ export namespace GNetworkResolvers {
     otherConfig?: OtherConfigResolver<Maybe<JsonString>, TypeParent, TContext>;
   }
 
-  export type NameLabelResolver<R = string,
+  export type NameLabelResolver<
+    R = string,
     Parent = GNetwork,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NameDescriptionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NameDescriptionResolver<
+    R = string,
     Parent = GNetwork,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type RefResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<
+    R = string,
     Parent = GNetwork,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type UuidResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type UuidResolver<
+    R = string,
     Parent = GNetwork,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type AccessResolver<R = (Maybe<GNetworkAccessEntry>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type AccessResolver<
+    R = (Maybe<GNetworkAccessEntry>)[],
     Parent = GNetwork,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MyActionsResolver<R = (Maybe<NetworkActions>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<NetworkActions>)[],
     Parent = GNetwork,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type IsOwnerResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = GNetwork,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ViFsResolver<R = Maybe<(Maybe<Gvif>)[]>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ViFsResolver<
+    R = Maybe<(Maybe<Gvif>)[]>,
     Parent = GNetwork,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type OtherConfigResolver<R = Maybe<JsonString>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type OtherConfigResolver<
+    R = Maybe<JsonString>,
     Parent = GNetwork,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GNetworkAccessEntryResolvers {
@@ -4621,12 +5022,16 @@ export namespace GNetworkAccessEntryResolvers {
     actions?: ActionsResolver<NetworkActions, TypeParent, TContext>;
   }
 
-  export type UserIdResolver<R = User,
+  export type UserIdResolver<
+    R = User,
     Parent = GNetworkAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ActionsResolver<R = NetworkActions,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ActionsResolver<
+    R = NetworkActions,
     Parent = GNetworkAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvbdResolvers {
@@ -4644,42 +5049,62 @@ export namespace GvbdResolvers {
 
     mode?: ModeResolver<VbdMode, TypeParent, TContext>;
 
-    currentlyAttached?: CurrentlyAttachedResolver<boolean,
+    currentlyAttached?: CurrentlyAttachedResolver<
+      boolean,
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
     bootable?: BootableResolver<boolean, TypeParent, TContext>;
 
     userdevice?: UserdeviceResolver<number, TypeParent, TContext>;
   }
 
-  export type RefResolver<R = string, Parent = Gvbd, TContext = {}> = Resolver<R,
+  export type RefResolver<R = string, Parent = Gvbd, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type UuidResolver<R = string, Parent = Gvbd, TContext = {}> = Resolver<R,
+    TContext
+  >;
+  export type UuidResolver<R = string, Parent = Gvbd, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type VmResolver<R = Maybe<Gvm>,
+    TContext
+  >;
+  export type VmResolver<
+    R = Maybe<Gvm>,
     Parent = Gvbd,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VdiResolver<R = Maybe<Gvdi>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VdiResolver<
+    R = Maybe<Gvdi>,
     Parent = Gvbd,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type TypeResolver<R = VbdType,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TypeResolver<
+    R = VbdType,
     Parent = Gvbd,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ModeResolver<R = VbdMode,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ModeResolver<
+    R = VbdMode,
     Parent = Gvbd,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type CurrentlyAttachedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type CurrentlyAttachedResolver<
+    R = boolean,
     Parent = Gvbd,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type BootableResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type BootableResolver<
+    R = boolean,
     Parent = Gvbd,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type UserdeviceResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type UserdeviceResolver<
+    R = number,
     Parent = Gvbd,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GvdiResolvers {
@@ -4710,42 +5135,66 @@ export namespace GvdiResolvers {
     type?: TypeResolver<VdiType, TypeParent, TContext>;
   }
 
-  export type NameLabelResolver<R = string,
+  export type NameLabelResolver<
+    R = string,
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NameDescriptionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NameDescriptionResolver<
+    R = string,
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type RefResolver<R = string, Parent = Gvdi, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = Gvdi, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type UuidResolver<R = string, Parent = Gvdi, TContext = {}> = Resolver<R,
+    TContext
+  >;
+  export type UuidResolver<R = string, Parent = Gvdi, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type AccessResolver<R = (Maybe<GAccessEntry>)[],
+    TContext
+  >;
+  export type AccessResolver<
+    R = (Maybe<GAccessEntry>)[],
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MyActionsResolver<R = (Maybe<VdiActions>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<VdiActions>)[],
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type IsOwnerResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type SrResolver<R = Maybe<Gsr>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SrResolver<
+    R = Maybe<Gsr>,
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VirtualSizeResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VirtualSizeResolver<
+    R = number,
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VbDsResolver<R = (Maybe<Gvbd>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VbDsResolver<
+    R = (Maybe<Gvbd>)[],
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ContentTypeResolver<R = SrContentType,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ContentTypeResolver<
+    R = SrContentType,
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type TypeResolver<R = VdiType,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TypeResolver<
+    R = VdiType,
     Parent = Gvdi,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GsrResolvers {
@@ -4779,61 +5228,95 @@ export namespace GsrResolvers {
     /** This SR contains XenServer Tools */
     isToolsSr?: IsToolsSrResolver<boolean, TypeParent, TContext>;
     /** Physical utilisation in bytes */
-    physicalUtilisation?: PhysicalUtilisationResolver<number,
+    physicalUtilisation?: PhysicalUtilisationResolver<
+      number,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Available space in bytes */
     spaceAvailable?: SpaceAvailableResolver<number, TypeParent, TContext>;
   }
 
-  export type NameLabelResolver<R = string,
+  export type NameLabelResolver<
+    R = string,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NameDescriptionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NameDescriptionResolver<
+    R = string,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type RefResolver<R = string, Parent = Gsr, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = Gsr, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type UuidResolver<R = string, Parent = Gsr, TContext = {}> = Resolver<R,
+    TContext
+  >;
+  export type UuidResolver<R = string, Parent = Gsr, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type AccessResolver<R = (Maybe<GsrAccessEntry>)[],
+    TContext
+  >;
+  export type AccessResolver<
+    R = (Maybe<GsrAccessEntry>)[],
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MyActionsResolver<R = (Maybe<SrActions>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<SrActions>)[],
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type IsOwnerResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PbDsResolver<R = (Maybe<Gpbd>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PbDsResolver<
+    R = (Maybe<Gpbd>)[],
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VdIsResolver<R = Maybe<(Maybe<Gvdi>)[]>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VdIsResolver<
+    R = Maybe<(Maybe<Gvdi>)[]>,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ContentTypeResolver<R = SrContentType,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ContentTypeResolver<
+    R = SrContentType,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type TypeResolver<R = string, Parent = Gsr, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TypeResolver<R = string, Parent = Gsr, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type PhysicalSizeResolver<R = number,
+    TContext
+  >;
+  export type PhysicalSizeResolver<
+    R = number,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VirtualAllocationResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VirtualAllocationResolver<
+    R = number,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type IsToolsSrResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsToolsSrResolver<
+    R = boolean,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PhysicalUtilisationResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PhysicalUtilisationResolver<
+    R = number,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type SpaceAvailableResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SpaceAvailableResolver<
+    R = number,
     Parent = Gsr,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GsrAccessEntryResolvers {
@@ -4843,12 +5326,16 @@ export namespace GsrAccessEntryResolvers {
     actions?: ActionsResolver<SrActions, TypeParent, TContext>;
   }
 
-  export type UserIdResolver<R = User,
+  export type UserIdResolver<
+    R = User,
     Parent = GsrAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ActionsResolver<R = SrActions,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ActionsResolver<
+    R = SrActions,
     Parent = GsrAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** Fancy name for a PBD. Not a real Xen object, though a connection between a host and a SR */
 export namespace GpbdResolvers {
@@ -4864,29 +5351,43 @@ export namespace GpbdResolvers {
 
     SR?: SrResolver<Gsr, TypeParent, TContext>;
 
-    currentlyAttached?: CurrentlyAttachedResolver<boolean,
+    currentlyAttached?: CurrentlyAttachedResolver<
+      boolean,
       TypeParent,
-      TContext>;
+      TContext
+    >;
   }
 
-  export type RefResolver<R = string, Parent = Gpbd, TContext = {}> = Resolver<R,
+  export type RefResolver<R = string, Parent = Gpbd, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type UuidResolver<R = string, Parent = Gpbd, TContext = {}> = Resolver<R,
+    TContext
+  >;
+  export type UuidResolver<R = string, Parent = Gpbd, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type HostResolver<R = GHost, Parent = Gpbd, TContext = {}> = Resolver<R,
+    TContext
+  >;
+  export type HostResolver<R = GHost, Parent = Gpbd, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type DeviceConfigResolver<R = JsonString,
+    TContext
+  >;
+  export type DeviceConfigResolver<
+    R = JsonString,
     Parent = Gpbd,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type SrResolver<R = Gsr, Parent = Gpbd, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SrResolver<R = Gsr, Parent = Gpbd, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type CurrentlyAttachedResolver<R = boolean,
+    TContext
+  >;
+  export type CurrentlyAttachedResolver<
+    R = boolean,
     Parent = Gpbd,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GHostResolvers {
@@ -4900,13 +5401,17 @@ export namespace GHostResolvers {
     /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, TContext>;
     /** Major XenAPI version number */
-    APIVersionMajor?: ApiVersionMajorResolver<Maybe<number>,
+    APIVersionMajor?: ApiVersionMajorResolver<
+      Maybe<number>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Minor XenAPI version number */
-    APIVersionMinor?: ApiVersionMinorResolver<Maybe<number>,
+    APIVersionMinor?: ApiVersionMinorResolver<
+      Maybe<number>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Connections to storage repositories */
     PBDs?: PbDsResolver<(Maybe<Gpbd>)[], TypeParent, TContext>;
 
@@ -4920,9 +5425,11 @@ export namespace GHostResolvers {
     /** The address by which this host can be contacted from any other host in the pool */
     address?: AddressResolver<string, TypeParent, TContext>;
 
-    allowedOperations?: AllowedOperationsResolver<(Maybe<HostAllowedOperations>)[],
+    allowedOperations?: AllowedOperationsResolver<
+      (Maybe<HostAllowedOperations>)[],
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
     cpuInfo?: CpuInfoResolver<CpuInfo, TypeParent, TContext>;
 
@@ -4930,9 +5437,11 @@ export namespace GHostResolvers {
 
     hostname?: HostnameResolver<string, TypeParent, TContext>;
 
-    softwareVersion?: SoftwareVersionResolver<SoftwareVersion,
+    softwareVersion?: SoftwareVersionResolver<
+      SoftwareVersion,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** VMs currently resident on host */
     residentVms?: ResidentVmsResolver<(Maybe<Gvm>)[], TypeParent, TContext>;
 
@@ -4942,94 +5451,148 @@ export namespace GHostResolvers {
     /** Free memory in kilobytes */
     memoryFree?: MemoryFreeResolver<Maybe<number>, TypeParent, TContext>;
     /** Available memory as measured by the host in kilobytes */
-    memoryAvailable?: MemoryAvailableResolver<Maybe<number>,
+    memoryAvailable?: MemoryAvailableResolver<
+      Maybe<number>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Virtualization overhead in kilobytes */
-    memoryOverhead?: MemoryOverheadResolver<Maybe<number>,
+    memoryOverhead?: MemoryOverheadResolver<
+      Maybe<number>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** True if host is up. May be null if no data */
     live?: LiveResolver<Maybe<boolean>, TypeParent, TContext>;
     /** When live status was last updated */
     liveUpdated?: LiveUpdatedResolver<Maybe<DateTime>, TypeParent, TContext>;
   }
 
-  export type NameLabelResolver<R = string,
+  export type NameLabelResolver<
+    R = string,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NameDescriptionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NameDescriptionResolver<
+    R = string,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type RefResolver<R = string, Parent = GHost, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = GHost, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type UuidResolver<R = string,
+    TContext
+  >;
+  export type UuidResolver<
+    R = string,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ApiVersionMajorResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ApiVersionMajorResolver<
+    R = Maybe<number>,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ApiVersionMinorResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ApiVersionMinorResolver<
+    R = Maybe<number>,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PbDsResolver<R = (Maybe<Gpbd>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PbDsResolver<
+    R = (Maybe<Gpbd>)[],
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PcIsResolver<R = (Maybe<string>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PcIsResolver<
+    R = (Maybe<string>)[],
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PgpUsResolver<R = (Maybe<string>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PgpUsResolver<
+    R = (Maybe<string>)[],
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PiFsResolver<R = (Maybe<string>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PiFsResolver<
+    R = (Maybe<string>)[],
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PusBsResolver<R = (Maybe<string>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PusBsResolver<
+    R = (Maybe<string>)[],
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type AddressResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type AddressResolver<
+    R = string,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type AllowedOperationsResolver<R = (Maybe<HostAllowedOperations>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type AllowedOperationsResolver<
+    R = (Maybe<HostAllowedOperations>)[],
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type CpuInfoResolver<R = CpuInfo,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type CpuInfoResolver<
+    R = CpuInfo,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type DisplayResolver<R = HostDisplay,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DisplayResolver<
+    R = HostDisplay,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type HostnameResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type HostnameResolver<
+    R = string,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type SoftwareVersionResolver<R = SoftwareVersion,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SoftwareVersionResolver<
+    R = SoftwareVersion,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ResidentVmsResolver<R = (Maybe<Gvm>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ResidentVmsResolver<
+    R = (Maybe<Gvm>)[],
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MetricsResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MetricsResolver<
+    R = string,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryTotalResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryTotalResolver<
+    R = Maybe<number>,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryFreeResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryFreeResolver<
+    R = Maybe<number>,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryAvailableResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryAvailableResolver<
+    R = Maybe<number>,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryOverheadResolver<R = Maybe<number>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryOverheadResolver<
+    R = Maybe<number>,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type LiveResolver<R = Maybe<boolean>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type LiveResolver<
+    R = Maybe<boolean>,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type LiveUpdatedResolver<R = Maybe<DateTime>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type LiveUpdatedResolver<
+    R = Maybe<DateTime>,
     Parent = GHost,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace CpuInfoResolvers {
@@ -5059,42 +5622,66 @@ export namespace CpuInfoResolvers {
     stepping?: SteppingResolver<number, TypeParent, TContext>;
   }
 
-  export type CpuCountResolver<R = number,
+  export type CpuCountResolver<
+    R = number,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ModelnameResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ModelnameResolver<
+    R = string,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type SocketCountResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SocketCountResolver<
+    R = number,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VendorResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VendorResolver<
+    R = string,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type FamilyResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type FamilyResolver<
+    R = number,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type FeaturesResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type FeaturesResolver<
+    R = string,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type FeaturesHvmResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type FeaturesHvmResolver<
+    R = Maybe<string>,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type FeaturesPvResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type FeaturesPvResolver<
+    R = Maybe<string>,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type FlagsResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type FlagsResolver<
+    R = string,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ModelResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ModelResolver<
+    R = number,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type SpeedResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SpeedResolver<
+    R = number,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type SteppingResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type SteppingResolver<
+    R = number,
     Parent = CpuInfo,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace SoftwareVersionResolvers {
@@ -5113,13 +5700,17 @@ export namespace SoftwareVersionResolvers {
 
     platformVersion?: PlatformVersionResolver<string, TypeParent, TContext>;
 
-    platformVersionText?: PlatformVersionTextResolver<string,
+    platformVersionText?: PlatformVersionTextResolver<
+      string,
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
-    platformVersionTextShort?: PlatformVersionTextShortResolver<string,
+    platformVersionTextShort?: PlatformVersionTextShortResolver<
+      string,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** XAPI version */
     xapi?: XapiResolver<string, TypeParent, TContext>;
     /** Xen version */
@@ -5129,53 +5720,83 @@ export namespace SoftwareVersionResolvers {
 
     productVersion?: ProductVersionResolver<string, TypeParent, TContext>;
 
-    productVersionText?: ProductVersionTextResolver<string,
+    productVersionText?: ProductVersionTextResolver<
+      string,
       TypeParent,
-      TContext>;
+      TContext
+    >;
   }
 
-  export type BuildNumberResolver<R = string,
+  export type BuildNumberResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type DateResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DateResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type HostnameResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type HostnameResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type LinuxResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type LinuxResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NetworkBackendResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NetworkBackendResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PlatformNameResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PlatformNameResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PlatformVersionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PlatformVersionResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PlatformVersionTextResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PlatformVersionTextResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PlatformVersionTextShortResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PlatformVersionTextShortResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type XapiResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type XapiResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type XenResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type XenResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ProductBrandResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ProductBrandResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ProductVersionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ProductVersionResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ProductVersionTextResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ProductVersionTextResolver<
+    R = string,
     Parent = SoftwareVersion,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTemplateResolvers {
@@ -5189,9 +5810,11 @@ export namespace GTemplateResolvers {
     /** Unique constant identifier/object reference (used in XenCenter) */
     uuid?: UuidResolver<string, TypeParent, TContext>;
 
-    access?: AccessResolver<(Maybe<GTemplateAccessEntry>)[],
+    access?: AccessResolver<
+      (Maybe<GTemplateAccessEntry>)[],
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** CPU platform parameters */
     platform?: PlatformResolver<Maybe<Platform>, TypeParent, TContext>;
 
@@ -5215,9 +5838,11 @@ export namespace GTemplateResolvers {
 
     memoryDynamicMax?: MemoryDynamicMaxResolver<number, TypeParent, TContext>;
 
-    myActions?: MyActionsResolver<(Maybe<TemplateActions>)[],
+    myActions?: MyActionsResolver<
+      (Maybe<TemplateActions>)[],
       TypeParent,
-      TContext>;
+      TContext
+    >;
 
     isOwner?: IsOwnerResolver<boolean, TypeParent, TContext>;
     /** True if this template works with hardware assisted virtualization */
@@ -5225,81 +5850,129 @@ export namespace GTemplateResolvers {
     /** True if this template is available for regular users */
     enabled?: EnabledResolver<boolean, TypeParent, TContext>;
     /** This template is preinstalled with XenServer */
-    isDefaultTemplate?: IsDefaultTemplateResolver<boolean,
+    isDefaultTemplate?: IsDefaultTemplateResolver<
+      boolean,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** If the template supports unattended installation, its options are there */
-    installOptions?: InstallOptionsResolver<Maybe<InstallOsOptions>,
+    installOptions?: InstallOptionsResolver<
+      Maybe<InstallOsOptions>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
   }
 
-  export type NameLabelResolver<R = string,
+  export type NameLabelResolver<
+    R = string,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NameDescriptionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NameDescriptionResolver<
+    R = string,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type RefResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<
+    R = string,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type UuidResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type UuidResolver<
+    R = string,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type AccessResolver<R = (Maybe<GTemplateAccessEntry>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type AccessResolver<
+    R = (Maybe<GTemplateAccessEntry>)[],
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PlatformResolver<R = Maybe<Platform>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PlatformResolver<
+    R = Maybe<Platform>,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VcpUsAtStartupResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VcpUsAtStartupResolver<
+    R = number,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VcpUsMaxResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VcpUsMaxResolver<
+    R = number,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type DomainTypeResolver<R = DomainType,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DomainTypeResolver<
+    R = DomainType,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GuestMetricsResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GuestMetricsResolver<
+    R = string,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type InstallTimeResolver<R = DateTime,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type InstallTimeResolver<
+    R = DateTime,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryActualResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryActualResolver<
+    R = number,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryStaticMinResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryStaticMinResolver<
+    R = number,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryStaticMaxResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryStaticMaxResolver<
+    R = number,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryDynamicMinResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryDynamicMinResolver<
+    R = number,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MemoryDynamicMaxResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MemoryDynamicMaxResolver<
+    R = number,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MyActionsResolver<R = (Maybe<TemplateActions>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<TemplateActions>)[],
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type IsOwnerResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type HvmResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type HvmResolver<
+    R = boolean,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type EnabledResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type EnabledResolver<
+    R = boolean,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type IsDefaultTemplateResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsDefaultTemplateResolver<
+    R = boolean,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type InstallOptionsResolver<R = Maybe<InstallOsOptions>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type InstallOptionsResolver<
+    R = Maybe<InstallOsOptions>,
     Parent = GTemplate,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTemplateAccessEntryResolvers {
@@ -5309,12 +5982,16 @@ export namespace GTemplateAccessEntryResolvers {
     actions?: ActionsResolver<TemplateActions[], TypeParent, TContext>;
   }
 
-  export type UserIdResolver<R = User,
+  export type UserIdResolver<
+    R = User,
     Parent = GTemplateAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ActionsResolver<R = TemplateActions[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ActionsResolver<
+    R = TemplateActions[],
     Parent = GTemplateAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace InstallOsOptionsResolvers {
@@ -5325,23 +6002,33 @@ export namespace InstallOsOptionsResolvers {
 
     release?: ReleaseResolver<Maybe<string>, TypeParent, TContext>;
 
-    installRepository?: InstallRepositoryResolver<Maybe<string>,
+    installRepository?: InstallRepositoryResolver<
+      Maybe<string>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
   }
 
-  export type DistroResolver<R = Distro,
+  export type DistroResolver<
+    R = Distro,
     Parent = InstallOsOptions,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ArchResolver<R = Maybe<Arch>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ArchResolver<
+    R = Maybe<Arch>,
     Parent = InstallOsOptions,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReleaseResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReleaseResolver<
+    R = Maybe<string>,
     Parent = InstallOsOptions,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type InstallRepositoryResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type InstallRepositoryResolver<
+    R = Maybe<string>,
     Parent = InstallOsOptions,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GPoolResolvers {
@@ -5360,24 +6047,36 @@ export namespace GPoolResolvers {
     defaultSr?: DefaultSrResolver<Maybe<Gsr>, TypeParent, TContext>;
   }
 
-  export type NameLabelResolver<R = string,
+  export type NameLabelResolver<
+    R = string,
     Parent = GPool,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NameDescriptionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NameDescriptionResolver<
+    R = string,
     Parent = GPool,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type RefResolver<R = string, Parent = GPool, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = GPool, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type UuidResolver<R = string,
+    TContext
+  >;
+  export type UuidResolver<
+    R = string,
     Parent = GPool,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MasterResolver<R = Maybe<GHost>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MasterResolver<
+    R = Maybe<GHost>,
     Parent = GPool,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type DefaultSrResolver<R = Maybe<Gsr>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DefaultSrResolver<
+    R = Maybe<Gsr>,
     Parent = GPool,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GPlaybookResolvers {
@@ -5387,9 +6086,11 @@ export namespace GPlaybookResolvers {
     /** Inventory file path */
     inventory?: InventoryResolver<Maybe<string>, TypeParent, TContext>;
     /** Requirements for running this playbook */
-    requires?: RequiresResolver<Maybe<PlaybookRequirements>,
+    requires?: RequiresResolver<
+      Maybe<PlaybookRequirements>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Playbook name */
     name?: NameResolver<string, TypeParent, TContext>;
     /** Playbook description */
@@ -5398,24 +6099,36 @@ export namespace GPlaybookResolvers {
     variables?: VariablesResolver<Maybe<JsonString>, TypeParent, TContext>;
   }
 
-  export type IdResolver<R = string,
+  export type IdResolver<
+    R = string,
     Parent = GPlaybook,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type InventoryResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type InventoryResolver<
+    R = Maybe<string>,
     Parent = GPlaybook,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type RequiresResolver<R = Maybe<PlaybookRequirements>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RequiresResolver<
+    R = Maybe<PlaybookRequirements>,
     Parent = GPlaybook,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NameResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NameResolver<
+    R = string,
     Parent = GPlaybook,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type DescriptionResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type DescriptionResolver<
+    R = Maybe<string>,
     Parent = GPlaybook,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type VariablesResolver<R = Maybe<JsonString>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type VariablesResolver<
+    R = Maybe<JsonString>,
     Parent = GPlaybook,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace PlaybookRequirementsResolvers {
@@ -5424,9 +6137,11 @@ export namespace PlaybookRequirementsResolvers {
     osVersion?: OsVersionResolver<(Maybe<OsVersion>)[], TypeParent, TContext>;
   }
 
-  export type OsVersionResolver<R = (Maybe<OsVersion>)[],
+  export type OsVersionResolver<
+    R = (Maybe<OsVersion>)[],
     Parent = PlaybookRequirements,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace PlaybookTaskResolvers {
@@ -5441,23 +6156,33 @@ export namespace PlaybookTaskResolvers {
     message?: MessageResolver<string, TypeParent, TContext>;
   }
 
-  export type IdResolver<R = string,
+  export type IdResolver<
+    R = string,
     Parent = PlaybookTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type PlaybookIdResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type PlaybookIdResolver<
+    R = string,
     Parent = PlaybookTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type StateResolver<R = PlaybookTaskState,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type StateResolver<
+    R = PlaybookTaskState,
     Parent = PlaybookTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MessageResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MessageResolver<
+    R = string,
     Parent = PlaybookTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace CurrentUserInformationResolvers {
-  export interface Resolvers<TContext = {},
-    TypeParent = CurrentUserInformation> {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = CurrentUserInformation
+  > {
     isAdmin?: IsAdminResolver<boolean, TypeParent, TContext>;
 
     user?: UserResolver<Maybe<User>, TypeParent, TContext>;
@@ -5465,15 +6190,21 @@ export namespace CurrentUserInformationResolvers {
     groups?: GroupsResolver<Maybe<(Maybe<User>)[]>, TypeParent, TContext>;
   }
 
-  export type IsAdminResolver<R = boolean,
+  export type IsAdminResolver<
+    R = boolean,
     Parent = CurrentUserInformation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type UserResolver<R = Maybe<User>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type UserResolver<
+    R = Maybe<User>,
     Parent = CurrentUserInformation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GroupsResolver<R = Maybe<(Maybe<User>)[]>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GroupsResolver<
+    R = Maybe<(Maybe<User>)[]>,
     Parent = CurrentUserInformation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmSelectedIdListsResolvers {
@@ -5485,15 +6216,21 @@ export namespace VmSelectedIdListsResolvers {
     trash?: TrashResolver<Maybe<(Maybe<string>)[]>, TypeParent, TContext>;
   }
 
-  export type StartResolver<R = Maybe<(Maybe<string>)[]>,
+  export type StartResolver<
+    R = Maybe<(Maybe<string>)[]>,
     Parent = VmSelectedIdLists,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type StopResolver<R = Maybe<(Maybe<string>)[]>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type StopResolver<
+    R = Maybe<(Maybe<string>)[]>,
     Parent = VmSelectedIdLists,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type TrashResolver<R = Maybe<(Maybe<string>)[]>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TrashResolver<
+    R = Maybe<(Maybe<string>)[]>,
     Parent = VmSelectedIdLists,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace MutationResolvers {
@@ -5503,65 +6240,86 @@ export namespace MutationResolvers {
     /** Edit template options */
     template?: TemplateResolver<Maybe<TemplateMutation>, TypeParent, TContext>;
     /** Clone template */
-    templateClone?: TemplateCloneResolver<Maybe<TemplateCloneMutation>,
+    templateClone?: TemplateCloneResolver<
+      Maybe<TemplateCloneMutation>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Delete template */
-    templateDelete?: TemplateDeleteResolver<Maybe<TemplateDestroyMutation>,
+    templateDelete?: TemplateDeleteResolver<
+      Maybe<TemplateDestroyMutation>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Edit VM options */
     vm?: VmResolver<Maybe<VmMutation>, TypeParent, TContext>;
     /** Start VM */
     vmStart?: VmStartResolver<Maybe<VmStartMutation>, TypeParent, TContext>;
     /** Shut down VM */
-    vmShutdown?: VmShutdownResolver<Maybe<VmShutdownMutation>,
+    vmShutdown?: VmShutdownResolver<
+      Maybe<VmShutdownMutation>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Reboot VM */
     vmReboot?: VmRebootResolver<Maybe<VmRebootMutation>, TypeParent, TContext>;
     /** If VM is Running, pause VM. If Paused, unpause VM */
     vmPause?: VmPauseResolver<Maybe<VmPauseMutation>, TypeParent, TContext>;
     /** If VM is Running, suspend VM. If Suspended, resume VM */
-    vmSuspend?: VmSuspendResolver<Maybe<VmSuspendMutation>,
+    vmSuspend?: VmSuspendResolver<
+      Maybe<VmSuspendMutation>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Delete a Halted VM */
     vmDelete?: VmDeleteResolver<Maybe<VmDeleteMutation>, TypeParent, TContext>;
     /** Set VM access rights */
     vmAccessSet?: VmAccessSetResolver<Maybe<VmAccessSet>, TypeParent, TContext>;
     /** Launch an Ansible Playbook on specified VMs */
-    playbookLaunch?: PlaybookLaunchResolver<Maybe<PlaybookLaunchMutation>,
+    playbookLaunch?: PlaybookLaunchResolver<
+      Maybe<PlaybookLaunchMutation>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Attach VM to a Network by creating a new Interface */
-    netAttach?: NetAttachResolver<Maybe<AttachNetworkMutation>,
+    netAttach?: NetAttachResolver<
+      Maybe<AttachNetworkMutation>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Set network access rights */
-    netAccessSet?: NetAccessSetResolver<Maybe<NetAccessSet>,
+    netAccessSet?: NetAccessSetResolver<
+      Maybe<NetAccessSet>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Attach VDI to a VM by creating a new virtual block device */
-    vdiAttach?: VdiAttachResolver<Maybe<AttachVdiMutation>,
+    vdiAttach?: VdiAttachResolver<
+      Maybe<AttachVdiMutation>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Set VDI access rights */
-    vdiAccessSet?: VdiAccessSetResolver<Maybe<VdiAccessSet>,
+    vdiAccessSet?: VdiAccessSetResolver<
+      Maybe<VdiAccessSet>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Set SR access rights */
     srAccessSet?: SrAccessSetResolver<Maybe<SrAccessSet>, TypeParent, TContext>;
 
-    selectedItems?: SelectedItemsResolver<Maybe<string[]>,
+    selectedItems?: SelectedItemsResolver<
+      Maybe<string[]>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
   }
 
-  export type CreateVmResolver<R = Maybe<CreateVm>,
+  export type CreateVmResolver<
+    R = Maybe<CreateVm>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, CreateVmArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, CreateVmArgs>;
   export interface CreateVmArgs {
     disks?: Maybe<(Maybe<NewVdi>)[]>;
     /** Automatic installation parameters, the installation is done via internet. Only available when template.os_kind is not empty */
@@ -5576,19 +6334,21 @@ export namespace MutationResolvers {
     vmOptions: VmInput;
   }
 
-  export type TemplateResolver<R = Maybe<TemplateMutation>,
+  export type TemplateResolver<
+    R = Maybe<TemplateMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, TemplateArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, TemplateArgs>;
   export interface TemplateArgs {
     /** Template to change */
     template: TemplateInput;
   }
 
-  export type TemplateCloneResolver<R = Maybe<TemplateCloneMutation>,
+  export type TemplateCloneResolver<
+    R = Maybe<TemplateCloneMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, TemplateCloneArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, TemplateCloneArgs>;
   export interface TemplateCloneArgs {
     /** New name label */
     nameLabel: string;
@@ -5596,37 +6356,41 @@ export namespace MutationResolvers {
     ref: string;
   }
 
-  export type TemplateDeleteResolver<R = Maybe<TemplateDestroyMutation>,
+  export type TemplateDeleteResolver<
+    R = Maybe<TemplateDestroyMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, TemplateDeleteArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, TemplateDeleteArgs>;
   export interface TemplateDeleteArgs {
     ref: string;
   }
 
-  export type VmResolver<R = Maybe<VmMutation>,
+  export type VmResolver<
+    R = Maybe<VmMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VmArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmArgs>;
   export interface VmArgs {
     /** VM to change */
     vm: VmInput;
   }
 
-  export type VmStartResolver<R = Maybe<VmStartMutation>,
+  export type VmStartResolver<
+    R = Maybe<VmStartMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VmStartArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmStartArgs>;
   export interface VmStartArgs {
     options?: Maybe<VmStartInput>;
 
     ref: string;
   }
 
-  export type VmShutdownResolver<R = Maybe<VmShutdownMutation>,
+  export type VmShutdownResolver<
+    R = Maybe<VmShutdownMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VmShutdownArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmShutdownArgs>;
   export interface VmShutdownArgs {
     /** Force shutdown in a hard or clean way */
     force?: Maybe<ShutdownForce>;
@@ -5634,10 +6398,11 @@ export namespace MutationResolvers {
     ref: string;
   }
 
-  export type VmRebootResolver<R = Maybe<VmRebootMutation>,
+  export type VmRebootResolver<
+    R = Maybe<VmRebootMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VmRebootArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmRebootArgs>;
   export interface VmRebootArgs {
     /** Force reboot in a hard or clean way. Default: clean */
     force?: Maybe<ShutdownForce>;
@@ -5645,34 +6410,38 @@ export namespace MutationResolvers {
     ref: string;
   }
 
-  export type VmPauseResolver<R = Maybe<VmPauseMutation>,
+  export type VmPauseResolver<
+    R = Maybe<VmPauseMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VmPauseArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmPauseArgs>;
   export interface VmPauseArgs {
     ref: string;
   }
 
-  export type VmSuspendResolver<R = Maybe<VmSuspendMutation>,
+  export type VmSuspendResolver<
+    R = Maybe<VmSuspendMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VmSuspendArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmSuspendArgs>;
   export interface VmSuspendArgs {
     ref: string;
   }
 
-  export type VmDeleteResolver<R = Maybe<VmDeleteMutation>,
+  export type VmDeleteResolver<
+    R = Maybe<VmDeleteMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VmDeleteArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmDeleteArgs>;
   export interface VmDeleteArgs {
     ref: string;
   }
 
-  export type VmAccessSetResolver<R = Maybe<VmAccessSet>,
+  export type VmAccessSetResolver<
+    R = Maybe<VmAccessSet>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VmAccessSetArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VmAccessSetArgs>;
   export interface VmAccessSetArgs {
     actions: VmActions[];
 
@@ -5683,10 +6452,11 @@ export namespace MutationResolvers {
     user: string;
   }
 
-  export type PlaybookLaunchResolver<R = Maybe<PlaybookLaunchMutation>,
+  export type PlaybookLaunchResolver<
+    R = Maybe<PlaybookLaunchMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, PlaybookLaunchArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, PlaybookLaunchArgs>;
   export interface PlaybookLaunchArgs {
     /** Playbook ID */
     id: string;
@@ -5696,10 +6466,11 @@ export namespace MutationResolvers {
     vms?: Maybe<(Maybe<string>)[]>;
   }
 
-  export type NetAttachResolver<R = Maybe<AttachNetworkMutation>,
+  export type NetAttachResolver<
+    R = Maybe<AttachNetworkMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, NetAttachArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, NetAttachArgs>;
   export interface NetAttachArgs {
     /** True if attach, False if detach */
     isAttach: boolean;
@@ -5709,10 +6480,11 @@ export namespace MutationResolvers {
     vmRef: string;
   }
 
-  export type NetAccessSetResolver<R = Maybe<NetAccessSet>,
+  export type NetAccessSetResolver<
+    R = Maybe<NetAccessSet>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, NetAccessSetArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, NetAccessSetArgs>;
   export interface NetAccessSetArgs {
     actions: NetworkActions[];
 
@@ -5723,10 +6495,11 @@ export namespace MutationResolvers {
     user: string;
   }
 
-  export type VdiAttachResolver<R = Maybe<AttachVdiMutation>,
+  export type VdiAttachResolver<
+    R = Maybe<AttachVdiMutation>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VdiAttachArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VdiAttachArgs>;
   export interface VdiAttachArgs {
     /** True if attach, False if detach */
     isAttach: boolean;
@@ -5736,10 +6509,11 @@ export namespace MutationResolvers {
     vmRef: string;
   }
 
-  export type VdiAccessSetResolver<R = Maybe<VdiAccessSet>,
+  export type VdiAccessSetResolver<
+    R = Maybe<VdiAccessSet>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, VdiAccessSetArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, VdiAccessSetArgs>;
   export interface VdiAccessSetArgs {
     actions: VdiActions[];
 
@@ -5750,10 +6524,11 @@ export namespace MutationResolvers {
     user: string;
   }
 
-  export type SrAccessSetResolver<R = Maybe<SrAccessSet>,
+  export type SrAccessSetResolver<
+    R = Maybe<SrAccessSet>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, SrAccessSetArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, SrAccessSetArgs>;
   export interface SrAccessSetArgs {
     actions: SrActions[];
 
@@ -5764,10 +6539,11 @@ export namespace MutationResolvers {
     user: string;
   }
 
-  export type SelectedItemsResolver<R = Maybe<string[]>,
+  export type SelectedItemsResolver<
+    R = Maybe<string[]>,
     Parent = {},
-    TContext = {}> = Resolver<R, Parent, TContext, SelectedItemsArgs>;
-
+    TContext = {}
+  > = Resolver<R, Parent, TContext, SelectedItemsArgs>;
   export interface SelectedItemsArgs {
     tableId: Table;
 
@@ -5787,15 +6563,21 @@ export namespace CreateVmResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = CreateVm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = CreateVm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = CreateVm,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace TemplateMutationResolvers {
@@ -5806,17 +6588,23 @@ export namespace TemplateMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type GrantedResolver<R = boolean,
+  export type GrantedResolver<
+    R = boolean,
     Parent = TemplateMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = TemplateMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace TemplateCloneMutationResolvers {
-  export interface Resolvers<TContext = {},
-    TypeParent = TemplateCloneMutation> {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = TemplateCloneMutation
+  > {
     /** clone task ID */
     taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
     /** Shows if access to clone is granted */
@@ -5825,20 +6613,28 @@ export namespace TemplateCloneMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = TemplateCloneMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = TemplateCloneMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = TemplateCloneMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace TemplateDestroyMutationResolvers {
-  export interface Resolvers<TContext = {},
-    TypeParent = TemplateDestroyMutation> {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = TemplateDestroyMutation
+  > {
     /** destroy task ID */
     taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
     /** Shows if access to destroy is granted */
@@ -5847,15 +6643,21 @@ export namespace TemplateDestroyMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = TemplateDestroyMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = TemplateDestroyMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = TemplateDestroyMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** This class represents synchronous mutations for VM, i.e. you can change name_label, name_description, etc. */
 export namespace VmMutationResolvers {
@@ -5865,12 +6667,16 @@ export namespace VmMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type GrantedResolver<R = boolean,
+  export type GrantedResolver<
+    R = boolean,
     Parent = VmMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = VmMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmStartMutationResolvers {
@@ -5883,15 +6689,21 @@ export namespace VmStartMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = VmStartMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = VmStartMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = VmStartMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmShutdownMutationResolvers {
@@ -5902,12 +6714,16 @@ export namespace VmShutdownMutationResolvers {
     granted?: GrantedResolver<boolean, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = VmShutdownMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = VmShutdownMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmRebootMutationResolvers {
@@ -5918,12 +6734,16 @@ export namespace VmRebootMutationResolvers {
     granted?: GrantedResolver<boolean, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = VmRebootMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = VmRebootMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmPauseMutationResolvers {
@@ -5936,15 +6756,21 @@ export namespace VmPauseMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = VmPauseMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = VmPauseMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = VmPauseMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmSuspendMutationResolvers {
@@ -5957,15 +6783,21 @@ export namespace VmSuspendMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = VmSuspendMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = VmSuspendMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = VmSuspendMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmDeleteMutationResolvers {
@@ -5978,15 +6810,21 @@ export namespace VmDeleteMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = VmDeleteMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = VmDeleteMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = VmDeleteMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VmAccessSetResolvers {
@@ -5994,26 +6832,34 @@ export namespace VmAccessSetResolvers {
     success?: SuccessResolver<boolean, TypeParent, TContext>;
   }
 
-  export type SuccessResolver<R = boolean,
+  export type SuccessResolver<
+    R = boolean,
     Parent = VmAccessSet,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace PlaybookLaunchMutationResolvers {
-  export interface Resolvers<TContext = {},
-    TypeParent = PlaybookLaunchMutation> {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = PlaybookLaunchMutation
+  > {
     /** Playbook execution task ID */
     taskId?: TaskIdResolver<string, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = string,
+  export type TaskIdResolver<
+    R = string,
     Parent = PlaybookLaunchMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace AttachNetworkMutationResolvers {
-  export interface Resolvers<TContext = {},
-    TypeParent = AttachNetworkMutation> {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = AttachNetworkMutation
+  > {
     /** Attach/Detach task ID. If already attached/detached, returns null */
     taskId?: TaskIdResolver<Maybe<string>, TypeParent, TContext>;
 
@@ -6022,15 +6868,21 @@ export namespace AttachNetworkMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = AttachNetworkMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = AttachNetworkMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = AttachNetworkMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace NetAccessSetResolvers {
@@ -6038,9 +6890,11 @@ export namespace NetAccessSetResolvers {
     success?: SuccessResolver<boolean, TypeParent, TContext>;
   }
 
-  export type SuccessResolver<R = boolean,
+  export type SuccessResolver<
+    R = boolean,
     Parent = NetAccessSet,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace AttachVdiMutationResolvers {
@@ -6053,15 +6907,21 @@ export namespace AttachVdiMutationResolvers {
     reason?: ReasonResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type TaskIdResolver<R = Maybe<string>,
+  export type TaskIdResolver<
+    R = Maybe<string>,
     Parent = AttachVdiMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type GrantedResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type GrantedResolver<
+    R = boolean,
     Parent = AttachVdiMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ReasonResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ReasonResolver<
+    R = Maybe<string>,
     Parent = AttachVdiMutation,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace VdiAccessSetResolvers {
@@ -6069,9 +6929,11 @@ export namespace VdiAccessSetResolvers {
     success?: SuccessResolver<boolean, TypeParent, TContext>;
   }
 
-  export type SuccessResolver<R = boolean,
+  export type SuccessResolver<
+    R = boolean,
     Parent = VdiAccessSet,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace SrAccessSetResolvers {
@@ -6079,9 +6941,11 @@ export namespace SrAccessSetResolvers {
     success?: SuccessResolver<boolean, TypeParent, TContext>;
   }
 
-  export type SuccessResolver<R = boolean,
+  export type SuccessResolver<
+    R = boolean,
     Parent = SrAccessSet,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 /** All subscriptions must return  Observable */
 export namespace SubscriptionResolvers {
@@ -6107,107 +6971,123 @@ export namespace SubscriptionResolvers {
     /** Updates for a particular XenServer Task */
     task?: TaskResolver<Maybe<GTask>, TypeParent, TContext>;
     /** Updates for a particular Playbook installation Task */
-    playbookTask?: PlaybookTaskResolver<Maybe<PlaybookTask>,
+    playbookTask?: PlaybookTaskResolver<
+      Maybe<PlaybookTask>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Updates for all Playbook Tasks */
-    playbookTasks?: PlaybookTasksResolver<PlaybookTasksSubscription,
+    playbookTasks?: PlaybookTasksResolver<
+      PlaybookTasksSubscription,
       TypeParent,
-      TContext>;
+      TContext
+    >;
   }
 
-  export type VmsResolver<R = GvMsSubscription,
+  export type VmsResolver<
+    R = GvMsSubscription,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, VmsArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, VmsArgs>;
   export interface VmsArgs {
     withInitials?: boolean;
   }
 
-  export type VmResolver<R = Maybe<Gvm>,
+  export type VmResolver<
+    R = Maybe<Gvm>,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, VmArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, VmArgs>;
   export interface VmArgs {
     ref: string;
   }
 
-  export type TemplatesResolver<R = GTemplatesSubscription,
+  export type TemplatesResolver<
+    R = GTemplatesSubscription,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, TemplatesArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, TemplatesArgs>;
   export interface TemplatesArgs {
     withInitials?: boolean;
   }
 
-  export type TemplateResolver<R = Maybe<GTemplate>,
+  export type TemplateResolver<
+    R = Maybe<GTemplate>,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, TemplateArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, TemplateArgs>;
   export interface TemplateArgs {
     ref: string;
   }
 
-  export type HostsResolver<R = GHostsSubscription,
+  export type HostsResolver<
+    R = GHostsSubscription,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, HostsArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, HostsArgs>;
   export interface HostsArgs {
     withInitials?: boolean;
   }
 
-  export type HostResolver<R = Maybe<GHost>,
+  export type HostResolver<
+    R = Maybe<GHost>,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, HostArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, HostArgs>;
   export interface HostArgs {
     ref: string;
   }
 
-  export type PoolsResolver<R = GPoolsSubscription,
+  export type PoolsResolver<
+    R = GPoolsSubscription,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, PoolsArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, PoolsArgs>;
   export interface PoolsArgs {
     withInitials?: boolean;
   }
 
-  export type PoolResolver<R = Maybe<GPool>,
+  export type PoolResolver<
+    R = Maybe<GPool>,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, PoolArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, PoolArgs>;
   export interface PoolArgs {
     ref: string;
   }
 
-  export type TasksResolver<R = GTasksSubscription,
+  export type TasksResolver<
+    R = GTasksSubscription,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, TasksArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, TasksArgs>;
   export interface TasksArgs {
     withInitials?: boolean;
   }
 
-  export type TaskResolver<R = Maybe<GTask>,
+  export type TaskResolver<
+    R = Maybe<GTask>,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, TaskArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, TaskArgs>;
   export interface TaskArgs {
     ref: string;
   }
 
-  export type PlaybookTaskResolver<R = Maybe<PlaybookTask>,
+  export type PlaybookTaskResolver<
+    R = Maybe<PlaybookTask>,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, PlaybookTaskArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, PlaybookTaskArgs>;
   export interface PlaybookTaskArgs {
     id: string;
   }
 
-  export type PlaybookTasksResolver<R = PlaybookTasksSubscription,
+  export type PlaybookTasksResolver<
+    R = PlaybookTasksSubscription,
     Parent = {},
-    TContext = {}> = SubscriptionResolver<R, Parent, TContext, PlaybookTasksArgs>;
-
+    TContext = {}
+  > = SubscriptionResolver<R, Parent, TContext, PlaybookTasksArgs>;
   export interface PlaybookTasksArgs {
     withInitials?: boolean;
   }
@@ -6221,12 +7101,16 @@ export namespace GvMsSubscriptionResolvers {
     value?: ValueResolver<GvmOrDeleted, TypeParent, TContext>;
   }
 
-  export type ChangeTypeResolver<R = Change,
+  export type ChangeTypeResolver<
+    R = Change,
     Parent = GvMsSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ValueResolver<R = GvmOrDeleted,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ValueResolver<
+    R = GvmOrDeleted,
     Parent = GvMsSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace DeletedResolvers {
@@ -6235,26 +7119,34 @@ export namespace DeletedResolvers {
     ref?: RefResolver<string, TypeParent, TContext>;
   }
 
-  export type RefResolver<R = string,
+  export type RefResolver<
+    R = string,
     Parent = Deleted,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTemplatesSubscriptionResolvers {
-  export interface Resolvers<TContext = {},
-    TypeParent = GTemplatesSubscription> {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = GTemplatesSubscription
+  > {
     /** Change type */
     changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
     value?: ValueResolver<GTemplateOrDeleted, TypeParent, TContext>;
   }
 
-  export type ChangeTypeResolver<R = Change,
+  export type ChangeTypeResolver<
+    R = Change,
     Parent = GTemplatesSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ValueResolver<R = GTemplateOrDeleted,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ValueResolver<
+    R = GTemplateOrDeleted,
     Parent = GTemplatesSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GHostsSubscriptionResolvers {
@@ -6265,12 +7157,16 @@ export namespace GHostsSubscriptionResolvers {
     value?: ValueResolver<GHostOrDeleted, TypeParent, TContext>;
   }
 
-  export type ChangeTypeResolver<R = Change,
+  export type ChangeTypeResolver<
+    R = Change,
     Parent = GHostsSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ValueResolver<R = GHostOrDeleted,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ValueResolver<
+    R = GHostOrDeleted,
     Parent = GHostsSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GPoolsSubscriptionResolvers {
@@ -6281,12 +7177,16 @@ export namespace GPoolsSubscriptionResolvers {
     value?: ValueResolver<GPoolOrDeleted, TypeParent, TContext>;
   }
 
-  export type ChangeTypeResolver<R = Change,
+  export type ChangeTypeResolver<
+    R = Change,
     Parent = GPoolsSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ValueResolver<R = GPoolOrDeleted,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ValueResolver<
+    R = GPoolOrDeleted,
     Parent = GPoolsSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTasksSubscriptionResolvers {
@@ -6297,12 +7197,16 @@ export namespace GTasksSubscriptionResolvers {
     value?: ValueResolver<GTaskOrDeleted, TypeParent, TContext>;
   }
 
-  export type ChangeTypeResolver<R = Change,
+  export type ChangeTypeResolver<
+    R = Change,
     Parent = GTasksSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ValueResolver<R = GTaskOrDeleted,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ValueResolver<
+    R = GTaskOrDeleted,
     Parent = GTasksSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTaskResolvers {
@@ -6334,58 +7238,90 @@ export namespace GTaskResolvers {
     /** ref of a host that runs this task */
     residentOn?: ResidentOnResolver<Maybe<string>, TypeParent, TContext>;
     /** Error strings, if failed */
-    errorInfo?: ErrorInfoResolver<Maybe<(Maybe<string>)[]>,
+    errorInfo?: ErrorInfoResolver<
+      Maybe<(Maybe<string>)[]>,
       TypeParent,
-      TContext>;
+      TContext
+    >;
     /** Task status */
     status?: StatusResolver<Maybe<string>, TypeParent, TContext>;
   }
 
-  export type NameLabelResolver<R = string,
+  export type NameLabelResolver<
+    R = string,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type NameDescriptionResolver<R = string,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type NameDescriptionResolver<
+    R = string,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type RefResolver<R = string, Parent = GTask, TContext = {}> = Resolver<R,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type RefResolver<R = string, Parent = GTask, TContext = {}> = Resolver<
+    R,
     Parent,
-    TContext>;
-  export type UuidResolver<R = string,
+    TContext
+  >;
+  export type UuidResolver<
+    R = string,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type AccessResolver<R = (Maybe<GTaskAccessEntry>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type AccessResolver<
+    R = (Maybe<GTaskAccessEntry>)[],
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type MyActionsResolver<R = (Maybe<TaskActions>)[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type MyActionsResolver<
+    R = (Maybe<TaskActions>)[],
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type IsOwnerResolver<R = boolean,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type IsOwnerResolver<
+    R = boolean,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type CreatedResolver<R = DateTime,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type CreatedResolver<
+    R = DateTime,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type FinishedResolver<R = DateTime,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type FinishedResolver<
+    R = DateTime,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ProgressResolver<R = number,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ProgressResolver<
+    R = number,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ResultResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ResultResolver<
+    R = Maybe<string>,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type TypeResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type TypeResolver<
+    R = Maybe<string>,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ResidentOnResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ResidentOnResolver<
+    R = Maybe<string>,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ErrorInfoResolver<R = Maybe<(Maybe<string>)[]>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ErrorInfoResolver<
+    R = Maybe<(Maybe<string>)[]>,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type StatusResolver<R = Maybe<string>,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type StatusResolver<
+    R = Maybe<string>,
     Parent = GTask,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GTaskAccessEntryResolvers {
@@ -6395,166 +7331,189 @@ export namespace GTaskAccessEntryResolvers {
     actions?: ActionsResolver<TaskActions[], TypeParent, TContext>;
   }
 
-  export type UserIdResolver<R = User,
+  export type UserIdResolver<
+    R = User,
     Parent = GTaskAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ActionsResolver<R = TaskActions[],
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ActionsResolver<
+    R = TaskActions[],
     Parent = GTaskAccessEntry,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace PlaybookTasksSubscriptionResolvers {
-  export interface Resolvers<TContext = {},
-    TypeParent = PlaybookTasksSubscription> {
+  export interface Resolvers<
+    TContext = {},
+    TypeParent = PlaybookTasksSubscription
+  > {
     /** Change type */
     changeType?: ChangeTypeResolver<Change, TypeParent, TContext>;
 
     value?: ValueResolver<PlaybookTaskOrDeleted, TypeParent, TContext>;
   }
 
-  export type ChangeTypeResolver<R = Change,
+  export type ChangeTypeResolver<
+    R = Change,
     Parent = PlaybookTasksSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
-  export type ValueResolver<R = PlaybookTaskOrDeleted,
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
+  export type ValueResolver<
+    R = PlaybookTaskOrDeleted,
     Parent = PlaybookTasksSubscription,
-    TContext = {}> = Resolver<R, Parent, TContext>;
+    TContext = {}
+  > = Resolver<R, Parent, TContext>;
 }
 
 export namespace GAclXenObjectResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R = "GVM" | "GNetwork" | "GVDI" | "GSR" | "GTemplate" | "GTask",
+  export type ResolveType<
+    R = "GVM" | "GNetwork" | "GVDI" | "GSR" | "GTemplate" | "GTask",
     Parent = Gvm | GNetwork | Gvdi | Gsr | GTemplate | GTask,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GAccessEntryResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R =
+  export type ResolveType<
+    R =
       | "GVMAccessEntry"
-    | "GNetworkAccessEntry"
-    | "GSRAccessEntry"
-    | "GTemplateAccessEntry"
-    | "GTaskAccessEntry",
+      | "GNetworkAccessEntry"
+      | "GSRAccessEntry"
+      | "GTemplateAccessEntry"
+      | "GTaskAccessEntry",
     Parent =
-        | GvmAccessEntry
+      | GvmAccessEntry
       | GNetworkAccessEntry
       | GsrAccessEntry
       | GTemplateAccessEntry
       | GTaskAccessEntry,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GAbstractVmResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R = "GVM" | "GTemplate",
+  export type ResolveType<
+    R = "GVM" | "GTemplate",
     Parent = Gvm | GTemplate,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GXenObjectResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R = "GHost" | "GPool",
+  export type ResolveType<
+    R = "GHost" | "GPool",
     Parent = GHost | GPool,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GvmOrDeletedResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R = "GVM" | "Deleted",
+  export type ResolveType<
+    R = "GVM" | "Deleted",
     Parent = Gvm | Deleted,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GTemplateOrDeletedResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R = "GTemplate" | "Deleted",
+  export type ResolveType<
+    R = "GTemplate" | "Deleted",
     Parent = GTemplate | Deleted,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GHostOrDeletedResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R = "GHost" | "Deleted",
+  export type ResolveType<
+    R = "GHost" | "Deleted",
     Parent = GHost | Deleted,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GPoolOrDeletedResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R = "GPool" | "Deleted",
+  export type ResolveType<
+    R = "GPool" | "Deleted",
     Parent = GPool | Deleted,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace GTaskOrDeletedResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R = "GTask" | "Deleted",
+  export type ResolveType<
+    R = "GTask" | "Deleted",
     Parent = GTask | Deleted,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 export namespace PlaybookTaskOrDeletedResolvers {
   export interface Resolvers {
     __resolveType: ResolveType;
   }
-
-  export type ResolveType<R = "PlaybookTask" | "Deleted",
+  export type ResolveType<
+    R = "PlaybookTask" | "Deleted",
     Parent = PlaybookTask | Deleted,
-    TContext = {}> = TypeResolveFn<R, Parent, TContext>;
+    TContext = {}
+  > = TypeResolveFn<R, Parent, TContext>;
 }
 
 /** Directs the executor to skip this field or fragment when the `if` argument is true. */
-export type SkipDirectiveResolver<Result> = DirectiveResolverFn<Result,
+export type SkipDirectiveResolver<Result> = DirectiveResolverFn<
+  Result,
   SkipDirectiveArgs,
-  {}>;
-
+  {}
+>;
 export interface SkipDirectiveArgs {
   /** Skipped when true. */
   if: boolean;
 }
 
 /** Directs the executor to include this field or fragment only when the `if` argument is true. */
-export type IncludeDirectiveResolver<Result> = DirectiveResolverFn<Result,
+export type IncludeDirectiveResolver<Result> = DirectiveResolverFn<
+  Result,
   IncludeDirectiveArgs,
-  {}>;
-
+  {}
+>;
 export interface IncludeDirectiveArgs {
   /** Included when true. */
   if: boolean;
 }
 
 /** Marks an element of a GraphQL schema as no longer supported. */
-export type DeprecatedDirectiveResolver<Result> = DirectiveResolverFn<Result,
+export type DeprecatedDirectiveResolver<Result> = DirectiveResolverFn<
+  Result,
   DeprecatedDirectiveArgs,
-  {}>;
-
+  {}
+>;
 export interface DeprecatedDirectiveArgs {
   /** Explains why this element was deprecated, usually also including a suggestion for how to access supported similar data. Formatted using the Markdown syntax (as specified by [CommonMark](https://commonmark.org/). */
   reason?: string;
@@ -6564,7 +7523,6 @@ export interface DateTimeScalarConfig
   extends GraphQLScalarTypeConfig<DateTime, any> {
   name: "DateTime";
 }
-
 export interface JSONStringScalarConfig
   extends GraphQLScalarTypeConfig<JsonString, any> {
   name: "JSONString";
@@ -6602,7 +7560,9 @@ export type IResolvers<TContext = {}> = {
   CreateVm?: CreateVmResolvers.Resolvers<TContext>;
   TemplateMutation?: TemplateMutationResolvers.Resolvers<TContext>;
   TemplateCloneMutation?: TemplateCloneMutationResolvers.Resolvers<TContext>;
-  TemplateDestroyMutation?: TemplateDestroyMutationResolvers.Resolvers<TContext>;
+  TemplateDestroyMutation?: TemplateDestroyMutationResolvers.Resolvers<
+    TContext
+  >;
   VmMutation?: VmMutationResolvers.Resolvers<TContext>;
   VmStartMutation?: VmStartMutationResolvers.Resolvers<TContext>;
   VmShutdownMutation?: VmShutdownMutationResolvers.Resolvers<TContext>;
@@ -6626,7 +7586,9 @@ export type IResolvers<TContext = {}> = {
   GTasksSubscription?: GTasksSubscriptionResolvers.Resolvers<TContext>;
   GTask?: GTaskResolvers.Resolvers<TContext>;
   GTaskAccessEntry?: GTaskAccessEntryResolvers.Resolvers<TContext>;
-  PlaybookTasksSubscription?: PlaybookTasksSubscriptionResolvers.Resolvers<TContext>;
+  PlaybookTasksSubscription?: PlaybookTasksSubscriptionResolvers.Resolvers<
+    TContext
+  >;
   GAclXenObject?: GAclXenObjectResolvers.Resolvers;
   GAccessEntry?: GAccessEntryResolvers.Resolvers;
   GAbstractVm?: GAbstractVmResolvers.Resolvers;
@@ -7559,60 +8521,46 @@ export interface PlaybookTasksSubscription {
 export interface VmQueryArgs {
   ref: string;
 }
-
 export interface TemplateQueryArgs {
   ref: string;
 }
-
 export interface HostQueryArgs {
   ref: string;
 }
-
 export interface PoolQueryArgs {
   ref: string;
 }
-
 export interface NetworkQueryArgs {
   ref: string;
 }
-
 export interface SrQueryArgs {
   ref: string;
 }
-
 export interface VdisQueryArgs {
   /** True - print only ISO images; False - print everything but ISO images; null - print everything */
   onlyIsos?: Maybe<boolean>;
 }
-
 export interface VdiQueryArgs {
   ref: string;
 }
-
 export interface PlaybookQueryArgs {
   id?: Maybe<string>;
 }
-
 export interface PlaybookTaskQueryArgs {
   id: string;
 }
-
 export interface ConsoleQueryArgs {
   vmRef: string;
 }
-
 export interface UserQueryArgs {
   id?: Maybe<string>;
 }
-
 export interface FindUserQueryArgs {
   query: string;
 }
-
 export interface SelectedItemsQueryArgs {
   tableId: Table;
 }
-
 export interface CreateVmMutationArgs {
   disks?: Maybe<(Maybe<NewVdi>)[]>;
   /** Automatic installation parameters, the installation is done via internet. Only available when template.os_kind is not empty */
@@ -7626,60 +8574,49 @@ export interface CreateVmMutationArgs {
   /** Basic VM options. Leave fields empty to use Template options */
   vmOptions: VmInput;
 }
-
 export interface TemplateMutationArgs {
   /** Template to change */
   template: TemplateInput;
 }
-
 export interface TemplateCloneMutationArgs {
   /** New name label */
   nameLabel: string;
 
   ref: string;
 }
-
 export interface TemplateDeleteMutationArgs {
   ref: string;
 }
-
 export interface VmMutationArgs {
   /** VM to change */
   vm: VmInput;
 }
-
 export interface VmStartMutationArgs {
   options?: Maybe<VmStartInput>;
 
   ref: string;
 }
-
 export interface VmShutdownMutationArgs {
   /** Force shutdown in a hard or clean way */
   force?: Maybe<ShutdownForce>;
 
   ref: string;
 }
-
 export interface VmRebootMutationArgs {
   /** Force reboot in a hard or clean way. Default: clean */
   force?: Maybe<ShutdownForce>;
 
   ref: string;
 }
-
 export interface VmPauseMutationArgs {
   ref: string;
 }
-
 export interface VmSuspendMutationArgs {
   ref: string;
 }
-
 export interface VmDeleteMutationArgs {
   ref: string;
 }
-
 export interface VmAccessSetMutationArgs {
   actions: VmActions[];
 
@@ -7689,7 +8626,6 @@ export interface VmAccessSetMutationArgs {
 
   user: string;
 }
-
 export interface PlaybookLaunchMutationArgs {
   /** Playbook ID */
   id: string;
@@ -7698,7 +8634,6 @@ export interface PlaybookLaunchMutationArgs {
   /** VM UUIDs to run Playbook on. Ignored if this is a Playbook with provided Inventory */
   vms?: Maybe<(Maybe<string>)[]>;
 }
-
 export interface NetAttachMutationArgs {
   /** True if attach, False if detach */
   isAttach: boolean;
@@ -7707,7 +8642,6 @@ export interface NetAttachMutationArgs {
 
   vmRef: string;
 }
-
 export interface NetAccessSetMutationArgs {
   actions: NetworkActions[];
 
@@ -7717,7 +8651,6 @@ export interface NetAccessSetMutationArgs {
 
   user: string;
 }
-
 export interface VdiAttachMutationArgs {
   /** True if attach, False if detach */
   isAttach: boolean;
@@ -7726,7 +8659,6 @@ export interface VdiAttachMutationArgs {
 
   vmRef: string;
 }
-
 export interface VdiAccessSetMutationArgs {
   actions: VdiActions[];
 
@@ -7736,7 +8668,6 @@ export interface VdiAccessSetMutationArgs {
 
   user: string;
 }
-
 export interface SrAccessSetMutationArgs {
   actions: SrActions[];
 
@@ -7746,7 +8677,6 @@ export interface SrAccessSetMutationArgs {
 
   user: string;
 }
-
 export interface SelectedItemsMutationArgs {
   tableId: Table;
 
@@ -7754,51 +8684,39 @@ export interface SelectedItemsMutationArgs {
 
   isSelect: boolean;
 }
-
 export interface VmsSubscriptionArgs {
   withInitials?: Maybe<boolean>;
 }
-
 export interface VmSubscriptionArgs {
   ref: string;
 }
-
 export interface TemplatesSubscriptionArgs {
   withInitials?: Maybe<boolean>;
 }
-
 export interface TemplateSubscriptionArgs {
   ref: string;
 }
-
 export interface HostsSubscriptionArgs {
   withInitials?: Maybe<boolean>;
 }
-
 export interface HostSubscriptionArgs {
   ref: string;
 }
-
 export interface PoolsSubscriptionArgs {
   withInitials?: Maybe<boolean>;
 }
-
 export interface PoolSubscriptionArgs {
   ref: string;
 }
-
 export interface TasksSubscriptionArgs {
   withInitials?: Maybe<boolean>;
 }
-
 export interface TaskSubscriptionArgs {
   ref: string;
 }
-
 export interface PlaybookTaskSubscriptionArgs {
   id: string;
 }
-
 export interface PlaybookTasksSubscriptionArgs {
   withInitials?: Maybe<boolean>;
 }

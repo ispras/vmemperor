@@ -1,0 +1,5 @@
+fragment XenObjectFragment on GXenObject {
+  ref,
+  nameLabel,
+  nameDescription
+}
