@@ -1,5 +1,5 @@
 import {number, object} from "yup";
-import {AbstractVmFragment, VmActions} from "../../generated-models";
+import {AbstractVMFragment, VMActions} from "../../generated-models";
 import {Omit} from "../AbstractSettingsForm/utils";
 
 export const MEMORY_MAX = 1572864 * 1024 * 1024;
@@ -47,7 +47,7 @@ export const schema = {
 ;
 
 
-export type ResourceFormValues = AbstractVmFragment.Fragment;
+export type ResourceFormValues = AbstractVMFragmentFragment;
 
 export default object().shape<ResourceFormValues>(schema);
 

@@ -1,14 +1,14 @@
 import SettingsComponent, {SettingsRouteProps} from "../Settings";
 import TemplateSettingsForm from "../../components/TemplateSettingsForm";
-import {TemplateInfo, TemplateInfoUpdate} from "../../generated-models";
 import * as React from "react";
+import {TemplateInfoDocument, TemplateInfoUpdateDocument} from "../../generated-models";
 
 const TemplateSettings: React.FunctionComponent<SettingsRouteProps> = ({match: {params: {ref}}}) => {
 
   return (<SettingsComponent
     Form={TemplateSettingsForm}
-    documentNode={TemplateInfo.Document}
-    updateDocumentNode={TemplateInfoUpdate.Document}
+    documentNode={TemplateInfoDocument}
+    updateDocumentNode={TemplateInfoUpdateDocument}
     id={ref}
   />)
 };

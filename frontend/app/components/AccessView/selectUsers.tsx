@@ -1,7 +1,12 @@
 import React, {Fragment, useCallback, useState} from "react";
 import AsyncSelect from 'react-select/lib/Async';
-import {FilterUsers, User} from "../../generated-models";
-import {useApolloClient, useQuery} from "react-apollo-hooks";
+import {
+  FilterUsersDocument,
+  FilterUsersQuery,
+  FilterUsersQueryVariables,
+  User
+} from "../../generated-models";
+import {useApolloClient} from "react-apollo-hooks";
 import {QueryOptions} from "apollo-client";
 
 interface Props {
@@ -16,14 +21,14 @@ const SelectUsers : React.FunctionComponent<Props> =  ({onChange}) => {
   const loadUsers = async (filterQuery) => {
     if (filterQuery.trim().length < 2)
       return [];
-    const options: QueryOptions<FilterUsers.Variables> = {
-      query: FilterUsers.Document,
+    const options: QueryOptions<FilterUsersQueryVariables> = {
+      query: FilterUsersDocument,
       variables: {
         query: filterQuery,
       }
     };
 
-    const { data : {findUser } }  = await client.query<FilterUsers.Query, FilterUsers.Variables>(options);
+    const {data: {findUser}} = await client.query<FilterUsersQuery, FilterUsersQueryVariables>(options);
     console.log("Loaded user data:", findUser);
     return findUser;
 

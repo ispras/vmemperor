@@ -7,7 +7,7 @@ class TemplateItem extends React.Component {
   static propTypes = {
     item: T.any.isRequired,
     actions: T.object.isRequired,
-  }
+  };
 
   constructor(props) {
     super(props);

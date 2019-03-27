@@ -2,17 +2,21 @@ import * as React from 'react';
 import {Fragment, Reducer, ReducerState, useCallback, useReducer} from 'react';
 import {RouteComponentProps} from "react-router";
 import StatefulTable, {ColumnType} from "../StatefulTable";
-import {useApolloClient, useMutation, useQuery} from "react-apollo-hooks";
+import {useApolloClient} from "react-apollo-hooks";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter'
 import {
   Change,
-  CurrentUser, DeleteTemplate,
   TemplateActions,
-  TemplateList,
-  TemplateListFragment, TemplateListUpdate, TemplateSetEnabled,
-  TemplateTableSelect,
-  TemplateTableSelectAll,
-  TemplateTableSelection
+  TemplateListDocument,
+  TemplateListFragmentFragment,
+  TemplateListFragmentFragmentDoc,
+  TemplateTableSelectAllDocument,
+  TemplateTableSelectDocument, TemplateTableSelectionDocument,
+  useCurrentUserQuery,
+  useDeleteTemplateMutation,
+  useTemplateListQuery,
+  useTemplateListUpdateSubscription,
+  useTemplateSetEnabledMutation,
 } from "../../generated-models";
 import {checkBoxFormatter, nameFormatter} from "../../utils/formatters";
 import {Button, ButtonToolbar} from "reactstrap";
@@ -21,11 +25,11 @@ import ButtonGroup from "reactstrap/lib/ButtonGroup";
 import {ListAction} from "../../utils/reducer";
 import {dataIdFromObject, handleAddRemove} from "../../utils/cacheUtils";
 import RecycleBinButton from "../../components/RecycleBinButton";
-import {useSubscription} from "../../hooks/subscription";
+
 import {installOptionsFormatter} from "./installoptions";
 
 
-type TemplateColumnType = ColumnType<TemplateListFragment.Fragment>;
+type TemplateColumnType = ColumnType<TemplateListFragmentFragment>;
 
 const columns: TemplateColumnType[] = [
   {
@@ -48,7 +52,7 @@ const columns: TemplateColumnType[] = [
 
 ];
 
-function rowClasses(row: TemplateListFragment.Fragment, rowIndex) {
+function rowClasses(row: TemplateListFragmentFragment, rowIndex) {
   if (row.installOptions) {
     if (row.installOptions.installRepository && row.installOptions.release && row.installOptions.arch) {
       return "table-success";
@@ -78,24 +82,24 @@ const initialState: ReducerState<TemplateListReducer> = {
 
 const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
 
-  const onDoubleClick = useCallback((e: React.MouseEvent, row: TemplateListFragment.Fragment, index) => {
+  const onDoubleClick = useCallback((e: React.MouseEvent, row: TemplateListFragmentFragment, index) => {
     e.preventDefault();
     history.push(`/template/${row.ref}`);
   }, [history]);
 
-  const {data: {templates}} = useQuery<TemplateList.Query>(TemplateList.Document);
-  const {data: {currentUser}} = useQuery<CurrentUser.Query>(CurrentUser.Document);
+  const {data: {templates}} = useTemplateListQuery();
+  const {data: {currentUser}} = useCurrentUserQuery();
   const client = useApolloClient();
-  const templateMutation = useMutation<TemplateSetEnabled.Mutation, TemplateSetEnabled.Variables>(TemplateSetEnabled.Document);
-  const deleteTemplate = useMutation<DeleteTemplate.Mutation, DeleteTemplate.Variables>(DeleteTemplate.Document);
+  const templateMutation = useTemplateSetEnabledMutation();
+  const deleteTemplate = useDeleteTemplateMutation();
 
   const reducer: TemplateListReducer = (state, action) => {
     let currentState = {...initialState};
     switch (action.type) {
       case "Change":
       case "Add":
-        const info = client.cache.readFragment<TemplateListFragment.Fragment>({
-          fragment: TemplateListFragment.FragmentDoc,
+        const info = client.cache.readFragment<TemplateListFragmentFragment>({
+          fragment: TemplateListFragmentFragmentDoc,
           id: dataIdFromObject({
             ref: action.ref,
             __typename: "GTemplate",
@@ -115,7 +119,7 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
           };
 
         return {
-          ...currentState, selectedForTrash: info.myActions.includes(TemplateActions.Destroy)
+          ...currentState, selectedForTrash: info.myActions.includes(TemplateActions.destroy)
             ? state.selectedForTrash.add(action.ref)
             : state.selectedForTrash.remove(action.ref)
         };
@@ -133,7 +137,7 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
     }
   };
 
-  useSubscription<TemplateListUpdate.Subscription>(TemplateListUpdate.Document,
+  useTemplateListUpdateSubscription(
     {
       onSubscriptionData({client, subscriptionData}) {
         //Changing is handled automatically, here we're handling removal & addition
@@ -142,7 +146,7 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
           case Change.Add:
           case Change.Remove:
             console.log("Add/Remove: ", change);
-            handleAddRemove(client, TemplateList.Document, 'templates', change);
+            handleAddRemove(client, TemplateListDocument, 'templates', change);
             break;
           case Change.Change: //Update our internal state
             dispatch({
@@ -217,9 +221,9 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
       <StatefulTable
         keyField="ref"
         data={templates}
-        tableSelectOne={TemplateTableSelect.Document}
-        tableSelectMany={TemplateTableSelectAll.Document}
-        tableSelectionQuery={TemplateTableSelection.Document}
+        tableSelectOne={TemplateTableSelectDocument}
+        tableSelectMany={TemplateTableSelectAllDocument}
+        tableSelectionQuery={TemplateTableSelectionDocument}
         props={{
           striped: true,
           hover: true,

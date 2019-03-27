@@ -5,7 +5,7 @@ import {AccessEntry} from "./index";
 import {useCallback, useState, Fragment, useEffect} from "react";
 import {Set} from 'immutable';
 import {UncontrolledTooltip} from "reactstrap";
-import {User, VmActions} from "../../generated-models";
+import {User, VMActions} from "../../generated-models";
 import {useMutation} from "react-apollo-hooks";
 import {DocumentNode} from "graphql";
 import ButtonGroup from "reactstrap/lib/ButtonGroup";

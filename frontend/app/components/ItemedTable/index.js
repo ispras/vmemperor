@@ -63,7 +63,7 @@ const TableHeader = ({column, sort, children}) =>
 TableHeader.propTypes = {
   column: T.any.isRequired,
   sort: T.any,
-}
+};
 
 
 function sortFunction(first, second, { order, column }) {

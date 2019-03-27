@@ -3,10 +3,10 @@ import {DocumentNode} from "graphql";
 import schema from "./schema";
 import {AbstractSettingsForm} from "../AbstractSettingsForm";
 import {ResourcesForm} from "./form";
-import {XenObjectFragment} from "../../generated-models";
+import {XenObjectFragmentFragment} from "../../generated-models";
 import {Omit} from "../AbstractSettingsForm/utils";
 
-type XenObject = Omit<XenObjectFragment.Fragment, "__typename">;
+type XenObject = XenObjectFragmentFragment;
 
 interface Props<T extends XenObject> {
   object: T;

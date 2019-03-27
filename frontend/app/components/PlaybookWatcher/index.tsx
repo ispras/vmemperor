@@ -1,6 +1,8 @@
-import {useSubscription} from "../../hooks/subscription";
-import {PlaybookTask, PlaybookTaskState, PlaybookTaskUpdate} from "../../generated-models";
-import {useQuery} from "react-apollo-hooks";
+import {
+  PlaybookTask,
+  PlaybookTaskState,
+  usePlaybookTaskUpdateSubscription
+} from "../../generated-models";
 import * as React from "react";
 import {useCallback, useMemo} from "react";
 import ListGroup from "reactstrap/lib/ListGroup";
@@ -12,7 +14,7 @@ interface Props {
 }
 
 const PlaybookWatcher = ({taskId}: Props) => {
-  const {data: {playbookTask}} = useSubscription<PlaybookTaskUpdate.Subscription, PlaybookTaskUpdate.Variables>(PlaybookTaskUpdate.Document,
+  const {data: {playbookTask}} = usePlaybookTaskUpdateSubscription(
     {
       variables: {
         id: taskId

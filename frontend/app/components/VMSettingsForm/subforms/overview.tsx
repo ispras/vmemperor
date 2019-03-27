@@ -8,21 +8,16 @@ import Playbooks from "../../../containers/Playbooks";
 import {
   DomainType,
   PowerState,
-  RebootVm,
-  ShutdownForce,
-  ShutdownVm,
-  StartVm,
-  VmActions,
-  VmEditOptions,
-  VmInfo
+
+  ShutdownForce, useRebootVmMutation, useShutdownVMMutation, useStartVMMutation, useVMEditOptionsMutation,
+  VMActions, VMInfoFragmentFragment,
 } from "../../../generated-models";
-import {useMutation} from "react-apollo-hooks";
-import Vm = VmInfo.Vm;
+
 
 import ActionButton from "../../../components/ActionButton";
 
 interface Props {
-  vm: Vm
+  vm: VMInfoFragmentFragment
 }
 
 const Overview = ({vm}: Props) => {
@@ -40,35 +35,35 @@ const Overview = ({vm}: Props) => {
       uptime_text = "I'm " + vm.powerState.toLowerCase() + ".";
   }
 
-  const onReboot = useMutation<RebootVm.Mutation, RebootVm.Variables>(RebootVm.Document, {
+  const onReboot = useRebootVmMutation({
     variables: {
       ref: vm.ref,
-      /*force*/ force: ShutdownForce.Hard,
+      /*force*/ force: ShutdownForce.HARD,
     }
   });
 
-  const onShutdown = useMutation<ShutdownVm.Mutation, ShutdownVm.Variables>(ShutdownVm.Document, {
+  const onShutdown = useShutdownVMMutation({
     variables: {
       ref: vm.ref,
-      force: ShutdownForce.Hard,
+      force: ShutdownForce.HARD,
     }
   });
 
-  const onChangeDomainType = useMutation<VmEditOptions.Mutation, VmEditOptions.Variables>(VmEditOptions.Document, {
+  const onChangeDomainType = useVMEditOptionsMutation({
     variables: {
       vm: {
         ref: vm.ref,
-        domainType: vm.domainType === DomainType.Hvm ? DomainType.Pv : DomainType.Hvm,
+        domainType: vm.domainType === DomainType.HVM ? DomainType.PV : DomainType.HVM,
       }
     }
   });
 
   const changeDomainTypeText = useMemo(() => {
-    return `Switch to ${vm.domainType === DomainType.Hvm ? "PV" : "HVM"}`;
+    return `Switch to ${vm.domainType === DomainType.HVM ? "PV" : "HVM"}`;
   }, [vm.domainType]);
 
 
-  const onStart = useMutation<StartVm.Mutation, StartVm.Variables>(StartVm.Document, {
+  const onStart = useStartVMMutation({
     variables: {
       ref: vm.ref,
     }
@@ -93,7 +88,7 @@ const Overview = ({vm}: Props) => {
                   <ActionButton size="lg"
                                 color="danger"
                                 onClick={() => onReboot()}
-                                action={VmActions.HardReboot}
+                                action={VMActions.hard_reboot}
                                 data={vm}
                                 id="button-hard-reboot">
                     Reboot
@@ -106,7 +101,7 @@ const Overview = ({vm}: Props) => {
                                 id="button-hard-shutdown"
                                 color="primary"
                                 onClick={() => onShutdown()}
-                                action={VmActions.HardShutdown}
+                                action={VMActions.hard_shutdown}
                                 data={vm}
 
                   >
@@ -117,7 +112,7 @@ const Overview = ({vm}: Props) => {
                                 id="button-start"
                                 color="primary"
                                 onClick={() => onStart()}
-                                action={VmActions.Start}
+                                action={VMActions.start}
                                 data={vm}
                   >
                     <FormattedMessage {...messages.turnon}/>
@@ -148,9 +143,9 @@ const Overview = ({vm}: Props) => {
                           )}
                         </CardTitle>
                         <CardText>
-                          {ip && (<React.Fragment>
+                          {ip && (<Fragment>
                             <Label> <b>IP</b>: {ip}</Label><br/>
-                          </React.Fragment>)}
+                          </Fragment>)}
                           {ipv6 && (<Label> <b>IPv6</b>: {ipv6}</Label>)}
                           {(!ip && !ipv6) && (<Label><h6>No data</h6></Label>)}
                         </CardText>

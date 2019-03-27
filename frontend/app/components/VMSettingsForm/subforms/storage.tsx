@@ -1,4 +1,4 @@
-import React, {PureComponent, useCallback, useMemo, useState} from 'react';
+import React, {Fragment, useCallback, useMemo, useState} from 'react';
 import {
   Button,
   Card,
@@ -15,16 +15,12 @@ import {sizeFormatter, checkBoxFormatter} from "../../../utils/formatters";
 import StorageAttach from "./storageAttach";
 
 import StatefulTable, {ColumnType} from '../../../containers/StatefulTable';
-
 import {
-  DiskAttachTableSelect, DiskAttachTableSelectAll,
-  DiskAttachTableSelection,
-  VdiDetach,
-  VmvbdFragment,
-  VmInfo, StorageAttachVdiList, StorageAttachIsoList,
+  DiskAttachTableSelectAllDocument, DiskAttachTableSelectDocument, DiskAttachTableSelectionDocument,
+  useDiskAttachTableSelectionQuery, useStorageAttachISOListQuery, useStorageAttachVDIListQuery,
+  useVDIDetachMutation,
+  VMInfoFragmentFragment, VMVBDFragmentFragment
 } from "../../../generated-models";
-import Vm = VmInfo.Vm;
-import {useMutation, useQuery} from "react-apollo-hooks";
 
 interface DataType {
   userdevice: number;
@@ -75,7 +71,7 @@ const columns: ColumnType<DataType>[] = [
 
 
 interface Props {
-  vm: Vm
+  vm: VMInfoFragmentFragment
 }
 
 const Storage: React.FunctionComponent<Props> = ({vm}) => {
@@ -83,7 +79,8 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
   const [isoAttach, setIsoAttach] = useState(false);
 
   const tableData: DataType[] = useMemo(() => {
-    return vm.VBDs.map(({ref, userdevice, type, currentlyAttached, bootable, VDI,}: VmvbdFragment.Fragment): DataType => {
+    return vm.VBDs.map(
+      ({ref, userdevice, type, currentlyAttached, bootable, VDI,}: VMVBDFragmentFragment): DataType => {
       return {
         ref,
         userdevice,
@@ -99,8 +96,8 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
   const nonSelectable = useMemo(() =>
       tableData.filter(item => !item.vdiRef).map(item => item.ref),
     [tableData]);
-  const onDetach = useMutation<VdiDetach.Mutation, VdiDetach.Variables>(VdiDetach.Document);
-  const tableSelection = useQuery<DiskAttachTableSelection.Query, DiskAttachTableSelection.Variables>(DiskAttachTableSelection.Document);
+  const onDetach = useVDIDetachMutation();
+  const tableSelection = useDiskAttachTableSelectionQuery();
   const selectedData = useMemo(() => tableData.filter(item => tableSelection.data.selectedItems.includes(item.ref)), [tableData, tableSelection]);
 
   const onDetachDoubleClick = useCallback(async () => {
@@ -113,12 +110,11 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
       })
   }, [selectedData, vm.ref, tableData]);
 
-  const {data: {vdis}} = useQuery<StorageAttachVdiList.Query, StorageAttachVdiList.Variables>(StorageAttachVdiList.Document);
-  const {data: {vdis: isos}} = useQuery<StorageAttachIsoList.Query, StorageAttachIsoList.Variables>(StorageAttachIsoList.Document);
+  const {data: {vdis}} = useStorageAttachVDIListQuery();
+  const {data: {vdis: isos}} = useStorageAttachISOListQuery();
 
   return (
-    <React.Fragment>
-
+    <Fragment>
       <Row>
         <Col sm={12}>
           <Card>
@@ -129,9 +125,9 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
                   columns={columns}
                   data={tableData}
                   keyField="ref"
-                  tableSelectMany={DiskAttachTableSelectAll.Document}
-                  tableSelectOne={DiskAttachTableSelect.Document}
-                  tableSelectionQuery={DiskAttachTableSelection.Document}
+                  tableSelectMany={DiskAttachTableSelectAllDocument}
+                  tableSelectOne={DiskAttachTableSelectDocument}
+                  tableSelectionQuery={DiskAttachTableSelectionDocument}
                   nonSelectable={nonSelectable}
                 />
               </CardText>
@@ -162,13 +158,12 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
                   vm={vm}
                 />
               </Collapse>
-
             </CardFooter>
           </Card>
 
         </Col>
       </Row>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

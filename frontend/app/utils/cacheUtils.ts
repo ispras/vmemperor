@@ -76,7 +76,7 @@ export function handleAddRemove(client: DataProxy,
       handleAddOfValue(client, listQueryDocument, listFieldName, change.value);
       break;
     case Change.Remove:
-      console.log("Remove value: ", change)
+      console.log("Remove value: ", change);
       handleRemoveOfValueByRef(client, listQueryDocument, listFieldName, change.value ? change.value : change.deleted);
       break;
     default:

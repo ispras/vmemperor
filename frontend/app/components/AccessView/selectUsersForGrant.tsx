@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useMemo, useState, Fragment} from "react";
 import {Set} from 'immutable';
 import {User} from "../../generated-models";
-import {useQuery} from "react-apollo-hooks";
 import * as React from "react";
 import {Button, Modal, Row} from "reactstrap";
 import SelectUsers from "./selectUsers";

@@ -13,9 +13,7 @@ import React, {useCallback, useState} from 'react';
 import {ButtonDropdown, DropdownToggle, DropdownMenu, DropdownItem} from 'reactstrap';
 import PlaybookForm from "./playbookForm";
 import {executePlaybook} from "./actions";
-import {CreateVm, PlaybookList} from "../../generated-models";
-import {useQuery} from "react-apollo-hooks";
-import Variables = CreateVm.Variables;
+import {CreateVM, usePlaybookListQuery} from "../../generated-models";
 
 interface Props {
   vms: string[]
@@ -26,7 +24,7 @@ const Playbooks = ({vms}: Props) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [currentId, setCurrentId] = useState<number | null>(null);
   const toggle = useCallback(() => setDropdownOpen(!dropdownOpen), [dropdownOpen]);
-  const {data} = useQuery<PlaybookList.Query, PlaybookList.Variables>(PlaybookList.Document);
+  const {data} = usePlaybookListQuery();
   const pbks = data.playbooks;
 
   console.log("Current playbook ID", currentId);

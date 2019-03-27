@@ -11,7 +11,7 @@ import T from 'prop-types';
 import { FormattedMessage, FormattedNumber } from 'react-intl';
 import messages from './messages';
 import {Col, ListGroup, Card, CardBody, CardTitle, ListGroupItemHeading, ListGroupItem} from 'reactstrap';
-import {HostListFragment} from "../../generated-models";
+import {HostListFragmentFragment} from "../../generated-models";
 import CardSubtitle from "reactstrap/lib/CardSubtitle";
 
 const Break = styled.hr`
@@ -19,7 +19,7 @@ margin: 10px;
 `;
 
 interface Props {
-  host: HostListFragment.Fragment,
+  host: HostListFragmentFragment,
 }
 
  const HostInfo = ({ host }:Props) => {
@@ -53,7 +53,7 @@ interface Props {
             <Break/>
             <ListGroupItem>
             <ListGroupItemHeading>  <FormattedMessage {...messages.vms_running }/> </ListGroupItemHeading>
-              { host.residentVms.length}
+              {host.residentVms.length}
             </ListGroupItem>
             <ListGroupItem>
               <ListGroupItemHeading><FormattedMessage {...messages.product_name} /></ListGroupItemHeading>

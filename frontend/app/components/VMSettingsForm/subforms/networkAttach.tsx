@@ -1,10 +1,14 @@
-import React, {PureComponent, useMemo} from 'react';
+import React, {Fragment, useMemo} from 'react';
 import NextTable from 'react-bootstrap-table-next';
-import {useMutation, useQuery} from "react-apollo-hooks";
-import {NetAttach, NetworkList, NetworkListFragment, VmInfoFragment} from "../../../generated-models";
 import {ColumnType} from "../../../containers/StatefulTable";
+import {
+  NetworkListFragmentFragment,
+  useNetAttachMutation,
+  useNetworkListQuery,
+  VMInfoFragmentFragment
+} from "../../../generated-models";
 
-const columns: ColumnType<NetworkListFragment.Fragment>[] = [
+const columns: ColumnType<NetworkListFragmentFragment>[] = [
   {
     dataField: 'nameLabel',
     text: 'Name',
@@ -17,17 +21,17 @@ const columns: ColumnType<NetworkListFragment.Fragment>[] = [
 ];
 
 interface Props {
-  vm: VmInfoFragment.Fragment,
+  vm: VMInfoFragmentFragment,
 }
 
 const NetworkAttach = ({vm: {ref, VIFs}}: Props) => {
-  const onAttach = useMutation<NetAttach.Mutation, NetAttach.Variables>(NetAttach.Document);
-  const {data: {networks}} = useQuery<NetworkList.Query, NetworkList.Variables>(NetworkList.Document);
+  const onAttach = useNetAttachMutation();
+  const {data: {networks}} = useNetworkListQuery();
   const notYetConnectedList = useMemo(() => (
       networks.filter(network =>
         VIFs.filter(VIF => VIF.network).every(item => item.network.ref !== network.ref))),
     [VIFs, networks]);
-  const onDoubleClick = async (e, row: NetworkListFragment.Fragment, rowIndex) => {
+  const onDoubleClick = async (e, row: NetworkListFragmentFragment, rowIndex) => {
     const taskId = await onAttach({
       variables: {
         vmRef: ref,

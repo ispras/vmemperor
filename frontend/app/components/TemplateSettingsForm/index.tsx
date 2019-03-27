@@ -1,16 +1,16 @@
 import {SettingsComponentProps} from "../../containers/Settings";
-import {TemplateEditOptions, TemplateInfo} from "../../generated-models";
 import {useCallback, useState} from "react";
 import * as React from "react";
 import XenObjectHeader from "../../components/XenObjectHeader";
 import {Badge, Nav, NavItem, NavLink, TabContent, TabPane} from "reactstrap";
 import classnames from 'classnames';
+import {TemplateEditOptionsDocument, TemplateInfoQuery} from "../../generated-models";
 enum Tab {
   Overview = 'overview',
   Access = 'access',
 }
 
-const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<TemplateInfo.Query>> =
+const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<TemplateInfoQuery>> =
   ({object: {template}}) => {
     const [activeTab, setActiveTab] = useState(Tab.Overview);
 
@@ -22,7 +22,7 @@ const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<Templ
     return (
       <div>
         <XenObjectHeader
-          editMutation={TemplateEditOptions.Document}
+          editMutation={TemplateEditOptionsDocument}
           editMutationName="template"
           xenObject={template}>
           {template.installOptions &&

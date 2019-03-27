@@ -12,7 +12,7 @@ class HistoryItem extends React.Component { // eslint-disable-line react/prefer-
   static propTypes = {
     item: T.any.isRequired,
     actions: T.object.isRequired,
-  }
+  };
 
   render() {
     const { name, status, details } = this.props.item;

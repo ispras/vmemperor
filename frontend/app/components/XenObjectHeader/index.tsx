@@ -8,7 +8,7 @@ import {XenObjectFragment} from "../../generated-models";
 import {Omit} from "../AbstractSettingsForm/utils";
 
 
-interface XenObject extends Omit<XenObjectFragment.Fragment, "__typename"> {
+interface XenObject extends Omit<XenObjectFragmentFragment, "__typename"> {
   myActions: any[];
 }
 

@@ -45,7 +45,7 @@ import 'react-redux-toastr/lib/css/react-redux-toastr.min.css'
 import ReduxToastr from 'react-redux-toastr';
 //Import apollo
 import {ApolloClient} from 'apollo-client';
-import {defaultDataIdFromObject, InMemoryCache} from 'apollo-cache-inmemory';
+import {defaultDataIdFromObject, InMemoryCache, IntrospectionFragmentMatcher} from 'apollo-cache-inmemory';
 
 
 import {ApolloProvider} from "react-apollo-hooks";
@@ -58,13 +58,21 @@ import {onError} from "apollo-link-error";
 // @ts-ignore
 import localSchema from './localApi/schema.graphql';
 import {resolvers} from "./localApi/resolvers";
-import {SelectedItemsQuery, Table} from "./generated-models";
+import {
+  SelectedItemsQueryDocument,
+  SelectedItemsQueryQuery,
+  SelectedItemsQueryQueryVariables,
+  Table
+} from "./generated-models";
 /* eslint-enable import/no-unresolved, import/extensions */
 
 //Import Yup (for add method)
 import * as Yup from 'yup';
 
 import {dataIdFromObject} from './utils/cacheUtils';
+
+//import introspection query for apollo fragment matcher
+import introspectionQuery from './introspection-query';
 
 //Init Sentry
 import * as Sentry from '@sentry/browser';
@@ -112,6 +120,10 @@ const wsLink = new WebSocketLink({
     }
   }
 });
+//Create a fragment matcher based on introspection query result:
+const fragmentMatcher = new IntrospectionFragmentMatcher({
+  introspectionQueryResultData: introspectionQuery
+});
 
 // using the ability to split links, you can send data to each link
 // depending on what kind of operation is being sent
@@ -145,7 +157,7 @@ const client = new ApolloClient(
         link]),
     cache: new InMemoryCache(
       {
-
+        fragmentMatcher,
         dataIdFromObject: dataIdFromObject
       }
     ),
@@ -167,29 +179,29 @@ const client = new ApolloClient(
 
 const initializeCache = () => {
   //VMs table has empty selection
-  client.cache.writeQuery<SelectedItemsQuery.Query, SelectedItemsQuery.Variables>(
+  client.cache.writeQuery<SelectedItemsQueryQuery, SelectedItemsQueryQueryVariables>(
     {
-      query: SelectedItemsQuery.Document,
-      variables: {tableId: Table.Vms},
+      query: SelectedItemsQueryDocument,
+      variables: {tableId: Table.VMS},
       data: {selectedItems: []}
     });
   //Network attach table has empty selection
-  client.cache.writeQuery<SelectedItemsQuery.Query, SelectedItemsQuery.Variables>(
+  client.cache.writeQuery<SelectedItemsQueryQuery, SelectedItemsQueryQueryVariables>(
     {
-      query: SelectedItemsQuery.Document,
+      query: SelectedItemsQueryDocument,
       variables: {tableId: Table.NetworkAttach},
       data: {selectedItems: []}
     });
   //Disk attach table has empty selection
-  client.cache.writeQuery<SelectedItemsQuery.Query, SelectedItemsQuery.Variables>(
+  client.cache.writeQuery<SelectedItemsQueryQuery, SelectedItemsQueryQueryVariables>(
     {
-      query: SelectedItemsQuery.Document,
+      query: SelectedItemsQueryDocument,
       variables: {tableId: Table.DiskAttach},
       data: {selectedItems: []}
     });
-  client.cache.writeQuery<SelectedItemsQuery.Query, SelectedItemsQuery.Variables>(
+  client.cache.writeQuery<SelectedItemsQueryQuery, SelectedItemsQueryQueryVariables>(
     {
-      query: SelectedItemsQuery.Document,
+      query: SelectedItemsQueryDocument,
       variables: {tableId: Table.Templates},
       data: {selectedItems: []}
     });

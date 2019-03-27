@@ -4,17 +4,17 @@ import Field from './field';
 //import Input from '../../components/Input';
 import FullHeightCard from '../../components/FullHeightCard';
 import {CardTitle, CardBody, CardSubtitle, CardText, Label, FormGroup, FormText, Button, Input} from 'reactstrap';
-import {PlaybookList, PlaybookLaunch} from "../../generated-models";
+import {useLaunchPlaybookMutation} from "../../generated-models";
 import {OrderedMap} from "immutable";
 
 import {mapValues} from 'lodash';
-import {useMutation, useQuery} from "react-apollo-hooks";
 import CardFooter from "reactstrap/lib/CardFooter";
 import PlaybookWatcher from "../../components/PlaybookWatcher";
+import {GPlaybook} from "../../generated-models";
 
 
 interface Props {
-  book: PlaybookList.Playbooks
+  book: GPlaybook
   vms: string[]
 }
 
@@ -55,7 +55,7 @@ const PlaybookForm = ({book, vms}: Props) => {
     setVariables(variables.set(e.target.name, e.target.value));
   }, [setVariables, variables]);
 
-  const launch = useMutation<PlaybookLaunch.Mutation, PlaybookLaunch.Variables>(PlaybookLaunch.Document);
+  const launch = useLaunchPlaybookMutation();
   const [currentTaskId, setCurrentTaskId] = useState<string>(null);
 
   const onSubmit = useCallback(async (e: Event) => {

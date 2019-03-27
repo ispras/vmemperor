@@ -18,15 +18,11 @@ import {
 import StatefulTable, {ColumnType} from '../../../containers/StatefulTable';
 import NetworkAttach from './networkAttach';
 import {
-  NetAttach,
-  NetAttachTableSelect,
-  NetAttachTableSelectAll, NetAttachTableSelection, NetDetach,
-  VmInfoFragment,
-  VmvifFragment
+  NetAttachTableSelectAllDocument, NetAttachTableSelectDocument,
+  NetAttachTableSelectionDocument,
+  useNetAttachTableSelectionQuery, useNetDetachMutation, VMInfoFragmentFragment, VMVIFFragmentFragment,
 } from "../../../generated-models";
-import {useMutation, useQuery} from "react-apollo-hooks";
-import {Data} from "popper.js";
-import Variables = NetAttach.Variables;
+
 
 interface DataType {
   ref: string;
@@ -35,7 +31,7 @@ interface DataType {
   ip?: string;
   MAC: string;
   netRef: string;
-};
+}
 
 type NetColumnType = ColumnType<DataType>;
 const columns: NetColumnType[] = [
@@ -64,7 +60,7 @@ const columns: NetColumnType[] = [
 ];
 
 interface Props {
-  vm: VmInfoFragment.Fragment;
+  vm: VMInfoFragmentFragment;
 
 }
 
@@ -72,7 +68,7 @@ const Network: React.FunctionComponent<Props> = ({vm}) => {
   const [netAttach, setNetAttach] = useState(false);
 
   const tableData: DataType[] = useMemo(() => {
-    return vm.VIFs.map(({ref, ip, ipv6, network, MAC, currentlyAttached}: VmvifFragment.Fragment): DataType => {
+    return vm.VIFs.map(({ref, ip, ipv6, network, MAC, currentlyAttached}: VMVIFFragmentFragment): DataType => {
       return {
         ref,
         ip,
@@ -88,8 +84,8 @@ const Network: React.FunctionComponent<Props> = ({vm}) => {
       tableData.filter(item => !item.netRef).map(item => item.ref),
     [tableData]);
 
-  const onDetach = useMutation<NetDetach.Mutation, NetDetach.Variables>(NetDetach.Document);
-  const tableSelection = useQuery<NetAttachTableSelection.Query, NetAttachTableSelection.Variables>(NetAttachTableSelection.Document);
+  const onDetach = useNetDetachMutation();
+  const tableSelection = useNetAttachTableSelectionQuery();
   const selectedData = useMemo(() => tableData.filter(item => tableSelection.data.selectedItems.includes(item.ref)), [tableData, tableSelection]);
   const onDetachDoubleClick = useCallback(async () => {
     for (const row of selectedData)
@@ -112,9 +108,9 @@ const Network: React.FunctionComponent<Props> = ({vm}) => {
                   columns={columns}
                   data={tableData}
                   keyField="ref"
-                  tableSelectMany={NetAttachTableSelectAll.Document}
-                  tableSelectOne={NetAttachTableSelect.Document}
-                  tableSelectionQuery={NetAttachTableSelection.Document}
+                  tableSelectMany={NetAttachTableSelectAllDocument}
+                  tableSelectOne={NetAttachTableSelectDocument}
+                  tableSelectionQuery={NetAttachTableSelectionDocument}
                   nonSelectable={nonSelectable}
                 />
               </CardText>

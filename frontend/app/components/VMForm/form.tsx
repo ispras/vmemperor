@@ -1,4 +1,4 @@
-import {useMemo} from "react";
+import {useMemo, Fragment} from "react";
 import {FormikPropsValues, FormContext, Values} from "./props";
 import {Form, Field} from "formik";
 import {
@@ -12,17 +12,15 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Select from '../Select';
 import {
-  IsosCreateVmList,
-
-  NetworkList,
-  PoolList,
-  SrContentType,
-  StorageList,
-  StorageListFragment,
-  TemplateList
+  SRContentType,
+  StorageListFragmentFragment,
+  useISOSCreateVMListQuery,
+  useNetworkListQuery,
+  usePoolListQuery,
+  useStorageListQuery,
+  useTemplateListQuery
 } from "../../generated-models";
 import formatBytes from "../../utils/sizeUtils";
-import {useQuery} from "react-apollo-hooks";
 import {useReactSelectFromRecord} from "../../hooks/form";
 import messages from "./messages";
 import React from "react";
@@ -42,24 +40,24 @@ const H4 = styled.h4`
 margin: 20px;
 `;
 const VMForm = (props: FormikPropsValues) => {
-  const {data: {pools}} = useQuery<PoolList.Query>(PoolList.Document);
+  const {data: {pools}} = usePoolListQuery();
   const poolOptions = useReactSelectFromRecord(pools);
 
-  const {data: {templates}} = useQuery<TemplateList.Query>(TemplateList.Document);
+  const {data: {templates}} = useTemplateListQuery();
   const templateOptions = useReactSelectFromRecord(templates);
 
-  const {data: srData} = useQuery<StorageList.Query>(StorageList.Document);
+  const {data: srData} = useStorageListQuery();
   const srs = useMemo(() => srData.srs.filter(
-    sr => sr.contentType === SrContentType.User &&
-      !sr.PBDs.every(pbd => !pbd.currentlyAttached)), [srData])
-  const srOptions = useReactSelectFromRecord(srs, (item: StorageListFragment.Fragment) => {
+    sr => sr.contentType === SRContentType.User &&
+      !sr.PBDs.every(pbd => !pbd.currentlyAttached)), [srData]);
+  const srOptions = useReactSelectFromRecord(srs, (item: StorageListFragmentFragment) => {
     return `${item.nameLabel} (${formatBytes(item.spaceAvailable, 2)} available)`
   });
 
-  const {data: {networks}} = useQuery<NetworkList.Query>(NetworkList.Document);
+  const {data: {networks}} = useNetworkListQuery();
   const networkOptions = useReactSelectFromRecord(networks);
 
-  const {data: isoData} = useQuery<IsosCreateVmList.Query>(IsosCreateVmList.Document);
+  const {data: isoData} = useISOSCreateVMListQuery();
   const isos = useMemo(() => isoData.vdis.filter(iso =>
     !iso.SR.isToolsSr && !iso.SR.PBDs.every(pbd => !pbd.currentlyAttached)),
     [isoData]);
@@ -67,11 +65,13 @@ const VMForm = (props: FormikPropsValues) => {
 
   console.log("Errors:", props.errors);
   console.log("Values:", props.values);
-  const currentTemplateOsKind = useMemo(() => {
+  const currentTemplateHasRepository = useMemo(() => {
     if (!props.values.template)
       return null;
 
-    return templates.filter(t => t.ref === props.values.template.value)[0].osKind;
+    const installOptions = templates.filter(t => t.ref === props.values.template.value)[0].installOptions;
+    return installOptions && installOptions.installRepository;
+
   }, [props.values.template]);
   return (
     <FormContext.Provider value={props}>
@@ -84,7 +84,7 @@ const VMForm = (props: FormikPropsValues) => {
                addonIcon={faServer}
         />
         {props.values.pool && (
-          <React.Fragment>
+          <Fragment>
             <Field name="template"
                    component={Select}
                    options={templateOptions}
@@ -113,12 +113,12 @@ const VMForm = (props: FormikPropsValues) => {
             />
             <Field name="autoMode"
                    component={CheckBoxComponent}
-                   disabled={!currentTemplateOsKind}
+                   disabled={!currentTemplateHasRepository}
                    tooltip="Automode"
             >
               <h6> Unattended installation </h6>
             </Field>
-            <React.Fragment>
+            <Fragment>
               {props.values.autoMode && (
                 <div>
                   <H4 style={{margin: '20px'}}><FormattedMessage {...messages.account} /></H4>
@@ -155,7 +155,7 @@ const VMForm = (props: FormikPropsValues) => {
                          options={networkTypeOptions}
                   />
                   {props.values.networkType.value === 'static' && (
-                    <React.Fragment>
+                    <Fragment>
                       <Field name="ip"
                              component={Input}
                              placeholder={"Enter IP address..."}
@@ -181,7 +181,7 @@ const VMForm = (props: FormikPropsValues) => {
                              placeholder={"Enter DNS #2"}
                              label={true}
                       >DNS 2:</Field>
-                    </React.Fragment>
+                    </Fragment>
                   )
                   }
                 </div>
@@ -201,8 +201,8 @@ const VMForm = (props: FormikPropsValues) => {
                      addonIcon={faHdd}
                      appendAddonText={"GB"}
               />
-            </React.Fragment>
-          </React.Fragment>
+            </Fragment>
+          </Fragment>
         )}
         <Button type="submit" primary={true}>
           Create

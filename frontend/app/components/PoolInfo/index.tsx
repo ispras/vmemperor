@@ -9,12 +9,16 @@ import T from 'prop-types';
 import {FormattedMessage, FormattedNumber} from 'react-intl';
 import messages from './messages';
 import HostInfo from '../../components/HostInfo';
-import {HostList, HostListUpdate, PoolList, PoolListFragment} from "../../generated-models";
+import {
+  HostListDocument,
+  HostListQuery,
+  PoolListFragmentFragment,
+  useHostListQuery,
+  useHostListUpdateSubscription
+} from "../../generated-models";
 import CardTitle from "reactstrap/lib/CardTitle";
 import {Card, CardImg, CardSubtitle, CardText, Row} from "reactstrap";
 import CardBody from "reactstrap/lib/CardBody";
-import {useQuery} from "react-apollo-hooks";
-import {useSubscription} from "../../hooks/subscription";
 import {handleAddRemove} from "../../utils/cacheUtils";
 import CardHeader from "reactstrap/lib/CardHeader";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
@@ -26,7 +30,7 @@ import CardFooter from "reactstrap/lib/CardFooter";
 import {UncontrolledCollapse} from "reactstrap";
 
 interface Props {
-  pool: PoolListFragment.Fragment,
+  pool: PoolListFragmentFragment,
   key: string,
 }
 
@@ -54,13 +58,13 @@ function PoolInfo({
         </div>
       </div>
     ); */
-  const {data: {hosts}} = useQuery<HostList.Query>(HostList.Document);
+  const {data: {hosts}} = useHostListQuery();
 
 
-  useSubscription<HostListUpdate.Subscription>(HostListUpdate.Document, {
+  useHostListUpdateSubscription({
     onSubscriptionData({client, subscriptionData}) {
-      const change = subscriptionData.hosts;
-      handleAddRemove(client, HostList.Document, 'hosts', change);
+      const change = subscriptionData.data.hosts;
+      handleAddRemove(client, HostListDocument, 'hosts', change);
     },
 
   });

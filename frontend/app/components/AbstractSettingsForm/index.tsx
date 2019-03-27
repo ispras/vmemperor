@@ -5,7 +5,7 @@ import {useCallback} from "react";
 import {difference, findDeepField, mutationResponseToFormikErrors, setXenAdapterAPIError,} from "./utils";
 import {DocumentNode} from "graphql";
 import {mergeDefaults, validation} from "../../utils/forms";
-import {XenObjectFragment} from "../../generated-models";
+import {XenObjectFragmentFragment} from "../../generated-models";
 
 export interface AbstractSettingsFormProps<T> {
   initialValues: Partial<T>,
@@ -17,15 +17,16 @@ export interface AbstractSettingsFormProps<T> {
 }
 
 
-export function AbstractSettingsForm<T extends XenObjectFragment.Fragment>({
-                                                                             initialValues: {ref, ...rest},
-                                                                             defaultValues,
-                                                                             mutationNode,
-                                                                             mutationName,
-                                                                             validationSchema,
-                                                                             component,
-                                                                           }: AbstractSettingsFormProps<T>) {
-
+export function
+AbstractSettingsForm<T extends XenObjectFragmentFragment>({
+                                                            initialValues: {ref, ...rest},
+                                                            defaultValues,
+                                                            mutationNode,
+                                                            mutationName,
+                                                            validationSchema,
+                                                            component,
+                                                          }: AbstractSettingsFormProps<T>) {
+  
   //@ts-ignore
   const initialValues = mergeDefaults(defaultValues, rest);
   const mutate = useMutation(mutationNode);

@@ -3,10 +3,12 @@ import NextTable from 'react-bootstrap-table-next';
 import React, {PureComponent, useMemo} from 'react';
 import {sizeFormatter} from "../../../utils/formatters";
 import {ColumnType} from "../../../containers/StatefulTable";
-import {StorageAttachVdiListFragment, VdiAttach, VmInfoFragment} from "../../../generated-models";
-import {useMutation, useQuery} from "react-apollo-hooks";
+import {
+  StorageAttachVDIListFragmentFragment, useVDIAttachMutation,
+  VMInfoFragmentFragment
+} from "../../../generated-models";
 
-const columns: ColumnType<StorageAttachVdiListFragment.Fragment>[] = [
+const columns: ColumnType<StorageAttachVDIListFragmentFragment>[] = [
   {
     dataField: 'nameLabel',
     text: 'Name',
@@ -24,8 +26,8 @@ const columns: ColumnType<StorageAttachVdiListFragment.Fragment>[] = [
 ];
 
 interface Props {
-  vm: VmInfoFragment.Fragment;
-  diskImageList: StorageAttachVdiListFragment.Fragment[];
+  vm: VMInfoFragmentFragment;
+  diskImageList: StorageAttachVDIListFragmentFragment[];
   caption: string;
 
 }
@@ -36,8 +38,8 @@ const StorageAttach: React.FunctionComponent<Props> = ({
                                                          diskImageList,
                                                          caption
                                                        }) => {
-  const onAttach = useMutation<VdiAttach.Mutation, VdiAttach.Variables>(VdiAttach.Document);
-  const onDoubleClick = async (e, row: StorageAttachVdiListFragment.Fragment, rowIndex) => {
+  const onAttach = useVDIAttachMutation();
+  const onDoubleClick = async (e, row: StorageAttachVDIListFragmentFragment, rowIndex) => {
     const taskId = await onAttach({
       variables: {
         vmRef: ref,

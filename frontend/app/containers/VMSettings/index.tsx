@@ -1,16 +1,16 @@
 import SettingsComponent, {SettingsRouteProps} from "../Settings";
 import * as React from 'react';
-import VmSettingsForm from "../../components/VmSettingsForm";
-import {VmInfo, VmInfoUpdate} from "../../generated-models";
+import VMSettingsForm from "../../components/VMSettingsForm";
+import {VMInfoDocument, VMInfoUpdateDocument} from "../../generated-models";
 
-const VmSettings: React.FunctionComponent<SettingsRouteProps> = ({match: {params: {ref}}}) => {
+const VMSettings: React.FunctionComponent<SettingsRouteProps> = ({match: {params: {ref}}}) => {
 
   return (<SettingsComponent
-    Form={VmSettingsForm}
-    documentNode={VmInfo.Document}
-    updateDocumentNode={VmInfoUpdate.Document}
+    Form={VMSettingsForm}
+    documentNode={VMInfoDocument}
+    updateDocumentNode={VMInfoUpdateDocument}
     id={ref}
   />)
 };
 
-export default VmSettings;
+export default VMSettings;

@@ -5,7 +5,7 @@ class VMItem extends React.Component { // eslint-disable-line react/prefer-state
   static propTypes = {
     item: T.any.isRequired,
     actions: T.object.isRequired,
-  }
+  };
 
   render() {
     const { item, actions } = this.props;

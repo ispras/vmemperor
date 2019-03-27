@@ -35,7 +35,7 @@ class Snackbar extends React.Component {
       text: T.string.isRequired,
       timestamp: T.number.isRequired,
     })),
-  }
+  };
 
   componentDidMount() {
     this.interval = setInterval(() => this.forceUpdate(), RENDER_TICK);

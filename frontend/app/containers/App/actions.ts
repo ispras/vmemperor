@@ -106,7 +106,7 @@ export function auth(login, password) {
   };
 }
 
-export function msgVmlist(message) {
+export function msgVMlist(message) {
   return {
     type: VMLIST_MESSAGE,
     message

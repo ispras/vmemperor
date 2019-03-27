@@ -9,14 +9,14 @@ const makeSelectLocation = () => createSelector(
 
 
 const selectAppData = (state) => state.get('app');
-const selectVmData = (state) => selectAppData(state).get('vm_data');
+const selectVMData = (state) => selectAppData(state).get('vm_data');
 
-const makeSelectVmData = () => createSelector(
-  selectVmData,
+const makeSelectVMData = () => createSelector(
+  selectVMData,
   (substate) => {return substate}
 );
 
 export {
   makeSelectLocation,
-  makeSelectVmData,
+  makeSelectVMData,
 };

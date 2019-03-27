@@ -15,4 +15,4 @@ export const validation = (validationSchema) => (values) => {
   }
 
   return {};
-}
+};

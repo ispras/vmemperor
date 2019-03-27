@@ -1,6 +1,6 @@
 /*
  *
- * CreateVm
+ * CreateVM
  *
  */
 
@@ -10,20 +10,23 @@ import styles from './styles.css'
 import {Button, Modal} from 'reactstrap';
 
 import PoolInfo from '../../components/PoolInfo';
-import {useQuery} from "react-apollo-hooks";
-import {Change, PoolList, PoolListUpdate} from "../../generated-models";
-import {useSubscription} from "../../hooks/subscription";
+import {
+  Change,
+  PoolListDocument,
+  usePoolListQuery,
+  usePoolListUpdateSubscription
+} from "../../generated-models";
 import {handleAddOfValue, handleAddRemove, handleRemoveOfValueByRef} from "../../utils/cacheUtils";
 import VMFormContainer from "../../components/VMForm";
 
 
 const CreateVM = () => {
-  const {data: {pools}} = useQuery<PoolList.Query>(PoolList.Document);
+  const {data: {pools}} = usePoolListQuery();
 
-  useSubscription<PoolListUpdate.Subscription>(PoolListUpdate.Document, {
+  usePoolListUpdateSubscription({
     onSubscriptionData({client, subscriptionData}) {
-      const change = subscriptionData.pools;
-      handleAddRemove(client, PoolList.Document, 'pools', change);
+      const change = subscriptionData.data.pools;
+      handleAddRemove(client, PoolListDocument, 'pools', change);
     },
 
   });

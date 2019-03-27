@@ -20,12 +20,12 @@ export const toJSON = function(object, objectMaxDepth, arrayMaxLength, indent)
   function quote(string)
   {
     escapable.lastIndex = 0;
-    var escaped;
+    let escaped;
     if (escapable.test(string))
     {
       escaped = string.replace(escapable, function(a)
       {
-        var replacement = replacements[a];
+        const replacement = replacements[a];
         if (typeof (replacement) === "string")
           return replacement;
         // Pad the unicode representation with leading zeros, up to 4 characters.
@@ -68,7 +68,7 @@ export const toJSON = function(object, objectMaxDepth, arrayMaxLength, indent)
       {
         if (!value)
           return "null";
-        var valueIndex = values.indexOf(value);
+        const valueIndex = values.indexOf(value);
         if (valueIndex !== -1)
           return "Reference => " + paths[valueIndex];
         values.push(value);
@@ -77,14 +77,14 @@ export const toJSON = function(object, objectMaxDepth, arrayMaxLength, indent)
           return "...";
 
         // Make an array to hold the partial results of stringifying this object value.
-        var partial = [];
+        const partial = [];
 
         // Is the value an array?
-        var i;
+        let i;
         if (Object.prototype.toString.apply(value) === "[object Array]")
         {
           // The value is an array. Stringify every element
-          var length = Math.min(value.length, arrayMaxLength);
+          const length = Math.min(value.length, arrayMaxLength);
 
           // Whether a property has one or multiple values, they should be treated as the same
           // object depth. As such, we do not increment the object depth when recursing into an
@@ -103,11 +103,11 @@ export const toJSON = function(object, objectMaxDepth, arrayMaxLength, indent)
         }
 
         // Otherwise, iterate through all of the keys in the object.
-        for (var subKey in value)
+        for (let subKey in value)
         {
           if (Object.prototype.hasOwnProperty.call(value, subKey))
           {
-            var subValue;
+            let subValue;
             try
             {
               subValue = toString(path + "." + subKey, value[subKey], cumulativeIndent + indent,
@@ -124,7 +124,7 @@ export const toJSON = function(object, objectMaxDepth, arrayMaxLength, indent)
             }
           }
         }
-        var result = "\n" + cumulativeIndent + "{\n";
+        let result = "\n" + cumulativeIndent + "{\n";
         for (i = 0; i < partial.length; ++i)
           result += cumulativeIndent + indent + partial[i] + ",\n";
         if (partial.length > 0)

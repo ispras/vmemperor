@@ -5,12 +5,9 @@
  */
 
 import React from 'react';
-import {VmInfo, VmInfoUpdate} from "../../generated-models";
-import VmSettingsForm from "../../components/VmSettingsForm";
 
 import {RouteComponentProps} from "react-router";
-import {useQuery} from "react-apollo-hooks";
-import {useSubscription} from "../../hooks/subscription";
+import {useQuery, useSubscription} from "../../hooks/apollo";
 import {DocumentNode} from "graphql";
 
 export interface SettingsVariables { //These props refer to page argument: see router.
@@ -37,7 +34,7 @@ function Settings<T>({id, Form, documentNode, updateDocumentNode}: Props<T>) {
         ref: id,
       }
     });
-  useSubscription<T>(updateDocumentNode,
+  useSubscription<T, SettingsVariables>(updateDocumentNode,
     {
       variables: {
         ref: id,

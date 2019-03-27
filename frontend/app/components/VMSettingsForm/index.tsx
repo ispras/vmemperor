@@ -1,19 +1,10 @@
 /**
  *
- * VmSettingsForm
+ * VMSettingsForm
  *
  */
 
 import React, {useCallback, useState} from 'react';
-import {
-  AclXenObjectFragment,
-  PowerState,
-  VmAccessSetMutation,
-  VmActions,
-  VmEditOptions,
-  VmInfo,
-  VmInfoFragment
-} from "../../generated-models";
 import Overview from './subforms/overview';
 import {Badge, Col, Nav, NavItem, NavLink, Row, TabContent, TabPane} from 'reactstrap';
 import classnames from 'classnames';
@@ -26,6 +17,13 @@ import {ResourcesFormContainer} from "../ResourcesForm";
 import {SettingsComponentProps} from "../../containers/Settings";
 import {defaults} from "./defaults";
 import {Omit} from "../AbstractSettingsForm/utils";
+import {
+  PowerState,
+  VMAccessSetMutationDocument, VMActions,
+  VMEditOptionsDocument,
+  VMInfoFragmentFragment,
+  VMInfoQuery
+} from "../../generated-models";
 
 
 enum Tab {
@@ -37,9 +35,9 @@ enum Tab {
   Network = 'network',
 }
 
-type VM = Omit<VmInfoFragment.Fragment, "__typename">;
+type VM = Omit<VMInfoFragmentFragment, "__typename">;
 
-const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Query>> = ({object}) => {
+const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery>> = ({object}) => {
   const vm: VM = object.vm;
   const [activeTab, setActiveTab] = useState(Tab.Overview);
   const [vncActivated, setVncActivated] = useState(false);
@@ -62,7 +60,7 @@ const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Quer
       <XenObjectHeader
         xenObject={vm}
         editMutationName={"object"}
-        editMutation={VmEditOptions.Document}
+        editMutation={VMEditOptionsDocument}
       >
         <Badge color="primary">{vm.powerState}</Badge>
         {vm.osVersion &&
@@ -96,7 +94,7 @@ const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Quer
             onClick={() => {
               toggleTab(Tab.VNC);
             }}
-            disabled={vm.powerState !== PowerState.Running || !vm.myActions.includes(VmActions.Vnc)}
+            disabled={vm.powerState !== PowerState.Running || !vm.myActions.includes(VMActions.VNC)}
           >
             VNC
           </NavLink>
@@ -145,7 +143,7 @@ const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Quer
             <Col sm="12">
               <ResourcesFormContainer
                 object={vm}
-                mutationNode={VmEditOptions.Document}
+                mutationNode={VMEditOptionsDocument}
                 mutationName="vm"
                 defaultValues={defaults}
               />
@@ -157,9 +155,9 @@ const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Quer
             <Col sm="12">
               {<AccessView
                 data={vm}
-                ALL={VmActions.All}
+                ALL={VMActions.ALL}
                 mutationName="vmAccessSet"
-                mutationNode={VmAccessSetMutation.Document}
+                mutationNode={VMAccessSetMutationDocument}
               />}
             </Col>
           </Row>
@@ -193,4 +191,4 @@ const VmSettingsForm: React.FunctionComponent<SettingsComponentProps<VmInfo.Quer
   )
 };
 
-export default VmSettingsForm;
+export default VMSettingsForm;

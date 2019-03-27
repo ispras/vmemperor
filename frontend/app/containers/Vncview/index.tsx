@@ -6,16 +6,15 @@
 
 import React, {Fragment} from 'react';
 import VncDisplay from '../../components/VncDisplay';
-import {Console, PowerState, VmInfoFragment} from "../../generated-models";
-import {useQuery} from "react-apollo-hooks";
+import {useConsoleQuery, VMInfoFragmentFragment} from "../../generated-models";
 
 interface Props {
-  vm: VmInfoFragment.Fragment;
+  vm: VMInfoFragmentFragment;
 }
 
 
 const VNCView = ({vm: {ref, nameLabel, powerState}}: Props) => {
-  const {data, refetch} = useQuery<Console.Query, Console.Variables>(Console.Document, {
+  const {data, refetch} = useConsoleQuery({
     variables: {
       id: ref,
     }

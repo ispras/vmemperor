@@ -1,4 +1,4 @@
-mutation PlaybookLaunch ($id: ID!, $vms: [ID], $variables: JSONString ){
+mutation LaunchPlaybook ($id: ID!, $vms: [ID], $variables: JSONString ){
   playbookLaunch
   (id: $id, vms: $vms,
     variables: $variables) {

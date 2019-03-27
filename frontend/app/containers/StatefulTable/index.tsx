@@ -4,16 +4,9 @@ import BootstrapTable from 'react-bootstrap-table-next';
 
 import messages from './messages';
 import {
-  Query,
-  Mutation,
-  MutationFn,
-  graphql,
-  ChildDataProps,
-  NamedProps,
-  QueryProps,
   MutationProps
 } from 'react-apollo';
-import {useMutation, useQuery} from "react-apollo-hooks";
+import {useMutation, useQuery} from "../../hooks/apollo";
 import {DocumentNode, ExecutionResult} from "graphql";
 import {RefetchQueryDescription} from "apollo-client/core/watchQueryOptions";
 

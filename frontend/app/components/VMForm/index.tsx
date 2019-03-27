@@ -1,6 +1,6 @@
 /**
  *
- * Vmform
+ * VMform
  *
  */
 import React from 'react';
@@ -16,7 +16,7 @@ import {OptionShape} from "../../hooks/form";
 import VMForm from "./form";
 import {networkTypeOptions, Values} from "./props";
 import {useMutation} from "react-apollo-hooks";
-import {AutoInstall, CreateVm, NetworkConfiguration} from "../../generated-models";
+import {AutoInstall, CreateVM, NetworkConfiguration, usecreateVmMutation} from "../../generated-models";
 import {schema as resourceSchema} from '../../components/ResourcesForm/schema';
 import {Omit} from "../AbstractSettingsForm/utils";
 
@@ -56,7 +56,7 @@ const VMFormContainer: React.FunctionComponent = () => {
     otherwise: t().notRequired().nullable(true),
   });
 
-  const createVM = useMutation<CreateVm.Mutation, CreateVm.Variables>(CreateVm.Document);
+  const createVM = usecreateVmMutation();
 
   const onSumbit = async (values: Values, formikActions: FormikActions<Values>) => {
     const hddSizeMegabytes = values.hdd * 1024;
