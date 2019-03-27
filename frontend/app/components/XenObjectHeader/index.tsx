@@ -2,13 +2,11 @@ import {DocumentNode} from "graphql";
 import {useMutation} from "react-apollo-hooks";
 import * as React from "react";
 import {Fragment} from "react";
-import {Edit} from "../Editable";
 import ContentEditable from "react-sane-contenteditable";
-import {XenObjectFragment} from "../../generated-models";
-import {Omit} from "../AbstractSettingsForm/utils";
+import {XenObjectFragmentFragment} from "../../generated-models";
 
 
-interface XenObject extends Omit<XenObjectFragmentFragment, "__typename"> {
+interface XenObject extends XenObjectFragmentFragment {
   myActions: any[];
 }
 

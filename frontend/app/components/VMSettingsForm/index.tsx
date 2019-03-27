@@ -29,7 +29,7 @@ import {TabWidget, TabWidgetProps} from "../TabWidget";
 
 enum Tab {
   Overview = 'overview',
-  CPU = 'cpu',
+  Resources = 'resources',
   VNC = 'vnc',
   Access = 'access',
   Storage = 'storage',
@@ -40,6 +40,7 @@ type VM = Omit<VMInfoFragmentFragment, "__typename">;
 
 const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery>> = ({object: {vm}}) => {
   const defaultTab = Tab.Overview;
+
   const [overrideTab, setOverrideTab] = useState(null);
   const [vncActivated, setVncActivated] = useState(false);
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -71,7 +72,7 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
       {vm.osVersion &&
       (<Badge color="success">{vm.osVersion.name}</Badge>)}
     </XenObjectHeader>
-  ), [vm.nameLabel, vm.nameDescription]);
+  ), [vm.nameLabel, vm.nameDescription, vm.powerState, vm.osVersion]);
 
   const tabs: TabWidgetProps["tabs"] = new Map(
     [
@@ -85,8 +86,8 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
           </Row>
         )
       }],
-      [Tab.CPU, {
-        header: "CPU & Memory",
+      [Tab.Resources, {
+        header: "Resources",
         content: (
           <Row>
             <Col sm="12">

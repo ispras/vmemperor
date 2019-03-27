@@ -12,7 +12,7 @@ type TKey = string | number;
 
 export interface TabWidgetProps {
   tabs: Map<TKey, Tab>;
-  onAfterActivation: (activeTab: TKey) => void;
+  onAfterActivation?: (activeTab: TKey) => void;
   header: ReactNode;
   defaultTab: TKey;
   /**
@@ -28,13 +28,15 @@ export const TabWidget: FunctionComponent<TabWidgetProps> =
     const toggleTab = useCallback((tab: TKey) => {
       if (activeTab !== tab) {
         setActiveTab(tab);
-        onAfterActivation(tab);
+        if (onAfterActivation)
+          onAfterActivation(tab);
       }
     }, [activeTab, onAfterActivation]);
     useEffect(() => {
       if (tab) {
         setActiveTab(tab);
-        onAfterActivation(tab);
+        if (onAfterActivation)
+          onAfterActivation(tab);
       }
     }, [tab]);
     return (

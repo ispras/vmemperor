@@ -1,4 +1,4 @@
-import {AbstractVMFragment} from "../../generated-models";
+import {AbstractVMFragmentFragment} from "../../generated-models";
 
 export const defaults: Partial<AbstractVMFragmentFragment> = {
   platform: {

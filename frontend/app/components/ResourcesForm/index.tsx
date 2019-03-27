@@ -6,9 +6,8 @@ import {ResourcesForm} from "./form";
 import {XenObjectFragmentFragment} from "../../generated-models";
 import {Omit} from "../AbstractSettingsForm/utils";
 
-type XenObject = XenObjectFragmentFragment;
 
-interface Props<T extends XenObject> {
+interface Props<T> {
   object: T;
   mutationName: string;
   mutationNode: DocumentNode;
@@ -16,8 +15,7 @@ interface Props<T extends XenObject> {
 }
 
 
-export function ResourcesFormContainer<T extends XenObject>({object, mutationName, mutationNode, defaultValues}: Props<T>) {
-
+export function ResourcesFormContainer<T>({object, mutationName, mutationNode, defaultValues}: Props<T>) {
   return (
     <AbstractSettingsForm
       initialValues={object}
