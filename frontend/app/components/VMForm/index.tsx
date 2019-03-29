@@ -17,7 +17,7 @@ import VMForm from "./form";
 import {networkTypeOptions, Values} from "./props";
 import {useMutation} from "react-apollo-hooks";
 import {AutoInstall, CreateVM, NetworkConfiguration, usecreateVmMutation} from "../../generated-models";
-import {schema as resourceSchema} from '../../components/ResourcesForm/schema';
+import {schema as resourceSchema} from '../AbstractVMSettingsComponents/schema';
 import {Omit} from "../AbstractSettingsForm/utils";
 
 

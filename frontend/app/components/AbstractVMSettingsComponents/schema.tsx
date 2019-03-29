@@ -1,6 +1,5 @@
 import {number, object} from "yup";
-import {AbstractVMFragment, VMActions} from "../../generated-models";
-import {Omit} from "../AbstractSettingsForm/utils";
+import {AbstractVMFragmentFragment, VMActions} from "../../generated-models";
 
 export const MEMORY_MAX = 1572864 * 1024 * 1024;
 export const schema = {

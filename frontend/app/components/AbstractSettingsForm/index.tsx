@@ -1,19 +1,20 @@
 import {useMutation} from "react-apollo-hooks";
-import {Formik, FormikActions, FormikConfig} from "formik";
+import {Formik, FormikActions, FormikConfig, FormikProps} from "formik";
 import * as React from "react";
-import {useCallback} from "react";
+import {ReactNode, useCallback} from "react";
 import {difference, findDeepField, mutationResponseToFormikErrors, setXenAdapterAPIError,} from "./utils";
 import {DocumentNode} from "graphql";
 import {mergeDefaults, validation} from "../../utils/forms";
 import {XenObjectFragmentFragment} from "../../generated-models";
 
 export interface AbstractSettingsFormProps<T> {
+  children: ReactNode; // Formik-powered form fields
   initialValues: Partial<T>,
   defaultValues: Partial<T>
   mutationNode: DocumentNode; //Represents a settings mutation
   mutationName: string; //Represents a settings mutation name and root key
   validationSchema: FormikConfig<T>['validationSchema'];
-  component: FormikConfig<T>['component'];
+  component: React.ComponentType<FormikProps<T>>
 }
 
 
@@ -25,8 +26,9 @@ AbstractSettingsForm<T extends XenObjectFragmentFragment>({
                                                             mutationName,
                                                             validationSchema,
                                                             component,
+                                                            children
                                                           }: AbstractSettingsFormProps<T>) {
-  
+
   //@ts-ignore
   const initialValues = mergeDefaults(defaultValues, rest);
   const mutate = useMutation(mutationNode);
@@ -68,13 +70,18 @@ AbstractSettingsForm<T extends XenObjectFragmentFragment>({
 
   }, [initialValues]);
   const validator = validation(validationSchema);
+  const Component = component;
   return (
     <Formik initialValues={initialValues}
             isInitialValid={true}
             enableReinitialize={true}
             onSubmit={onSubmit}
             validate={validator}
-            component={component}
+            render={props => (
+              <Component {...props}>
+                {children}
+              </Component>
+            )}
     />
   );
 }

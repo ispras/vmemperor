@@ -1,10 +1,7 @@
-import React, {useMemo} from "react";
+import React, {ReactNode, useMemo} from "react";
 import {DocumentNode} from "graphql";
-import schema from "./schema";
 import {AbstractSettingsForm} from "../AbstractSettingsForm";
 import {ResourcesForm} from "./form";
-import {XenObjectFragmentFragment} from "../../generated-models";
-import {Omit} from "../AbstractSettingsForm/utils";
 
 
 interface Props<T> {
@@ -12,10 +9,12 @@ interface Props<T> {
   mutationName: string;
   mutationNode: DocumentNode;
   defaultValues: Partial<T>;
+  children: ReactNode;
+  schema: any;
 }
 
 
-export function ResourcesFormContainer<T>({object, mutationName, mutationNode, defaultValues}: Props<T>) {
+export function ResourcesFormContainer<T>({object, mutationName, mutationNode, defaultValues, children, schema}: Props<T>) {
   return (
     <AbstractSettingsForm
       initialValues={object}
@@ -24,7 +23,9 @@ export function ResourcesFormContainer<T>({object, mutationName, mutationNode, d
       mutationName={mutationName}
       validationSchema={schema}
       component={ResourcesForm}
-    />
+    >
+      {children}
+    </AbstractSettingsForm>
 
   );
 }

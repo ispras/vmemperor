@@ -34,7 +34,7 @@ import CheckBoxComponent from "../Checkbox";
 import {networkTypeOptions} from "./props";
 import {faDesktop} from "@fortawesome/free-solid-svg-icons/faDesktop";
 import styled from "styled-components";
-import {Fields as ResourceFields} from '../../components/ResourcesForm/fields';
+import {Fields as ResourceFields} from '../AbstractVMSettingsComponents/fields';
 
 const H4 = styled.h4`
 margin: 20px;

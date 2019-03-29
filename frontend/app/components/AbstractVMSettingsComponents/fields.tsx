@@ -1,6 +1,6 @@
 import React, {Fragment} from "react";
 
-import Input from '../../components/Input';
+import Input from '../Input';
 import {faMemory, faMicrochip} from "@fortawesome/free-solid-svg-icons";
 import {Field} from "formik";
 import {FormGroup, Label} from "reactstrap";

@@ -13,6 +13,8 @@ import {TabWidget, TabWidgetProps} from "../TabWidget";
 import {ResourcesFormContainer} from "../ResourcesForm";
 import {defaults} from "../VMSettingsForm/defaults";
 import AccessView from "../AccessView";
+import {Fields} from "../AbstractVMSettingsComponents/fields";
+import schema from "../AbstractVMSettingsComponents/schema";
 enum Tab {
   Overview = 'overview',
   Resources = 'resources',
@@ -47,7 +49,10 @@ const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<Templ
                   mutationNode={TemplateEditOptionsDocument}
                   mutationName="template"
                   defaultValues={defaults}
-                />
+                  schema={schema}
+                >
+                  <Fields/>
+                </ResourcesFormContainer>
               </Col>
             </Row>
           )

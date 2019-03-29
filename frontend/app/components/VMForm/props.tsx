@@ -1,7 +1,7 @@
 import {FormikProps} from "formik";
 import React from "react";
 import {Option} from '../../hooks/form';
-import {ResourceFormValues} from "../ResourcesForm/schema";
+import {ResourceFormValues} from "../AbstractVMSettingsComponents/schema";
 import {AutoInstall, CreateVM, VMInput} from "../../generated-models";
 import {Omit} from "react-apollo-hooks/lib/utils";
 

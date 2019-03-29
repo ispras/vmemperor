@@ -1,22 +1,18 @@
-import {ResourceFormValues} from "./schema";
+import {ResourceFormValues} from "../AbstractVMSettingsComponents/schema";
 import {FormikProps} from "formik";
 import * as React from "react";
 import {Alert, Button, Form, FormFeedback} from "reactstrap";
-import {Fields} from "./fields";
+import {Fields} from "../AbstractVMSettingsComponents/fields";
 import ButtonGroup from "reactstrap/lib/ButtonGroup";
 
-type FormikPropsValues = FormikProps<ResourceFormValues>;
 
-interface ResourcesFormProps extends FormikProps<ResourceFormValues> {
-}
-
-const FormContext = React.createContext<FormikPropsValues>(null); //For providing handleChange, handleBlur etc to fields
-export const ResourcesForm: React.FunctionComponent<ResourcesFormProps> =
+const FormContext = React.createContext<FormikProps<any>>(null); //For providing handleChange, handleBlur etc to fields
+export const ResourcesForm: React.FunctionComponent<FormikProps<any>> =
   (props) => {
     return (
       <FormContext.Provider value={props}>
         <Form onSubmit={props.handleSubmit}>
-          <Fields/>
+          {props.children}
           <ButtonGroup>
             <Button type="submit" className="float-right" color="primary">
               Apply
