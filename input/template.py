@@ -13,6 +13,4 @@ class InstallOSOptionsInput(InputObjectType):
     install_repository = graphene.InputField(graphene.String)
 
 class TemplateInput(AbstractVMInput):
-    enabled = graphene.InputField(graphene.Boolean,
-                                description="Should this template be enabled, i.e. used in VMEmperor by users")
     install_options = graphene.InputField(InstallOSOptionsInput)

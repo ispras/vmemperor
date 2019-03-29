@@ -41,8 +41,6 @@ class GTemplate(GXenObjectType):
                             resolver=resolve_accessentries(TemplateActions))
     my_actions = graphene.Field(graphene.List(GTemplateActions), required=True)
     is_owner = graphene.Field(graphene.Boolean, required=True, resolver=resolve_owner(TemplateActions))
-    hvm = graphene.Field(graphene.Boolean, required=True, description="True if this template works with hardware assisted virtualization")
-    enabled = graphene.Field(graphene.Boolean, required=True, description="True if this template is available for regular users")
     is_default_template = graphene.Field(graphene.Boolean, required=True, description="This template is preinstalled with XenServer")
     install_options = graphene.Field(InstallOSOptions, description="If the template supports unattended installation, its options are there")
 

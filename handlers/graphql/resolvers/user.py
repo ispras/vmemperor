@@ -6,6 +6,12 @@ from handlers.graphql.utils.query import resolve_table
 from handlers.graphql.resolvers import with_connection
 import constants.re as re
 
+ANY_USER = {
+                    "id": "any",
+                    "username": "any",
+                    "name": "Any user in the system"
+                }
+
 def resolve_users(*args, **kwargs):
     from handlers.graphql.types.user import User
     return resolve_table(User, "users")(*args, **kwargs)
@@ -47,6 +53,8 @@ def resolve_user(field_name = "user_id"):
                 table_name = value
                 break
         else:
+            if id == "any":
+                return ANY_USER
             raise ValueError(f"User ID should start with {list(tables)}")
 
 
@@ -88,5 +96,7 @@ def resolve_filter_users(root, info, query):
     }).union(re.db.table('groups').filter(lambda user: user['username'].match(query).or_(user['name'].match(query))).merge(lambda user: {
         'id': 'groups/' + user['id']
     }))
-    return q.coerce_to('array').run()
+    ret = q.coerce_to('array').run()
+    ret.append(ANY_USER)
+    return ret
 

@@ -1,4 +1,6 @@
-from typing import Optional
+from typing import Optional, Dict, List
+
+from serflag import SerFlag
 
 from handlers.graphql.types.template import GTemplate, TemplateActions
 from xentools.dict_deep_convert import dict_deep_convert
@@ -39,7 +41,6 @@ class Template(AbstractVM):
             new_rec['hvm'] = True
 
         other_config = dict_deep_convert(record['other_config'])
-        new_rec['enabled'] = cls.is_enabled(record)
         new_rec['is_default_template'] = 'default_template' in other_config and\
                                          other_config['default_template']
         if new_rec['is_default_template']:
@@ -65,22 +66,6 @@ class Template(AbstractVM):
         return new_rec
 
 
-
-
-
-
-    @classmethod
-    def get_access_data(cls, record,  new_rec, ref):
-        if cls.is_enabled(record):
-            return super().get_access_data(record, new_rec, ref)
-        else:
-            return {}
-
-    @classmethod
-    def is_enabled(cls, record):
-        return 'vmemperor' in record['tags']
-
-
     @use_logger
     def clone(self, name_label=None):
         try:
@@ -93,22 +78,7 @@ class Template(AbstractVM):
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(self.log, f"Failed to clone template: {f.details}")
 
-    @use_logger
-    def set_enabled(self, enabled):
-        '''
-        Adds/removes tag 'vmemperor'
-        :param enabled:
-        :return:
-        '''
-        try:
-            if enabled:
-                self.add_tags('vmemperor')
-                self.log.info(f"enabled")
-            else:
-                self.remove_tags('vmemperor')
-                self.log.info(f"disabled")
-        except XenAPI.Failure as f:
-            raise XenAdapterAPIError(self.log, f"Failed to {'enable' if enabled else 'disable'} template: {f.details}")
+
 
     def set_install_options(self, options : dict):
         '''

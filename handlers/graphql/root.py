@@ -14,7 +14,8 @@ from handlers.graphql.types.input.attachvdi import AttachVDIMutation
 from handlers.graphql.types.input.createvm import CreateVM
 from handlers.graphql.types.input.vm import VMMutation, VMStartMutation, VMShutdownMutation, VMRebootMutation, \
     VMPauseMutation, VMDeleteMutation, VMSuspendMutation
-from handlers.graphql.types.input.accessset import VMAccessSet, NetAccessSet, VDIAccessSet, SRAccessSet
+from handlers.graphql.types.input.accessset import VMAccessSet, NetAccessSet, VDIAccessSet, SRAccessSet, \
+    TemplateAccessSet
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
@@ -95,6 +96,7 @@ class Mutation(ObjectType):
     template = TemplateMutation.Field(description="Edit template options")
     template_clone = TemplateCloneMutation.Field(description="Clone template")
     template_delete = TemplateDestroyMutation.Field(description="Delete template")
+    template_access_set = TemplateAccessSet.Field(description="Set template access rights")
 
     vm = VMMutation.Field(description="Edit VM options")
     vm_start = VMStartMutation.Field(description="Start VM")

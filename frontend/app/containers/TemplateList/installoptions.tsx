@@ -1,11 +1,10 @@
-import {Arch, Distro, TemplateListFragment} from "../../generated-models";
+import {Arch, Distro, TemplateListFragmentFragment} from "../../generated-models";
 import React from "react";
 import {faRedhat, faSuse, faUbuntu} from "@fortawesome/free-brands-svg-icons";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
-import InstallOptions = TemplateListFragment.InstallOptions;
 
 
-export function installOptionsFormatter(cell: InstallOptions) {
+export function installOptionsFormatter(cell: TemplateListFragmentFragment['installOptions']) {
   if (!cell)
     return;
   let icon = null;
@@ -13,10 +12,10 @@ export function installOptionsFormatter(cell: InstallOptions) {
     case Distro.Debian:
       icon = faUbuntu;
       break;
-    case Distro.CentOs:
+    case Distro.CentOS:
       icon = faRedhat;
       break;
-    case Distro.Suse:
+    case Distro.SUSE:
       icon = faSuse;
       break;
 

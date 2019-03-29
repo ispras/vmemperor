@@ -1,6 +1,6 @@
 import json
 from json import JSONDecodeError
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from rethinkdb.errors import ReqlNonExistenceError
 from serflag import SerFlag
@@ -94,7 +94,7 @@ class ACLXenObject(XenObject):
         return False
 
     @classmethod
-    def get_access_data(cls, record,  new_rec, ref):
+    def get_access_data(cls, record,  new_rec, ref) -> Dict[str, List[str]]:
         '''
         Obtain access data from other_config
         :param record: Original object record (is not used in default implementation)
@@ -109,9 +109,9 @@ class ACLXenObject(XenObject):
             old_settings = {}
 
         if old_settings.get('_settings_', {}) == new_rec['_settings_']:
-            return None
+            return {}
 
-        def read_other_config_access_rights(access_settings) -> Dict[str, cls.Actions]:
+        def read_other_config_access_rights(access_settings) -> Dict[str, List[str]]:
             if auth.name in access_settings:
                 auth_dict = access_settings[auth.name]
                 deserialize_auth_dict(cls, auth_dict) # Will raise KeyError if something is wrong
@@ -147,7 +147,7 @@ class ACLXenObject(XenObject):
 
 
         from json import JSONDecodeError
-        if not (user.startswith('users/') or user.startswith('groups/')):
+        if not (user.startswith('users/') or user.startswith('groups/') or user == 'any'):
             raise XenAdapterArgumentError(self.log, f'Specify user OR group for {self.__class__.__name__}::manage_actions. Specified: {user}')
 
 

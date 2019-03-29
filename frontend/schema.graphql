@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Tue Mar 26 21:17:21 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Wed Mar 27 23:01:05 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -311,11 +311,7 @@ type GTemplate implements GAbstractVM & GAclXenObject {
   VCPUsMax: Int!
   access: [GTemplateAccessEntry]!
   domainType: DomainType!
-  "True if this template is available for regular users"
-  enabled: Boolean!
   guestMetrics: ID!
-  "True if this template works with hardware assisted virtualization"
-  hvm: Boolean!
   "If the template supports unattended installation, its options are there"
   installOptions: InstallOSOptions
   installTime: DateTime!
@@ -494,6 +490,8 @@ type Mutation {
     #Template to change
     template: TemplateInput!
   ): TemplateMutation
+  "Set template access rights"
+  templateAccessSet(actions: [TemplateActions!]!, ref: ID!, revoke: Boolean!, user: String!): TemplateAccessSet
   "Clone template"
   templateClone(
     #New name label
@@ -697,6 +695,10 @@ type Subscription {
   vm(ref: ID!): GVM
   "Updates for all VMs"
   vms(withInitials: Boolean): GVMsSubscription!
+}
+
+type TemplateAccessSet {
+  success: Boolean!
 }
 
 type TemplateCloneMutation {
@@ -1026,8 +1028,6 @@ input TemplateInput {
   VCPUsMax: Int
   "VM domain type: 'pv', 'hvm', 'pv_in_pvh'"
   domainType: DomainType
-  "Should this template be enabled, i.e. used in VMEmperor by users"
-  enabled: Boolean
   installOptions: InstallOSOptionsInput
   "Dynamic memory max in bytes"
   memoryDynamicMax: Float

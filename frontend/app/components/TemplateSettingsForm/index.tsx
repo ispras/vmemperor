@@ -3,7 +3,12 @@ import {useCallback, useMemo, useState} from "react";
 import * as React from "react";
 import XenObjectHeader from "../../components/XenObjectHeader";
 import {Badge, Col, Nav, NavItem, NavLink, Row, TabContent, TabPane} from "reactstrap";
-import {TemplateActions, TemplateEditOptionsDocument, TemplateInfoQuery} from "../../generated-models";
+import {
+  TemplateAccessSetMutationDocument,
+  TemplateActions,
+  TemplateEditOptionsDocument,
+  TemplateInfoQuery
+} from "../../generated-models";
 import {TabWidget, TabWidgetProps} from "../TabWidget";
 import {ResourcesFormContainer} from "../ResourcesForm";
 import {defaults} from "../VMSettingsForm/defaults";
@@ -52,12 +57,12 @@ const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<Templ
           content: (
             <Row>
               <Col sm="12">
-                {/*<AccessView
+                {<AccessView
                   data={template}
                   ALL={TemplateActions.ALL}
-                  mutationName="vmAccessSet"
-                  mutationNode={TemplateAccessSet}
-                />*/}
+                  mutationName="templateAccessSet"
+                  mutationNode={TemplateAccessSetMutationDocument}
+                />}
               </Col>
             </Row>
           )

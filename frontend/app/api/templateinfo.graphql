@@ -5,7 +5,6 @@
 fragment TemplateInfoFragment on GTemplate {
   ...AbstractVMFragment
   ...ACLXenObjectFragment
-  enabled
   myActions
   access {
     userId {

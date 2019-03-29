@@ -40,11 +40,6 @@ const columns: TemplateColumnType[] = [
     headerClasses: 'align-self-baseline'
   },
   {
-    dataField: "enabled",
-    text: 'Enabled',
-    formatter: checkBoxFormatter,
-  },
-  {
     dataField: "installOptions",
     text: "Auto-install type",
     formatter: installOptionsFormatter,
@@ -141,7 +136,7 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
     {
       onSubscriptionData({client, subscriptionData}) {
         //Changing is handled automatically, here we're handling removal & addition
-        const change = subscriptionData.templates;
+        const change = subscriptionData.data.templates;
         switch (change.changeType) {
           case Change.Add:
           case Change.Remove:

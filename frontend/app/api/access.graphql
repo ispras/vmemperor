@@ -4,3 +4,11 @@ mutation VMAccessSetMutation($actions: [VMActions!]!, $user: String!,  $ref :ID!
     success
   }
 }
+
+mutation TemplateAccessSetMutation($actions: [TemplateActions!]!, $user: String!,  $ref :ID!, $revoke: Boolean!) {
+  templateAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref)
+  {
+    success
+  }
+}
+

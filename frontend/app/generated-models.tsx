@@ -366,10 +366,6 @@ export type GTemplate = GAclXenObject &
     memoryDynamicMax: Scalars["Float"];
     myActions: Array<Maybe<TemplateActions>>;
     isOwner: Scalars["Boolean"];
-    /** True if this template works with hardware assisted virtualization */
-    hvm: Scalars["Boolean"];
-    /** True if this template is available for regular users */
-    enabled: Scalars["Boolean"];
     /** This template is preinstalled with XenServer */
     isDefaultTemplate: Scalars["Boolean"];
     /** If the template supports unattended installation, its options are there */
@@ -552,6 +548,8 @@ export type Mutation = {
   templateClone?: Maybe<TemplateCloneMutation>;
   /** Delete template */
   templateDelete?: Maybe<TemplateDestroyMutation>;
+  /** Set template access rights */
+  templateAccessSet?: Maybe<TemplateAccessSet>;
   /** Edit VM options */
   vm?: Maybe<VMMutation>;
   /** Start VM */
@@ -603,6 +601,13 @@ export type MutationtemplateCloneArgs = {
 
 export type MutationtemplateDeleteArgs = {
   ref: Scalars["ID"];
+};
+
+export type MutationtemplateAccessSetArgs = {
+  actions: Array<TemplateActions>;
+  ref: Scalars["ID"];
+  revoke: Scalars["Boolean"];
+  user: Scalars["String"];
 };
 
 export type MutationvmArgs = {
@@ -1050,6 +1055,10 @@ export enum TaskActions {
   ALL = "ALL"
 }
 
+export type TemplateAccessSet = {
+  success: Scalars["Boolean"];
+};
+
 /** An enumeration. */
 export enum TemplateActions {
   clone = "clone",
@@ -1098,8 +1107,6 @@ export type TemplateInput = {
   memoryStaticMin?: Maybe<Scalars["Float"]>;
   /** Static memory max in bytes */
   memoryStaticMax?: Maybe<Scalars["Float"]>;
-  /** Should this template be enabled, i.e. used in VMEmperor by users */
-  enabled?: Maybe<Scalars["Boolean"]>;
   installOptions?: Maybe<InstallOSOptionsInput>;
 };
 
@@ -1301,6 +1308,19 @@ export type VMAccessSetMutationMutationVariables = {
 export type VMAccessSetMutationMutation = { __typename?: "Mutation" } & {
   vmAccessSet: Maybe<
     { __typename?: "VMAccessSet" } & Pick<VMAccessSet, "success">
+  >;
+};
+
+export type TemplateAccessSetMutationMutationVariables = {
+  actions: Array<TemplateActions>;
+  user: Scalars["String"];
+  ref: Scalars["ID"];
+  revoke: Scalars["Boolean"];
+};
+
+export type TemplateAccessSetMutationMutation = { __typename?: "Mutation" } & {
+  templateAccessSet: Maybe<
+    { __typename?: "TemplateAccessSet" } & Pick<TemplateAccessSet, "success">
   >;
 };
 
@@ -1854,7 +1874,7 @@ export type TasksSubscription = { __typename?: "Subscription" } & {
 
 export type TemplateInfoFragmentFragment = { __typename?: "GTemplate" } & Pick<
   GTemplate,
-  "enabled" | "myActions" | "isOwner"
+  "myActions" | "isOwner"
 > & {
     access: Array<
       Maybe<
@@ -1895,7 +1915,7 @@ export type TemplateInfoUpdateSubscription = { __typename?: "Subscription" } & {
 
 export type TemplateListFragmentFragment = { __typename?: "GTemplate" } & Pick<
   GTemplate,
-  "ref" | "nameLabel" | "enabled" | "myActions" | "isOwner"
+  "ref" | "nameLabel" | "myActions" | "isOwner"
 > & {
     access: Array<
       Maybe<
@@ -2420,8 +2440,6 @@ export type GTemplateResolvers<Context = any, ParentType = GTemplate> = {
   memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
   myActions?: Resolver<Array<Maybe<TemplateActions>>, ParentType, Context>;
   isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  hvm?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  enabled?: Resolver<Scalars["Boolean"], ParentType, Context>;
   isDefaultTemplate?: Resolver<Scalars["Boolean"], ParentType, Context>;
   installOptions?: Resolver<Maybe<InstallOSOptions>, ParentType, Context>;
 };
@@ -2584,6 +2602,12 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
     ParentType,
     Context,
     MutationtemplateDeleteArgs
+  >;
+  templateAccessSet?: Resolver<
+    Maybe<TemplateAccessSet>,
+    ParentType,
+    Context,
+    MutationtemplateAccessSetArgs
   >;
   vm?: Resolver<Maybe<VMMutation>, ParentType, Context, MutationvmArgs>;
   vmStart?: Resolver<
@@ -2890,6 +2914,13 @@ export type SubscriptionResolvers<Context = any, ParentType = Subscription> = {
   >;
 };
 
+export type TemplateAccessSetResolvers<
+  Context = any,
+  ParentType = TemplateAccessSet
+> = {
+  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+};
+
 export type TemplateCloneMutationResolvers<
   Context = any,
   ParentType = TemplateCloneMutation
@@ -3051,6 +3082,7 @@ export type Resolvers<Context = any> = {
   SoftwareVersion?: SoftwareVersionResolvers<Context>;
   SRAccessSet?: SRAccessSetResolvers<Context>;
   Subscription?: SubscriptionResolvers<Context>;
+  TemplateAccessSet?: TemplateAccessSetResolvers<Context>;
   TemplateCloneMutation?: TemplateCloneMutationResolvers<Context>;
   TemplateDestroyMutation?: TemplateDestroyMutationResolvers<Context>;
   TemplateMutation?: TemplateMutationResolvers<Context>;
@@ -3186,7 +3218,6 @@ export const TemplateInfoFragmentFragmentDoc = gql`
   fragment TemplateInfoFragment on GTemplate {
     ...AbstractVMFragment
     ...ACLXenObjectFragment
-    enabled
     myActions
     access {
       userId {
@@ -3211,7 +3242,6 @@ export const TemplateListFragmentFragmentDoc = gql`
   fragment TemplateListFragment on GTemplate {
     ref
     nameLabel
-    enabled
     myActions
     access {
       userId {
@@ -3351,6 +3381,35 @@ export function useVMAccessSetMutationMutation(
     VMAccessSetMutationMutation,
     VMAccessSetMutationMutationVariables
   >(VMAccessSetMutationDocument, baseOptions);
+}
+export const TemplateAccessSetMutationDocument = gql`
+  mutation TemplateAccessSetMutation(
+    $actions: [TemplateActions!]!
+    $user: String!
+    $ref: ID!
+    $revoke: Boolean!
+  ) {
+    templateAccessSet(
+      actions: $actions
+      user: $user
+      revoke: $revoke
+      ref: $ref
+    ) {
+      success
+    }
+  }
+`;
+
+export function useTemplateAccessSetMutationMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    TemplateAccessSetMutationMutation,
+    TemplateAccessSetMutationMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    TemplateAccessSetMutationMutation,
+    TemplateAccessSetMutationMutationVariables
+  >(TemplateAccessSetMutationDocument, baseOptions);
 }
 export const VDIAttachDocument = gql`
   mutation VDIAttach($vmRef: ID!, $vdiRef: ID!) {

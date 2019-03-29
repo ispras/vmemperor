@@ -15,7 +15,7 @@ def set_install_options(input: InstallOSOptionsInput, tmpl : Template):
     if clean_input != {}:
         tmpl.set_install_options(input)
 
-def install_options_validator(input: TemplateInput):
+def install_options_validator(input: TemplateInput, _):
     '''
     Use the fact that both {} and None are falsy values.
     Either distro  is not set (or cleared) or if distro is set other parameters should be set
@@ -49,7 +49,6 @@ class TemplateMutation(graphene.Mutation):
         t = Template(xen=ctx.xen, ref=template.ref)
 
         mutations = [
-            MutationMethod(func="enabled", access_action=None),
             MutationMethod(func=(set_install_options, install_options_validator), access_action=Template.Actions.change_install_os_options)
         ]
 
