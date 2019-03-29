@@ -81,7 +81,7 @@ class ACLXenObject(XenObject):
 
         username = f'users/{auth.get_id()}'
         groupnames = [f'groups/{group}' for group in auth.get_user_groups()]
-        for userid in (username, *groupnames):
+        for userid in (username, *groupnames, 'any'):
             for item in access_info.get(userid, []):
                 if not item:
                     continue
