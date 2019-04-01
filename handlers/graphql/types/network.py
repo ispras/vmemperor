@@ -6,6 +6,7 @@ from serflag import SerFlag
 from handlers.graphql.interfaces.xenobject import GAclXenObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
+from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.accessentry import GAccessEntry
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.objecttype import ObjectType
@@ -18,12 +19,7 @@ class NetworkActions(SerFlag):
 
 
 GNetworkActions = graphene.Enum.from_enum(NetworkActions)
-
-class GNetworkAccessEntry(ObjectType):
-    class Meta:
-        interfaces = (GAccessEntry, )
-
-    actions = graphene.Field(GNetworkActions, required=True)
+GNetworkAccessEntry = create_access_type("GNetworkAccessEntry", GNetworkActions)
 
 class GNetwork(GXenObjectType):
     class Meta:

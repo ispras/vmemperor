@@ -353,8 +353,6 @@ class CentOS(GenericOS):
         else:
             raise ValueError()
 
-
-
         rhel_keys = [key for key in self.other_config if key.startswith('rhel')]
 
         for key in rhel_keys:

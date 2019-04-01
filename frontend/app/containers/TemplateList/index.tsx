@@ -16,7 +16,6 @@ import {
   useDeleteTemplateMutation,
   useTemplateListQuery,
   useTemplateListUpdateSubscription,
-  useTemplateSetEnabledMutation,
 } from "../../generated-models";
 import {checkBoxFormatter, nameFormatter} from "../../utils/formatters";
 import {Button, ButtonToolbar} from "reactstrap";
@@ -61,16 +60,12 @@ function rowClasses(row: TemplateListFragmentFragment, rowIndex) {
 
 
 interface State {
-  selectedForEnabling: Set<string>;
-  selectedForDisabling: Set<string>;
   selectedForTrash: Set<string>;
 }
 
 type TemplateListReducer = Reducer<State, ListAction>;
 
 const initialState: ReducerState<TemplateListReducer> = {
-  selectedForEnabling: Set.of<string>(),
-  selectedForDisabling: Set.of<string>(),
   selectedForTrash: Set.of<string>(),
 };
 
@@ -83,13 +78,11 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   }, [history]);
 
   const {data: {templates}} = useTemplateListQuery();
-  const {data: {currentUser}} = useCurrentUserQuery();
+  //const {data: {currentUser}} = useCurrentUserQuery();
   const client = useApolloClient();
-  const templateMutation = useTemplateSetEnabledMutation();
   const deleteTemplate = useDeleteTemplateMutation();
 
   const reducer: TemplateListReducer = (state, action) => {
-    let currentState = {...initialState};
     switch (action.type) {
       case "Change":
       case "Add":
@@ -101,32 +94,13 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
           }),
         });
 
-        if (currentUser.isAdmin)
-          currentState = {
-            ...currentState,
-            selectedForEnabling: !info.enabled
-              ? state.selectedForEnabling.add(action.ref)
-              : state.selectedForEnabling.remove(action.ref),
-            selectedForDisabling: info.enabled
-              ? state.selectedForDisabling.add(action.ref)
-              : state.selectedForDisabling.remove(action.ref),
-
-          };
-
         return {
-          ...currentState, selectedForTrash: info.myActions.includes(TemplateActions.destroy)
+          selectedForTrash: info.myActions.includes(TemplateActions.destroy)
             ? state.selectedForTrash.add(action.ref)
             : state.selectedForTrash.remove(action.ref)
         };
       case "Remove":
-        if (currentUser.isAdmin)
-          currentState = {
-            ...currentState,
-            selectedForEnabling: state.selectedForEnabling.delete(action.ref),
-            selectedForDisabling: state.selectedForDisabling.delete(action.ref),
-          };
         return {
-          ...currentState,
           selectedForTrash: state.selectedForTrash.delete(action.ref),
         };
     }
@@ -155,26 +129,11 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
       }
     });
 
-  const onEnableDisable = useCallback(async (array: Array<string>, enabled: boolean) => {
-    for (const id of array) {
-      await templateMutation({
-        variables: {
-          template: {
-            ref: id,
-            enabled
-          }
-        }
-      });
-    }
-  }, [templateMutation]);
+
 
   const [state, dispatch] = useReducer<TemplateListReducer>(reducer, initialState);
-  const {selectedForEnabling, selectedForDisabling, selectedForTrash} = state;
+  const {selectedForTrash} = state;
 
-  const onEnable = useCallback(async () =>
-    await onEnableDisable(selectedForEnabling.toArray(), true), [onEnableDisable, selectedForEnabling]);
-  const onDisable = useCallback(async () =>
-    await onEnableDisable(selectedForDisabling.toArray(), false), [onEnableDisable, selectedForDisabling]);
 
   const onDeleteTemplate = useCallback(async () => {
     for (const id of selectedForTrash.toArray()) {
@@ -189,25 +148,7 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   return (
     <Fragment>
       <ButtonToolbar>
-        {currentUser.isAdmin &&
-        <ButtonGroup>
-          <Button
-            color="primary"
-            disabled={selectedForEnabling.isEmpty()}
-            onClick={onEnable}
-          >
-            Enable
-          </Button>
-          <Button
-            color="primary"
-            disabled={selectedForDisabling.isEmpty()}
-            onClick={onDisable}
-          >
-            Disable
-          </Button>
-        </ButtonGroup>
-        }
-        <ButtonGroup className="ml-auto">
+        <ButtonGroup className="ml-auto" size="lg">
           <RecycleBinButton
             onClick={onDeleteTemplate}
             disabled={selectedForTrash.size == 0}/>

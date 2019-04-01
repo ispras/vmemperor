@@ -32,9 +32,9 @@ class MyNavbar extends React.Component {
       leftLinks: [
         {to: "/vms", text: {...messages.vms}},
         {to: "/templates", text: {...messages.templates}},
-        {to: "/create-object", text: {...messages.createvm}},
+        {to: "/create-vm", text: {...messages.createvm}},
         {to: "/history", text: {...messages.history}},
-        {to: "/resources", text: {...messages.resources}}
+        {to: "/networks", text: {...messages.networks}}
       ],
       rightLinks: [{to: "/logout", text: {...messages.logout}}]
     };
