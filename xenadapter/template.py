@@ -74,6 +74,14 @@ class Template(AbstractVM):
             new_vm_ref = self.__getattr__('clone')(name_label)
             vm = VM(self.xen, new_vm_ref)
             self.log.info(f"New VM is created: ref:{vm.ref}")
+            # Hack: set viridian to false iif linux_template is true (for Guest Additions to work correctly).
+            other_config = self.get_other_config()
+            if other_config['linux_template'] is True:
+                platform = vm.get_platform()
+                # This is for Linux auto-installs to work. If we'd ever support Windows, then viridian should be true (Hyper-V improvements for Windows guests)
+                if 'viridian' not in platform or platform['viridian']:
+                    platform['viridian'] = False
+                    vm.set_platform(platform)
             return vm
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(self.log, f"Failed to clone template: {f.details}")
@@ -116,12 +124,6 @@ class Template(AbstractVM):
             os.set_install_repository(options['install_repository'])
 
         self.set_other_config(os.other_config)
-
-
-
-
-
-
 
     def set_distro(self, distro: Optional[Distro]):
         '''
