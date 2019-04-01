@@ -109,7 +109,7 @@ class ACLXenObject(XenObject):
             old_settings = {}
 
         if old_settings.get('_settings_', {}) == new_rec['_settings_']:
-            return {}
+            return None
 
         def read_other_config_access_rights(access_settings) -> Dict[str, List[str]]:
             if auth.name in access_settings:
