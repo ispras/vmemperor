@@ -1,0 +1,6 @@
+mutation NetworkEditOptions ($network: NetworkInput!){
+  network(network: $network) {
+    granted
+    reason
+  }
+}

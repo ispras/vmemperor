@@ -67,7 +67,7 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
   const header = useMemo(() => (
     <XenObjectHeader
       xenObject={vm}
-      editMutationName={"object"}
+      editMutationName={"vm"}
       editMutation={VMEditOptionsDocument}
     >
       <Badge color="primary">{vm.powerState}</Badge>

@@ -3,6 +3,10 @@
  *
  * This is the entry file for the application, only setup and boilerplate
  * code.
+ *
+ * !!!!
+ * If you add a local api query, initialize local api state here!
+ * See function initializeCache
  */
 
 // Needed for redux-saga es6 generator support
@@ -205,6 +209,32 @@ const initializeCache = () => {
       variables: {tableId: Table.Templates},
       data: {selectedItems: []}
     });
+  client.cache.writeQuery<SelectedItemsQueryQuery, SelectedItemsQueryQueryVariables>(
+    {
+      query: SelectedItemsQueryDocument,
+      variables: {tableId: Table.Networks},
+      data: {selectedItems: []}
+    });
+  client.cache.writeQuery<SelectedItemsQueryQuery, SelectedItemsQueryQueryVariables>(
+    {
+      query: SelectedItemsQueryDocument,
+      variables: {tableId: Table.SRs},
+      data: {selectedItems: []}
+    });
+  client.cache.writeQuery<SelectedItemsQueryQuery, SelectedItemsQueryQueryVariables>(
+    {
+      query: SelectedItemsQueryDocument,
+      variables: {tableId: Table.VDIs},
+      data: {selectedItems: []}
+    });
+  client.cache.writeQuery<SelectedItemsQueryQuery, SelectedItemsQueryQueryVariables>(
+    {
+      query: SelectedItemsQueryDocument,
+      variables: {tableId: Table.ISOs},
+      data: {selectedItems: []}
+    });
+
+
 };
 
 initializeCache();

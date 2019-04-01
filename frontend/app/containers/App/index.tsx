@@ -10,16 +10,16 @@ import LoginPage from '../../containers/LoginPage/Loadable';
 import CreateVM from "../CreateVM";
 import Logout from '../../containers/Logout/Loadable';
 import TemplateSettings from '../../containers/TemplateSettings';
-
 import VMSettings from "../VMSettings";
-import {AccessController} from "../AccessController";
-
 import * as Sentry from '@sentry/browser';
 import Templates from "../TemplateList";
+import Networks from "../NetworkList";
+
 import styled from "styled-components";
 import {GlobalStyle} from '../../global-styles';
 import reducer from "./reducer";
 import {compose} from "redux";
+import NetworkSettings from "../NetworkSettings";
 
 
 interface State {
@@ -69,7 +69,8 @@ class App extends React.Component<{}, State> {
           <PrivateRoute path="/create-vm" component={CreateVM}/>
           <PrivateRoute path="/logout" component={Logout}/>
           {/*<PrivateRoute path="/desktop/:ref" component={VncView}/>*/}
-          <PrivateRoute path="/resources" component={AccessController}/>
+          <PrivateRoute path="/networks" component={Networks}/>
+          <PrivateRoute path="/network/:ref" component={NetworkSettings}/>
           <Route component={NotFoundPage}/>
         </Switch>
         <GlobalStyle/>

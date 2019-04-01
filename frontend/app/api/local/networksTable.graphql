@@ -1,0 +1,11 @@
+query NetworkTableSelection {
+  selectedItems(tableId: Networks ) @client
+}
+
+mutation NetworkTableSelect ($item: ID!, $isSelect: Boolean! ){
+  selectedItems(tableId: Networks, items: [$item], isSelect: $isSelect) @client
+}
+
+mutation NetworkTableSelectAll ($items: [ID!]!, $isSelect: Boolean! ){
+  selectedItems(tableId: Networks, items: $items, isSelect: $isSelect) @client
+}

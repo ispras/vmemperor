@@ -1,6 +1,7 @@
 import graphene
 from graphene.types.resolver import dict_resolver
 
+from authentication import with_default_authentication
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils import access
 from handlers.graphql.types.accessentry import GAccessEntry
@@ -18,7 +19,7 @@ def create_access_mutation_type(name, actions_type, xenobject_type):
         user = graphene.String(required=True)
 
 
-
+    @with_default_authentication
     def mutate(root, info, ref, actions, user,  revoke):
         ctx: ContextProtocol = info.context
         obj = xenobject_type(ctx.xen, ref)

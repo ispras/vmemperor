@@ -9,31 +9,13 @@ from handlers.graphql.resolvers import with_connection
 from handlers.graphql.types.input.abstractvm import memory_input_validator, set_memory, \
     vcpus_input_validator, set_VCPUs, platform_validator
 from handlers.graphql.types.objecttype import InputObjectType
+from handlers.graphql.utils.editmutation import create_edit_mutation
 from input.vm import VMInput
 from xenadapter.xenobject import set_subtype
 from xenadapter.vm import VM
 from handlers.graphql.utils.input import set_subtype_field
 
-class VMMutation(graphene.Mutation):
-    '''
-    This class represents synchronous mutations for VM, i.e. you can change name_label, name_description, etc.
-    '''
-    granted = graphene.Field(graphene.Boolean, required=True)
-    reason = graphene.Field(graphene.String)
-
-    class Arguments:
-        vm = graphene.Argument(VMInput, description="VM to change", required=True)
-
-
-    @staticmethod
-    @with_default_authentication
-    @with_connection
-    def mutate(root, info, vm: VMInput):
-        ctx : ContextProtocol = info.context
-
-        mutable = VM(ctx.xen, vm.ref)
-
-        mutations = [
+mutations = [
             MutationMethod(func="name_label", access_action=VM.Actions.rename),
             MutationMethod(func="name_description", access_action=VM.Actions.rename),
             MutationMethod(func="domain_type", access_action=VM.Actions.change_domain_type),
@@ -41,15 +23,7 @@ class VMMutation(graphene.Mutation):
             MutationMethod(func=(set_VCPUs, vcpus_input_validator), access_action=VM.Actions.changing_VCPUs),
             MutationMethod(func=(set_memory, memory_input_validator), access_action=VM.Actions.changing_memory_limits)
         ]
-
-
-        helper = MutationHelper(mutations, ctx, mutable)
-        granted, reason = helper.perform_mutations(vm)
-        if not granted:
-            return VMMutation(granted=False, reason=reason)
-
-        return VMMutation(granted=True)
-
+VMMutation = create_edit_mutation("VMMutation", "vm", VMInput, VM, mutations)
 
 class VMStartInput(InputObjectType):
     paused = graphene.InputField(graphene.Boolean, default_value=False, description="Should this VM be started and immidiately paused")

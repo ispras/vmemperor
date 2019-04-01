@@ -12,3 +12,24 @@ mutation TemplateAccessSetMutation($actions: [TemplateActions!]!, $user: String!
   }
 }
 
+mutation NetworkAccessSetMutation($actions: [NetworkActions!]!, $user: String!,  $ref :ID!, $revoke: Boolean!) {
+  netAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref)
+  {
+    success
+  }
+}
+
+mutation SRAccessSetMutation($actions: [SRActions!]!, $user: String!,  $ref :ID!, $revoke: Boolean!) {
+  srAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref)
+  {
+    success
+  }
+}
+
+mutation VDIAccessSetMutation($actions: [VDIActions!]!, $user: String!,  $ref :ID!, $revoke: Boolean!) {
+  vdiAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref)
+  {
+    success
+  }
+}
+

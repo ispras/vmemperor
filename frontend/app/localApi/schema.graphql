@@ -1,6 +1,10 @@
 enum Table {
   VMS,
   Templates,
+  Networks,
+  ISOs,
+  VDIs,
+  SRs,
   NetworkAttach,
   DiskAttach
 }

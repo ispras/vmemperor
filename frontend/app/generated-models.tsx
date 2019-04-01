@@ -208,7 +208,15 @@ export type GNetwork = GAclXenObject & {
 
 export type GNetworkAccessEntry = GAccessEntry & {
   userId: User;
-  actions: NetworkActions;
+  actions: Array<NetworkActions>;
+};
+
+export type GNetworkOrDeleted = GNetwork | Deleted;
+
+export type GNetworksSubscription = {
+  /** Change type */
+  changeType: Change;
+  value: GNetworkOrDeleted;
 };
 
 /** Fancy name for a PBD. Not a real Xen object, though a connection
@@ -568,6 +576,8 @@ export type Mutation = {
   vmAccessSet?: Maybe<VMAccessSet>;
   /** Launch an Ansible Playbook on specified VMs */
   playbookLaunch?: Maybe<PlaybookLaunchMutation>;
+  /** Edit Network options */
+  network?: Maybe<NetworkMutation>;
   /** Attach VM to a Network by creating a new Interface */
   netAttach?: Maybe<AttachNetworkMutation>;
   /** Set network access rights */
@@ -654,6 +664,10 @@ export type MutationplaybookLaunchArgs = {
   vms?: Maybe<Array<Maybe<Scalars["ID"]>>>;
 };
 
+export type MutationnetworkArgs = {
+  network: NetworkInput;
+};
+
 export type MutationnetAttachArgs = {
   isAttach: Scalars["Boolean"];
   netRef: Scalars["ID"];
@@ -699,6 +713,7 @@ export type NetAccessSet = {
 
 /** An enumeration. */
 export enum NetworkActions {
+  rename = "rename",
   attaching = "attaching",
   NONE = "NONE",
   ALL = "ALL"
@@ -710,6 +725,20 @@ export type NetworkConfiguration = {
   netmask: Scalars["String"];
   dns0: Scalars["String"];
   dns1?: Maybe<Scalars["String"]>;
+};
+
+export type NetworkInput = {
+  /** Object's ref */
+  ref: Scalars["ID"];
+  /** Object's human-readable name */
+  nameLabel?: Maybe<Scalars["String"]>;
+  /** Object's human-readable description */
+  nameDescription?: Maybe<Scalars["String"]>;
+};
+
+export type NetworkMutation = {
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
 };
 
 export type NewVDI = {
@@ -971,6 +1000,10 @@ export type Subscription = {
   pools: GPoolsSubscription;
   /** Updates for a particular Pool */
   pool?: Maybe<GPool>;
+  /** Updates for all Networks */
+  networks: GNetworksSubscription;
+  /** Updates for a particular Network */
+  network?: Maybe<GNetwork>;
   /** Updates for all XenServer tasks */
   tasks: GTasksSubscription;
   /** Updates for a particular XenServer Task */
@@ -1022,6 +1055,16 @@ export type SubscriptionpoolArgs = {
 };
 
 /** All subscriptions must return  Observable */
+export type SubscriptionnetworksArgs = {
+  withInitials: Scalars["Boolean"];
+};
+
+/** All subscriptions must return  Observable */
+export type SubscriptionnetworkArgs = {
+  ref: Scalars["ID"];
+};
+
+/** All subscriptions must return  Observable */
 export type SubscriptiontasksArgs = {
   withInitials: Scalars["Boolean"];
 };
@@ -1044,6 +1087,10 @@ export type SubscriptionplaybookTasksArgs = {
 export enum Table {
   VMS = "VMS",
   Templates = "Templates",
+  Networks = "Networks",
+  ISOs = "ISOs",
+  VDIs = "VDIs",
+  SRs = "SRs",
   NetworkAttach = "NetworkAttach",
   DiskAttach = "DiskAttach"
 }
@@ -1061,6 +1108,7 @@ export type TemplateAccessSet = {
 
 /** An enumeration. */
 export enum TemplateActions {
+  rename = "rename",
   clone = "clone",
   destroy = "destroy",
   change_install_os_options = "change_install_os_options",
@@ -1111,9 +1159,7 @@ export type TemplateInput = {
 };
 
 export type TemplateMutation = {
-  /** If access is granted */
   granted: Scalars["Boolean"];
-  /** If access is not granted, return reason why */
   reason?: Maybe<Scalars["String"]>;
 };
 
@@ -1226,7 +1272,6 @@ export type VMInput = {
   memoryStaticMax?: Maybe<Scalars["Float"]>;
 };
 
-/** This class represents synchronous mutations for VM, i.e. you can change name_label, name_description, etc. */
 export type VMMutation = {
   granted: Scalars["Boolean"];
   reason?: Maybe<Scalars["String"]>;
@@ -1321,6 +1366,45 @@ export type TemplateAccessSetMutationMutationVariables = {
 export type TemplateAccessSetMutationMutation = { __typename?: "Mutation" } & {
   templateAccessSet: Maybe<
     { __typename?: "TemplateAccessSet" } & Pick<TemplateAccessSet, "success">
+  >;
+};
+
+export type NetworkAccessSetMutationMutationVariables = {
+  actions: Array<NetworkActions>;
+  user: Scalars["String"];
+  ref: Scalars["ID"];
+  revoke: Scalars["Boolean"];
+};
+
+export type NetworkAccessSetMutationMutation = { __typename?: "Mutation" } & {
+  netAccessSet: Maybe<
+    { __typename?: "NetAccessSet" } & Pick<NetAccessSet, "success">
+  >;
+};
+
+export type SRAccessSetMutationMutationVariables = {
+  actions: Array<SRActions>;
+  user: Scalars["String"];
+  ref: Scalars["ID"];
+  revoke: Scalars["Boolean"];
+};
+
+export type SRAccessSetMutationMutation = { __typename?: "Mutation" } & {
+  srAccessSet: Maybe<
+    { __typename?: "SRAccessSet" } & Pick<SRAccessSet, "success">
+  >;
+};
+
+export type VDIAccessSetMutationMutationVariables = {
+  actions: Array<VDIActions>;
+  user: Scalars["String"];
+  ref: Scalars["ID"];
+  revoke: Scalars["Boolean"];
+};
+
+export type VDIAccessSetMutationMutation = { __typename?: "Mutation" } & {
+  vdiAccessSet: Maybe<
+    { __typename?: "VDIAccessSet" } & Pick<VDIAccessSet, "success">
   >;
 };
 
@@ -1439,6 +1523,19 @@ export type DeleteVMMutationVariables = {
 export type DeleteVMMutation = { __typename?: "Mutation" } & {
   vmDelete: Maybe<
     { __typename?: "VMDeleteMutation" } & Pick<VMDeleteMutation, "taskId">
+  >;
+};
+
+export type NetworkEditOptionsMutationVariables = {
+  network: NetworkInput;
+};
+
+export type NetworkEditOptionsMutation = { __typename?: "Mutation" } & {
+  network: Maybe<
+    { __typename?: "NetworkMutation" } & Pick<
+      NetworkMutation,
+      "granted" | "reason"
+    >
   >;
 };
 
@@ -1582,6 +1679,33 @@ export type NetAttachTableSelectAllMutation = {
   __typename?: "Mutation";
 } & Pick<Mutation, "selectedItems">;
 
+export type NetworkTableSelectionQueryVariables = {};
+
+export type NetworkTableSelectionQuery = { __typename?: "Query" } & Pick<
+  Query,
+  "selectedItems"
+>;
+
+export type NetworkTableSelectMutationVariables = {
+  item: Scalars["ID"];
+  isSelect: Scalars["Boolean"];
+};
+
+export type NetworkTableSelectMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
+  "selectedItems"
+>;
+
+export type NetworkTableSelectAllMutationVariables = {
+  items: Array<Scalars["ID"]>;
+  isSelect: Scalars["Boolean"];
+};
+
+export type NetworkTableSelectAllMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
+  "selectedItems"
+>;
+
 export type SelectedItemsQueryQueryVariables = {
   tableId: Table;
 };
@@ -1660,9 +1784,44 @@ export type VMStateForButtonToolbarQuery = { __typename?: "Query" } & {
   >;
 };
 
+export type NetworkInfoFragmentFragment = { __typename?: "GNetwork" } & Pick<
+  GNetwork,
+  "myActions" | "isOwner"
+> & {
+    access: Array<
+      Maybe<
+        { __typename?: "GNetworkAccessEntry" } & Pick<
+          GNetworkAccessEntry,
+          "actions"
+        > & {
+            userId: { __typename?: "User" } & Pick<
+              User,
+              "id" | "name" | "username"
+            >;
+          }
+      >
+    >;
+  } & ACLXenObjectFragmentFragment;
+
+export type NetworkInfoQueryVariables = {
+  ref: Scalars["ID"];
+};
+
+export type NetworkInfoQuery = { __typename?: "Query" } & {
+  network: Maybe<{ __typename?: "GNetwork" } & NetworkInfoFragmentFragment>;
+};
+
+export type NetworkInfoUpdateSubscriptionVariables = {
+  ref: Scalars["ID"];
+};
+
+export type NetworkInfoUpdateSubscription = { __typename?: "Subscription" } & {
+  network: Maybe<{ __typename?: "GNetwork" } & NetworkInfoFragmentFragment>;
+};
+
 export type NetworkListFragmentFragment = { __typename?: "GNetwork" } & Pick<
   GNetwork,
-  "ref" | "nameLabel" | "nameDescription"
+  "ref" | "nameLabel"
 >;
 
 export type NetworkListQueryVariables = {};
@@ -1671,6 +1830,15 @@ export type NetworkListQuery = { __typename?: "Query" } & {
   networks: Array<
     Maybe<{ __typename?: "GNetwork" } & NetworkListFragmentFragment>
   >;
+};
+
+export type NetworkListUpdateSubscriptionVariables = {};
+
+export type NetworkListUpdateSubscription = { __typename?: "Subscription" } & {
+  networks: { __typename?: "GNetworksSubscription" } & Pick<
+    GNetworksSubscription,
+    "changeType"
+  > & { value: NetworkListFragmentFragment | DeletedFragmentFragment };
 };
 
 export type PauseVMMutationVariables = {
@@ -2307,7 +2475,22 @@ export type GNetworkAccessEntryResolvers<
   ParentType = GNetworkAccessEntry
 > = {
   userId?: Resolver<User, ParentType, Context>;
-  actions?: Resolver<NetworkActions, ParentType, Context>;
+  actions?: Resolver<Array<NetworkActions>, ParentType, Context>;
+};
+
+export type GNetworkOrDeletedResolvers<
+  Context = any,
+  ParentType = GNetworkOrDeleted
+> = {
+  __resolveType: TypeResolveFn<"GNetwork" | "Deleted", ParentType, Context>;
+};
+
+export type GNetworksSubscriptionResolvers<
+  Context = any,
+  ParentType = GNetworksSubscription
+> = {
+  changeType?: Resolver<Change, ParentType, Context>;
+  value?: Resolver<GNetworkOrDeleted, ParentType, Context>;
 };
 
 export type GPBDResolvers<Context = any, ParentType = GPBD> = {
@@ -2661,6 +2844,12 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
     Context,
     MutationplaybookLaunchArgs
   >;
+  network?: Resolver<
+    Maybe<NetworkMutation>,
+    ParentType,
+    Context,
+    MutationnetworkArgs
+  >;
   netAttach?: Resolver<
     Maybe<AttachNetworkMutation>,
     ParentType,
@@ -2701,6 +2890,14 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
 
 export type NetAccessSetResolvers<Context = any, ParentType = NetAccessSet> = {
   success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+};
+
+export type NetworkMutationResolvers<
+  Context = any,
+  ParentType = NetworkMutation
+> = {
+  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
 };
 
 export type OSVersionResolvers<Context = any, ParentType = OSVersion> = {
@@ -2891,6 +3088,18 @@ export type SubscriptionResolvers<Context = any, ParentType = Subscription> = {
     Context,
     SubscriptionpoolArgs
   >;
+  networks?: SubscriptionResolver<
+    GNetworksSubscription,
+    ParentType,
+    Context,
+    SubscriptionnetworksArgs
+  >;
+  network?: SubscriptionResolver<
+    Maybe<GNetwork>,
+    ParentType,
+    Context,
+    SubscriptionnetworkArgs
+  >;
   tasks?: SubscriptionResolver<
     GTasksSubscription,
     ParentType,
@@ -3046,6 +3255,8 @@ export type Resolvers<Context = any> = {
   GHostsSubscription?: GHostsSubscriptionResolvers<Context>;
   GNetwork?: GNetworkResolvers<Context>;
   GNetworkAccessEntry?: GNetworkAccessEntryResolvers<Context>;
+  GNetworkOrDeleted?: GNetworkOrDeletedResolvers;
+  GNetworksSubscription?: GNetworksSubscriptionResolvers<Context>;
   GPBD?: GPBDResolvers<Context>;
   GPlaybook?: GPlaybookResolvers<Context>;
   GPool?: GPoolResolvers<Context>;
@@ -3073,6 +3284,7 @@ export type Resolvers<Context = any> = {
   JSONString?: GraphQLScalarType;
   Mutation?: MutationResolvers<Context>;
   NetAccessSet?: NetAccessSetResolvers<Context>;
+  NetworkMutation?: NetworkMutationResolvers<Context>;
   OSVersion?: OSVersionResolvers<Context>;
   Platform?: PlatformResolvers<Context>;
   PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers<Context>;
@@ -3155,11 +3367,33 @@ export const ISOCreateVMListFragmentFragmentDoc = gql`
     }
   }
 `;
+export const ACLXenObjectFragmentFragmentDoc = gql`
+  fragment ACLXenObjectFragment on GAclXenObject {
+    ref
+    nameLabel
+    nameDescription
+  }
+`;
+export const NetworkInfoFragmentFragmentDoc = gql`
+  fragment NetworkInfoFragment on GNetwork {
+    ...ACLXenObjectFragment
+    access {
+      actions
+      userId {
+        id
+        name
+        username
+      }
+    }
+    myActions
+    isOwner
+  }
+  ${ACLXenObjectFragmentFragmentDoc}
+`;
 export const NetworkListFragmentFragmentDoc = gql`
   fragment NetworkListFragment on GNetwork {
     ref
     nameLabel
-    nameDescription
   }
 `;
 export const PoolListFragmentFragmentDoc = gql`
@@ -3221,13 +3455,6 @@ export const TemplateSettingsFragmentFragmentDoc = gql`
     }
   }
   ${AbstractVMFragmentFragmentDoc}
-`;
-export const ACLXenObjectFragmentFragmentDoc = gql`
-  fragment ACLXenObjectFragment on GAclXenObject {
-    ref
-    nameLabel
-    nameDescription
-  }
 `;
 export const TemplateInfoFragmentFragmentDoc = gql`
   fragment TemplateInfoFragment on GTemplate {
@@ -3420,6 +3647,78 @@ export function useTemplateAccessSetMutationMutation(
     TemplateAccessSetMutationMutationVariables
   >(TemplateAccessSetMutationDocument, baseOptions);
 }
+export const NetworkAccessSetMutationDocument = gql`
+  mutation NetworkAccessSetMutation(
+    $actions: [NetworkActions!]!
+    $user: String!
+    $ref: ID!
+    $revoke: Boolean!
+  ) {
+    netAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref) {
+      success
+    }
+  }
+`;
+
+export function useNetworkAccessSetMutationMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    NetworkAccessSetMutationMutation,
+    NetworkAccessSetMutationMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    NetworkAccessSetMutationMutation,
+    NetworkAccessSetMutationMutationVariables
+  >(NetworkAccessSetMutationDocument, baseOptions);
+}
+export const SRAccessSetMutationDocument = gql`
+  mutation SRAccessSetMutation(
+    $actions: [SRActions!]!
+    $user: String!
+    $ref: ID!
+    $revoke: Boolean!
+  ) {
+    srAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref) {
+      success
+    }
+  }
+`;
+
+export function useSRAccessSetMutationMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    SRAccessSetMutationMutation,
+    SRAccessSetMutationMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    SRAccessSetMutationMutation,
+    SRAccessSetMutationMutationVariables
+  >(SRAccessSetMutationDocument, baseOptions);
+}
+export const VDIAccessSetMutationDocument = gql`
+  mutation VDIAccessSetMutation(
+    $actions: [VDIActions!]!
+    $user: String!
+    $ref: ID!
+    $revoke: Boolean!
+  ) {
+    vdiAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref) {
+      success
+    }
+  }
+`;
+
+export function useVDIAccessSetMutationMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    VDIAccessSetMutationMutation,
+    VDIAccessSetMutationMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    VDIAccessSetMutationMutation,
+    VDIAccessSetMutationMutationVariables
+  >(VDIAccessSetMutationDocument, baseOptions);
+}
 export const VDIAttachDocument = gql`
   mutation VDIAttach($vmRef: ID!, $vdiRef: ID!) {
     vdiAttach(vmRef: $vmRef, vdiRef: $vdiRef, isAttach: true) {
@@ -3605,6 +3904,26 @@ export function useDeleteVMMutation(
     DeleteVMMutation,
     DeleteVMMutationVariables
   >(DeleteVMDocument, baseOptions);
+}
+export const NetworkEditOptionsDocument = gql`
+  mutation NetworkEditOptions($network: NetworkInput!) {
+    network(network: $network) {
+      granted
+      reason
+    }
+  }
+`;
+
+export function useNetworkEditOptionsMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    NetworkEditOptionsMutation,
+    NetworkEditOptionsMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    NetworkEditOptionsMutation,
+    NetworkEditOptionsMutationVariables
+  >(NetworkEditOptionsDocument, baseOptions);
 }
 export const TemplateEditOptionsDocument = gql`
   mutation TemplateEditOptions($template: TemplateInput!) {
@@ -3828,6 +4147,57 @@ export function useNetAttachTableSelectAllMutation(
     NetAttachTableSelectAllMutationVariables
   >(NetAttachTableSelectAllDocument, baseOptions);
 }
+export const NetworkTableSelectionDocument = gql`
+  query NetworkTableSelection {
+    selectedItems(tableId: Networks) @client
+  }
+`;
+
+export function useNetworkTableSelectionQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<
+    NetworkTableSelectionQueryVariables
+  >
+) {
+  return ReactApolloHooks.useQuery<
+    NetworkTableSelectionQuery,
+    NetworkTableSelectionQueryVariables
+  >(NetworkTableSelectionDocument, baseOptions);
+}
+export const NetworkTableSelectDocument = gql`
+  mutation NetworkTableSelect($item: ID!, $isSelect: Boolean!) {
+    selectedItems(tableId: Networks, items: [$item], isSelect: $isSelect)
+      @client
+  }
+`;
+
+export function useNetworkTableSelectMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    NetworkTableSelectMutation,
+    NetworkTableSelectMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    NetworkTableSelectMutation,
+    NetworkTableSelectMutationVariables
+  >(NetworkTableSelectDocument, baseOptions);
+}
+export const NetworkTableSelectAllDocument = gql`
+  mutation NetworkTableSelectAll($items: [ID!]!, $isSelect: Boolean!) {
+    selectedItems(tableId: Networks, items: $items, isSelect: $isSelect) @client
+  }
+`;
+
+export function useNetworkTableSelectAllMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    NetworkTableSelectAllMutation,
+    NetworkTableSelectAllMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    NetworkTableSelectAllMutation,
+    NetworkTableSelectAllMutationVariables
+  >(NetworkTableSelectAllDocument, baseOptions);
+}
 export const SelectedItemsQueryDocument = gql`
   query SelectedItemsQuery($tableId: Table!) {
     selectedItems(tableId: $tableId) @client
@@ -3983,6 +4353,43 @@ export function useVMStateForButtonToolbarQuery(
     VMStateForButtonToolbarQueryVariables
   >(VMStateForButtonToolbarDocument, baseOptions);
 }
+export const NetworkInfoDocument = gql`
+  query NetworkInfo($ref: ID!) {
+    network(ref: $ref) {
+      ...NetworkInfoFragment
+    }
+  }
+  ${NetworkInfoFragmentFragmentDoc}
+`;
+
+export function useNetworkInfoQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<NetworkInfoQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<NetworkInfoQuery, NetworkInfoQueryVariables>(
+    NetworkInfoDocument,
+    baseOptions
+  );
+}
+export const NetworkInfoUpdateDocument = gql`
+  subscription NetworkInfoUpdate($ref: ID!) {
+    network(ref: $ref) {
+      ...NetworkInfoFragment
+    }
+  }
+  ${NetworkInfoFragmentFragmentDoc}
+`;
+
+export function useNetworkInfoUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    NetworkInfoUpdateSubscription,
+    NetworkInfoUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    NetworkInfoUpdateSubscription,
+    NetworkInfoUpdateSubscriptionVariables
+  >(NetworkInfoUpdateDocument, baseOptions);
+}
 export const NetworkListDocument = gql`
   query NetworkList {
     networks {
@@ -3999,6 +4406,31 @@ export function useNetworkListQuery(
     NetworkListDocument,
     baseOptions
   );
+}
+export const NetworkListUpdateDocument = gql`
+  subscription NetworkListUpdate {
+    networks {
+      changeType
+      value {
+        ...NetworkListFragment
+        ...DeletedFragment
+      }
+    }
+  }
+  ${NetworkListFragmentFragmentDoc}
+  ${DeletedFragmentFragmentDoc}
+`;
+
+export function useNetworkListUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    NetworkListUpdateSubscription,
+    NetworkListUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    NetworkListUpdateSubscription,
+    NetworkListUpdateSubscriptionVariables
+  >(NetworkListUpdateDocument, baseOptions);
 }
 export const PauseVMDocument = gql`
   mutation PauseVM($ref: ID!) {

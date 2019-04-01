@@ -15,6 +15,7 @@ from input.template import GArch, GDistro
 
 
 class TemplateActions(SerFlag):
+    rename = auto()
     clone = auto()
     destroy = auto()
     change_install_os_options = auto()

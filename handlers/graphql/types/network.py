@@ -15,6 +15,7 @@ from handlers.graphql.utils.query import resolve_many
 
 
 class NetworkActions(SerFlag):
+    rename = auto()
     attaching = auto()
 
 

@@ -1,0 +1,27 @@
+# import AbstractVMFragment from "abstractVmFragment.graphql"
+# import ACLXenObjectFragment from "xenObjectFragment.graphql"
+
+fragment NetworkInfoFragment on GNetwork {
+  ...ACLXenObjectFragment
+  access {
+    actions
+    userId {
+      id
+      name
+      username
+    }
+  }
+  myActions
+  isOwner
+}
+
+query NetworkInfo ($ref: ID!)  {
+  network (ref: $ref) {
+    ...NetworkInfoFragment
+  }
+}
+subscription NetworkInfoUpdate ($ref: ID!) {
+  network(ref: $ref) {
+    ...NetworkInfoFragment
+  }
+}

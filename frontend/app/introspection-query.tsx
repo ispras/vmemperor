@@ -132,6 +132,18 @@ const result: IntrospectionResultData = {
       },
       {
         kind: "UNION",
+        name: "GNetworkOrDeleted",
+        possibleTypes: [
+          {
+            name: "GNetwork"
+          },
+          {
+            name: "Deleted"
+          }
+        ]
+      },
+      {
+        kind: "UNION",
         name: "GTaskOrDeleted",
         possibleTypes: [
           {

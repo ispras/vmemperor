@@ -4,6 +4,7 @@ from graphene import ObjectType
 
 from handlers.graphql.graphene_with_flags.schema import SchemaWithFlags
 from handlers.graphql.resolvers.console import resolve_console
+from handlers.graphql.types.input.network import NetworkMutation
 from handlers.graphql.utils.query import resolve_all, resolve_one
 from handlers.graphql.utils.subscription import MakeSubscription, resolve_xen_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_xen_items_changes, resolve_item_by_key, resolve_all_items_changes
@@ -109,6 +110,7 @@ class Mutation(ObjectType):
 
     playbook_launch = PlaybookLaunchMutation.Field(description="Launch an Ansible Playbook on specified VMs")
 
+    network = NetworkMutation.Field(description="Edit Network options")
     net_attach = AttachNetworkMutation.Field(description="Attach VM to a Network by creating a new Interface")
     net_access_set = NetAccessSet.Field(description="Set network access rights")
 
@@ -136,10 +138,13 @@ class Subscription(ObjectType):
 
     pools = graphene.Field(MakeSubscriptionWithChangeType(GPool), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all pools available in VMEmperor")
     pool = graphene.Field(MakeSubscription(GPool), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Pool")
-
+    
+    networks = graphene.Field(MakeSubscriptionWithChangeType(GNetwork), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all Networks")
+    network = graphene.Field(MakeSubscription(GNetwork), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Network")
+    
     tasks = graphene.Field(MakeSubscriptionWithChangeType(GTask), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all XenServer tasks")
     task = graphene.Field(MakeSubscription(GTask),  ref=graphene.NonNull(graphene.ID), description="Updates for a particular XenServer Task")
-
+    
 
     playbook_task = graphene.Field(MakeSubscription(PlaybookTask), id=graphene.NonNull(graphene.ID), description="Updates for a particular Playbook installation Task")
     playbook_tasks = graphene.Field(MakeSubscriptionWithChangeType(PlaybookTask), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all Playbook Tasks")
@@ -173,6 +178,12 @@ class Subscription(ObjectType):
         return resolve_all_xen_items_changes(GPool)(*args, **kwargs)
 
     def resolve_pool(*args, **kwargs):
+        return resolve_xen_item_by_key()(*args, **kwargs)
+
+    def resolve_networks(*args, **kwargs):
+        return resolve_all_xen_items_changes(GNetwork)(*args, **kwargs)
+
+    def resolve_network(*args, **kwargs):
         return resolve_xen_item_by_key()(*args, **kwargs)
 
     def resolve_playbook_task(*args, **kwargs):

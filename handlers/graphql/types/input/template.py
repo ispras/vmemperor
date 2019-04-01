@@ -5,6 +5,7 @@ from handlers.graphql.mutation_utils.cleanup import cleanup_defaults
 from handlers.graphql.mutation_utils.mutationmethod import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
 from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
+from handlers.graphql.utils.editmutation import create_edit_mutation
 from input.template import TemplateInput, InstallOSOptionsInput
 from xenadapter.template import Template
 from xentools.os import Distro
@@ -31,30 +32,13 @@ def install_options_validator(input: TemplateInput, _):
 
     return True, None
 
-
-
-class TemplateMutation(graphene.Mutation):
-    granted = graphene.Field(graphene.Boolean, required=True, description="If access is granted")
-    reason = graphene.Field(graphene.String, required=False, description="If access is not granted, return reason why")
-
-    class Arguments:
-        template = graphene.Argument(TemplateInput, description="Template to change", required=True)
-
-    @staticmethod
-    @with_default_authentication
-    @with_connection
-    def mutate(root, info, template : TemplateInput):
-        ctx : ContextProtocol = info.context
-
-        t = Template(xen=ctx.xen, ref=template.ref)
-
-        mutations = [
+mutations = [
+            MutationMethod(func="name_label", access_action=Template.Actions.rename),
+            MutationMethod(func="name_description", access_action=Template.Actions.rename),
             MutationMethod(func=(set_install_options, install_options_validator), access_action=Template.Actions.change_install_os_options)
         ]
 
-        helper = MutationHelper(mutations, ctx, t)
-        granted, reason = helper.perform_mutations(template)
-        return TemplateMutation(granted, reason)
+TemplateMutation = create_edit_mutation("TemplateMutation", "template", TemplateInput, Template, mutations)
 
 class TemplateCloneMutation(graphene.Mutation):
     task_id = graphene.ID(required=False, description="clone task ID")

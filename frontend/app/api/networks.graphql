@@ -1,7 +1,8 @@
+# import DeletedFragment from "./deleted.graphql"
+
 fragment NetworkListFragment on GNetwork {
   ref
   nameLabel
-  nameDescription
 }
 
 query NetworkList {
@@ -10,3 +11,12 @@ query NetworkList {
   }
 }
 
+subscription NetworkListUpdate {
+  networks {
+    changeType
+    value {
+      ...NetworkListFragment
+      ...DeletedFragment
+    }
+  }
+}

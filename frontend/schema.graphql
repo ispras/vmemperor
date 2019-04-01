@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Wed Mar 27 23:01:05 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Mon Apr 01 20:27:10 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -49,6 +49,8 @@ interface GXenObject {
 }
 
 union GHostOrDeleted = Deleted | GHost
+
+union GNetworkOrDeleted = Deleted | GNetwork
 
 union GPoolOrDeleted = Deleted | GPool
 
@@ -175,8 +177,14 @@ type GNetwork implements GAclXenObject {
 }
 
 type GNetworkAccessEntry implements GAccessEntry {
-  actions: NetworkActions!
+  actions: [NetworkActions!]!
   userId: User!
+}
+
+type GNetworksSubscription {
+  "Change type"
+  changeType: Change!
+  value: GNetworkOrDeleted!
 }
 
 """
@@ -474,6 +482,11 @@ type Mutation {
     netRef: ID!,
     vmRef: ID!
   ): AttachNetworkMutation
+  "Edit Network options"
+  network(
+    #Network to change
+    network: NetworkInput!
+  ): NetworkMutation
   "Launch an Ansible Playbook on specified VMs"
   playbookLaunch(
     #Playbook ID
@@ -511,7 +524,7 @@ type Mutation {
   ): AttachVDIMutation
   "Edit VM options"
   vm(
-    #VM to change
+    #Vm to change
     vm: VMInput!
   ): VMMutation
   "Set VM access rights"
@@ -540,6 +553,11 @@ type Mutation {
 
 type NetAccessSet {
   success: Boolean!
+}
+
+type NetworkMutation {
+  granted: Boolean!
+  reason: String
 }
 
 "OS version reported by Xen tools"
@@ -675,6 +693,10 @@ type Subscription {
   host(ref: ID!): GHost
   "Updates for all Hosts"
   hosts(withInitials: Boolean): GHostsSubscription!
+  "Updates for a particular Network"
+  network(ref: ID!): GNetwork
+  "Updates for all Networks"
+  networks(withInitials: Boolean): GNetworksSubscription!
   "Updates for a particular Playbook installation Task"
   playbookTask(id: ID!): PlaybookTask
   "Updates for all Playbook Tasks"
@@ -718,9 +740,7 @@ type TemplateDestroyMutation {
 }
 
 type TemplateMutation {
-  "If access is granted"
   granted: Boolean!
-  "If access is not granted, return reason why"
   reason: String
 }
 
@@ -746,7 +766,6 @@ type VMDeleteMutation {
   taskId: ID
 }
 
-"This class represents synchronous mutations for VM, i.e. you can change name_label, name_description, etc."
 type VMMutation {
   granted: Boolean!
   reason: String
@@ -852,6 +871,7 @@ enum NetworkActions {
   ALL
   NONE
   attaching
+  rename
 }
 
 enum PlaybookTaskState {
@@ -906,6 +926,7 @@ enum TemplateActions {
   change_install_os_options
   clone
   destroy
+  rename
 }
 
 enum VBDMode {
@@ -1000,6 +1021,15 @@ input NetworkConfiguration {
   gateway: String!
   ip: String!
   netmask: String!
+}
+
+input NetworkInput {
+  "Object's human-readable description"
+  nameDescription: String
+  "Object's human-readable name"
+  nameLabel: String
+  "Object's ref"
+  ref: ID!
 }
 
 input NewVDI {
