@@ -1,9 +1,18 @@
 # import AbstractVMFragment from "abstractVmFragment.graphql"
 # import ACLXenObjectFragment from "xenObjectFragment.graphql"
 
+fragment TemplateSettingsFragment on GTemplate {
+  ...AbstractVMFragment
+  installOptions {
+    distro
+    arch
+    release
+    installRepository
+  }
+}
 
 fragment TemplateInfoFragment on GTemplate {
-  ...AbstractVMFragment
+  ...TemplateSettingsFragment
   ...ACLXenObjectFragment
   myActions
   access {
@@ -14,12 +23,7 @@ fragment TemplateInfoFragment on GTemplate {
     }
     actions
   }
-  installOptions {
-    distro
-    arch
-    release
-    installRepository
-  }
+
   isOwner
 }
 

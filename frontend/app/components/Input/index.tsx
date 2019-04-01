@@ -4,7 +4,7 @@
  *
  */
 
-import React, {HTMLAttributes} from 'react';
+import React, {HTMLAttributes, ReactNode} from 'react';
 // import styled from 'styled-components';
 
 import {FieldProps} from "formik";
@@ -16,31 +16,33 @@ import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import {InputProps} from "reactstrap";
 import {FormGroup} from "../MarginFormGroup";
 import {getFeedback, getInvalid} from "./utils";
+import {Omit} from "../AbstractSettingsForm/utils";
 
 interface InputComponentProps {
   addonIcon?: Icon,
   appendAddonIcon?: Icon,
-  addonText: string | JSX.Element,
-  appendAddonText: string | JSX.Element,
-  label?: boolean, //Use children to provide label text
+  addonText?: string | JSX.Element,
+  appendAddonText?: string | JSX.Element,
+  children?: ReactNode;
+}
 
-};
-const InputComponent: React.FunctionComponent<FieldProps & InputProps & InputComponentProps> = (
+type Props<T> = FieldProps<T> & Omit<InputProps, 'form'> & InputComponentProps;
+
+function InputComponent<T>(
   {
     field: {...fields},
     form,
     addonIcon,
     addonText,
-    label,
     children,
     appendAddonIcon,
     appendAddonText,
     ...props
-  }
-) => {
+  }: Props<T>
+) {
   return (
     <FormGroup>
-      {label && (
+      {children && (
         <Label for={fields.name}>
           {children}
         </Label>
@@ -87,6 +89,6 @@ const InputComponent: React.FunctionComponent<FieldProps & InputProps & InputCom
       </InputGroup>
     </FormGroup>
   )
-};
+}
 
 export default InputComponent;

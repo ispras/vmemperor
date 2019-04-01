@@ -6,11 +6,9 @@ import {Fields} from "../AbstractVMSettingsComponents/fields";
 import ButtonGroup from "reactstrap/lib/ButtonGroup";
 
 
-const FormContext = React.createContext<FormikProps<any>>(null); //For providing handleChange, handleBlur etc to fields
 export const ResourcesForm: React.FunctionComponent<FormikProps<any>> =
   (props) => {
     return (
-      <FormContext.Provider value={props}>
         <Form onSubmit={props.handleSubmit}>
           {props.children}
           <ButtonGroup>
@@ -27,6 +25,5 @@ export const ResourcesForm: React.FunctionComponent<FormikProps<any>> =
             </Alert>
           )}
         </Form>
-      </FormContext.Provider>
     )
   };

@@ -15,9 +15,9 @@ import {defaults} from "../VMSettingsForm/defaults";
 import AccessView from "../AccessView";
 import {Fields} from "../AbstractVMSettingsComponents/fields";
 import schema from "../AbstractVMSettingsComponents/schema";
+import {DistroType} from "./distro";
 enum Tab {
   Overview = 'overview',
-  Resources = 'resources',
   Access = 'access',
 }
 
@@ -37,10 +37,6 @@ const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<Templ
       [
         [Tab.Overview, {
           header: "Overview",
-          content: "Hello",
-        }],
-        [Tab.Resources, {
-          header: "Resources",
           content: (
             <Row>
               <Col sm="12">
@@ -51,6 +47,7 @@ const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<Templ
                   defaultValues={defaults}
                   schema={schema}
                 >
+                  <DistroType/>
                   <Fields/>
                 </ResourcesFormContainer>
               </Col>

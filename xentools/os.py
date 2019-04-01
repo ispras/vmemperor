@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, Callable
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
 from constants import AUTOINSTALL_ROUTE
@@ -240,34 +240,41 @@ class CentOS(GenericOS):
         path = split_url.path
 
         path_parts = list(path.split('/'))
+        if path_parts[-1] == '': # This path part corresponds to final slash in http://host/centos/
+            del path_parts[-1]
+
         if not path_parts or len(path_parts) < 2:
             raise ValueError(f"Malformed url: {url}")
 
-        release_set = False
-
+        release = None # This variable won't be None if we couldn't get a release from repository URL and therefore we should complete RedHat repository URL with release
         def complete_url():
-            nonlocal release_set
+            nonlocal release
 
             if path_parts[-1] not in ('x86_64', 'i386'): # URL not full, complete it
                 if path_parts[-1] == 'os': # we only need to complete the arch
                     arch = self.get_arch()
                     if not arch:
                         raise ValueError("Arch is not specified in the URL and not set by template")
-                    path_parts.append(arch['value'])
+                    path_parts.append(arch.value)
                 else:
-                    release = self.get_release()
                     if not release:
-                        raise ValueError("RedHat release is not set by template")
-                    release_set = True
-                    if release in path_parts[-1]: # So 7 would correspond to urls like MIRROR/centos/7.6.1810, etc
+                        release = self.get_release()
+                        if not release:
+                            raise ValueError("RedHat release is not set by template")
+                    elif release in path_parts[-1]: # So 7 would correspond to urls like MIRROR/centos/7.6.1810, etc
                         path_parts.append('os')
-                        complete_url()
                     else: # Append self.get_release
                         path_parts.append(release)
-                        complete_url()
+
+                    complete_url()
             else:
-                if not release_set:
-                    self.set_release(path_parts[-3].split('.')[0]) # /centos/7/os/x86_64 corresponds to 7
+                if not release: # URL is full, set template release according to URL
+                    self.set_release(path_parts[-3].split('.')[0], False) # /centos/7/os/x86_64 corresponds to 7
+
+                if path_parts[-1] == 'i386':
+                    self.set_arch(Arch.I386, False)
+                elif path_parts[-1] == 'x86_64':
+                    self.set_arch(Arch.X86_64, False)
 
         complete_url()
 
@@ -290,7 +297,7 @@ class CentOS(GenericOS):
                     return Arch.X86_64
         return super().get_arch()
 
-    def set_arch(self, arch : Optional[Arch]):
+    def set_arch(self, arch : Optional[Arch], edit_url=True):
         '''
         This method sets architecture of CentOS template and replaces last install_repository part if needed
         :param arch:
@@ -300,42 +307,49 @@ class CentOS(GenericOS):
         if arch is None:
             return
 
-        # Replace the last part of install_repository path if present
-        repo = self.get_install_repository()
-        if repo:
-            url_split = urlsplit(repo)
-            path = url_split.path
-            if path:
-                path_split : List[str] = path.split('/')
-                if path_split[-1] in ('x86_64', 'i386'):
-                    if path_split[-1] == arch.value:
-                        return
-                    del path_split[-1]
-                    path_split.append(arch.value)
-                    url = urlunsplit((url_split[0], url_split[1], '/'.join(path_split), url_split[3], url_split[4]))
-                    super().set_install_repository(url)
+        if edit_url:
+            def edit_url(path_parts):
+                if path_parts[-1] in ('i386', 'x86_64'):
+                    if path_parts[-1] != arch.value:
+                        path_parts[-1] = arch.value
+                        return path_parts
+
+            self._edit_url(edit_url)
+
+    def _edit_url(self, callback: Callable[[List[str]], Optional[List[str]]]):
+        '''
+        Edit install repository and set in in place.
+        If callback returns none, abort editing
+        :param callback:
+        :return:
+        '''
+        split_url  = urlsplit(self.get_install_repository())
+        path = split_url.path
+
+        path_parts = list(path.split('/'))
+        if path_parts[-1] == '': # This path part corresponds to final slash in http://host/centos/
+            del path_parts[-1]
+
+        if not path_parts or len(path_parts) < 2:
+            return
+
+        new_path_parts = callback(path_parts)
+        if new_path_parts:
+            new_path = '/'.join(new_path_parts)
+            url = urlunsplit((split_url[0], split_url[1], new_path, split_url[3], split_url[4]))
+            super().set_install_repository(url)
 
 
-        arch = self.get_arch()
-        if not arch:
-            raise ValueError("Run set_arch before running set_mirror_url")
-
-        release = self.get_release()
-        if not release:
-            raise ValueError("Run set_release before running set_mirror_url")
-
-        self.other_config['install-repository'] = f'{url}/{release}/os/{"x86_64" if self.get_arch() == Arch.X86_64 else self.get_arch().value}'
-
-    def set_release(self, release):
+    def set_release(self, release, edit_url=True):
         '''
         Set RHEL version
         :param release: specified version
         :return:
         '''
         if release and isinstance(release, str):
-            release = int(release)
-            if release < 1 or release > 7:
-                raise ValueError()
+            release_major = int(release.split('.')[0])
+            if release_major < 2 or release_major > 7:
+                raise ValueError(release, "Valid RedHat versions are between 2 and 7")
         else:
             raise ValueError()
 
@@ -344,11 +358,35 @@ class CentOS(GenericOS):
         rhel_keys = [key for key in self.other_config if key.startswith('rhel')]
 
         for key in rhel_keys:
-            if key[4:] == release:
+            if key[4:] == release_major:
                 break
             else:
                 del self.other_config[key]
-                self.other_config['rhel' + release] = 'true'
+        else:
+            self.other_config['rhel' + str(release_major)] = True
+
+        # Update URL with new release value
+        if edit_url:
+            def edit_url(path_parts):
+                if path_parts[-1] in ('i386', 'x86_64'):
+                    path_parts[-3] = release
+                elif path_parts[-1] == 'os':
+                    path_parts[-2] = release
+                    path_parts.append(self.get_arch().value)
+                elif path_parts[-1] == self.get_release():
+                    path_parts[-1] = release
+                    path_parts.append('os')
+                    path_parts.append(self.get_arch().value)
+                else:
+                    return
+
+                return path_parts
+
+            self._edit_url(edit_url)
+
+
+
+
 
     def get_release(self):
         rhel_keys = map(lambda key: key[4:], filter(lambda key: key.startswith('rhel') and self.other_config[key] is True, self.other_config))

@@ -10,10 +10,10 @@ from xenadapter.template import Template
 from xentools.os import Distro
 
 
-def set_install_options(input: InstallOSOptionsInput, tmpl : Template):
+def set_install_options(input: TemplateInput, tmpl : Template):
     clean_input = cleanup_defaults(input)
-    if clean_input != {}:
-        tmpl.set_install_options(input)
+    if 'install_options' in clean_input:
+        tmpl.set_install_options(clean_input['install_options'])
 
 def install_options_validator(input: TemplateInput, _):
     '''

@@ -2,7 +2,7 @@ import {useMutation} from "react-apollo-hooks";
 import {Formik, FormikActions, FormikConfig, FormikProps} from "formik";
 import * as React from "react";
 import {ReactNode, useCallback} from "react";
-import {difference, findDeepField, mutationResponseToFormikErrors, setXenAdapterAPIError,} from "./utils";
+import {difference, findDeepField, mutationResponseToFormikErrors, setApiError,} from "./utils";
 import {DocumentNode} from "graphql";
 import {mergeDefaults, validation} from "../../utils/forms";
 import {XenObjectFragmentFragment} from "../../generated-models";
@@ -60,9 +60,11 @@ AbstractSettingsForm<T extends XenObjectFragmentFragment>({
           formikActions.setStatus({'error': errorData[1]});
       }
     } catch (e) {
-      const [field, message] = setXenAdapterAPIError(e, values);
-      console.log("Set error for field: ", field, message);
-      formikActions.setFieldError(field, message);
+      const [field, message] = setApiError(e, values);
+      if (field)
+        formikActions.setFieldError(field, message);
+      else
+        formikActions.setStatus({'error': message});
 
     }
 

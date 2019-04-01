@@ -100,11 +100,22 @@ class Template(AbstractVM):
             os.set_release(options['release'])
 
         if 'arch' in options:
+            if isinstance(options['arch'], str):
+                for member in  Arch.__members__.values():
+                    if member.value == options['arch']:
+                        options['arch'] = member
+                        break
+                else:
+                    raise ValueError(f"Incorrect arch value: {options['arch']}")
+
+
             os.set_arch(options['arch'])
 
 
         if 'install_repository' in options:
             os.set_install_repository(options['install_repository'])
+
+        self.set_other_config(os.other_config)
 
 
 

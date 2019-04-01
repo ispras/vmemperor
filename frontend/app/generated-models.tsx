@@ -1872,6 +1872,15 @@ export type TasksSubscription = { __typename?: "Subscription" } & {
   > & { value: TaskFragmentFragment | DeletedFragmentFragment };
 };
 
+export type TemplateSettingsFragmentFragment = { __typename?: "GTemplate" } & {
+  installOptions: Maybe<
+    { __typename?: "InstallOSOptions" } & Pick<
+      InstallOSOptions,
+      "distro" | "arch" | "release" | "installRepository"
+    >
+  >;
+} & AbstractVMFragmentFragment;
+
 export type TemplateInfoFragmentFragment = { __typename?: "GTemplate" } & Pick<
   GTemplate,
   "myActions" | "isOwner"
@@ -1889,13 +1898,7 @@ export type TemplateInfoFragmentFragment = { __typename?: "GTemplate" } & Pick<
           }
       >
     >;
-    installOptions: Maybe<
-      { __typename?: "InstallOSOptions" } & Pick<
-        InstallOSOptions,
-        "distro" | "arch" | "release" | "installRepository"
-      >
-    >;
-  } & (AbstractVMFragmentFragment & ACLXenObjectFragmentFragment);
+  } & (TemplateSettingsFragmentFragment & ACLXenObjectFragmentFragment);
 
 export type TemplateInfoQueryVariables = {
   ref: Scalars["ID"];
@@ -3207,6 +3210,18 @@ export const AbstractVMFragmentFragmentDoc = gql`
     }
   }
 `;
+export const TemplateSettingsFragmentFragmentDoc = gql`
+  fragment TemplateSettingsFragment on GTemplate {
+    ...AbstractVMFragment
+    installOptions {
+      distro
+      arch
+      release
+      installRepository
+    }
+  }
+  ${AbstractVMFragmentFragmentDoc}
+`;
 export const ACLXenObjectFragmentFragmentDoc = gql`
   fragment ACLXenObjectFragment on GAclXenObject {
     ref
@@ -3216,7 +3231,7 @@ export const ACLXenObjectFragmentFragmentDoc = gql`
 `;
 export const TemplateInfoFragmentFragmentDoc = gql`
   fragment TemplateInfoFragment on GTemplate {
-    ...AbstractVMFragment
+    ...TemplateSettingsFragment
     ...ACLXenObjectFragment
     myActions
     access {
@@ -3227,15 +3242,9 @@ export const TemplateInfoFragmentFragmentDoc = gql`
       }
       actions
     }
-    installOptions {
-      distro
-      arch
-      release
-      installRepository
-    }
     isOwner
   }
-  ${AbstractVMFragmentFragmentDoc}
+  ${TemplateSettingsFragmentFragmentDoc}
   ${ACLXenObjectFragmentFragmentDoc}
 `;
 export const TemplateListFragmentFragmentDoc = gql`
