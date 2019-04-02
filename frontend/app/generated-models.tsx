@@ -1884,7 +1884,7 @@ export type NetworkInfoUpdateSubscription = { __typename?: "Subscription" } & {
 
 export type NetworkListFragmentFragment = { __typename?: "GNetwork" } & Pick<
   GNetwork,
-  "ref" | "nameLabel"
+  "ref" | "nameLabel" | "myActions" | "isOwner"
 >;
 
 export type NetworkListQueryVariables = {};
@@ -3486,6 +3486,8 @@ export const NetworkListFragmentFragmentDoc = gql`
   fragment NetworkListFragment on GNetwork {
     ref
     nameLabel
+    myActions
+    isOwner
   }
 `;
 export const PoolListFragmentFragmentDoc = gql`

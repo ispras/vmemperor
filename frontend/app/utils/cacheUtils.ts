@@ -2,6 +2,8 @@ import {defaultDataIdFromObject} from "apollo-cache-inmemory";
 import {DocumentNode} from "graphql";
 import {DataProxy} from "apollo-cache";
 import {Change} from "../generated-models";
+import {ActionType} from "redux-saga/effects";
+import {ReducerActionType} from "./componentStateReducers";
 
 export const dataIdFromObject = (object) => {
   // @ts-ignore
@@ -83,4 +85,21 @@ export function handleAddRemove(client: DataProxy,
       break;
   }
 
+}
+
+export function getStateInfoAndTypeFromCache<TCacheObject>(action, cacheReadFunction: (id: string) => TCacheObject): [ReducerActionType, TCacheObject] {
+  let info = null;
+  let type = null;
+  switch (action.type) {
+    case "Change":
+    case "Add":
+      info = cacheReadFunction(action.ref);
+      type = "Add";
+      break;
+    case "Remove":
+      info = {ref: action.ref} as unknown as TCacheObject;
+      type = "Remove";
+      break;
+  }
+  return [type, info];
 }

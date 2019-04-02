@@ -43,6 +43,7 @@ import {
   SelectedForSetActionState
 } from "../../utils/componentStateReducers";
 import {buttonTitle} from "../../utils/buttonTitle";
+import {useTableSelectionInInternalState} from "../../hooks/listSelectionState";
 
 
 type VMColumnType = ColumnType<VMListFragmentFragment>;
@@ -159,14 +160,8 @@ export default function ({history}: RouteComponentProps) {
   const [{selectedForStart, selectedForStop, selectedForTrash, selectedForPause, selectedForSuspend, selectedForSetAction}, dispatch] = useReducer<VMListReducer>(reducer, initialState);
   const {data: {selectedItems}} = useVmTableSelectionQuery();
 
-  useEffect(() => { //Re-add items to our internal state
-
-    for (const item of selectedItems)
-      dispatch({
-        type: "Add",
-        ref: item,
-      })
-  }, []); // To be run only once on loading
+  //Restore internal state using table selection from cache
+  useTableSelectionInInternalState(dispatch, selectedItems);
   const vmButtonTitle = useCallback((startswith: string, array: Array<string>) => {
     return buttonTitle(startswith, array, readVM)
   }, [readVM]);

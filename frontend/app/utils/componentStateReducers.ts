@@ -13,7 +13,7 @@ export function readCacheObject<FragmentType, TCacheShape = any>(client: ApolloC
   });
 }
 
-type ReducerActionType = "Add" | "Remove";
+export type ReducerActionType = "Add" | "Remove";
 
 interface ReducerInfoType {
   ref: string;
@@ -57,4 +57,9 @@ export function selectedForTrashReducer<ActionType>(destroyAction: ActionType, t
         ? state.selectedForTrash.add(info.ref)
         : state.selectedForTrash.remove(info.ref)
     }
+  else {
+    return {
+      selectedForTrash: state.selectedForTrash.remove(info.ref)
+    }
+  }
 }

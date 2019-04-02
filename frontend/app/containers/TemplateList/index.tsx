@@ -15,14 +15,14 @@ import {
   useCurrentUserQuery,
   useDeleteTemplateMutation,
   useTemplateListQuery,
-  useTemplateListUpdateSubscription,
+  useTemplateListUpdateSubscription, useTemplateTableSelectionQuery,
 } from "../../generated-models";
 import {checkBoxFormatter, nameFormatter} from "../../utils/formatters";
 import {Button, ButtonToolbar} from "reactstrap";
 import {Set} from 'immutable';
 import ButtonGroup from "reactstrap/lib/ButtonGroup";
 import {ListAction} from "../../utils/reducer";
-import {dataIdFromObject, handleAddRemove} from "../../utils/cacheUtils";
+import {dataIdFromObject, getStateInfoAndTypeFromCache, handleAddRemove} from "../../utils/cacheUtils";
 import RecycleBinButton from "../../components/RecycleBinButton";
 
 import {installOptionsFormatter} from "./installoptions";
@@ -34,6 +34,7 @@ import {
 } from "../../utils/componentStateReducers";
 import {valueFromASTUntyped} from "graphql";
 import SetAccessButton from "../../components/SetAccessButton";
+import {useTableSelectionInInternalState} from "../../hooks/listSelectionState";
 
 
 type TemplateColumnType = ColumnType<TemplateListFragmentFragment>;
@@ -95,26 +96,16 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
 
 
   const reducer: TemplateListReducer = (state, action) => {
-    let info = null;
-    let type = null;
-    switch (action.type) {
-      case "Change":
-      case "Add":
-        info = readTemplate(action.ref);
-        type = "Add";
-        break;
-      case "Remove":
-        info = {ref: action.ref};
-        type = "Remove";
-        break;
-    }
-    ;
+    const [type, info] = getStateInfoAndTypeFromCache(action, readTemplate);
     return {
       ...selectedForSetActionReducer(type, info, state),
       ...selectedForTrashReducer(TemplateActions.destroy, type, info, state),
     }
   };
 
+  const {data: {selectedItems}} = useTemplateTableSelectionQuery();
+  const [state, dispatch] = useReducer<TemplateListReducer>(reducer, initialState);
+  useTableSelectionInInternalState(dispatch, selectedItems);
   useTemplateListUpdateSubscription(
     {
       onSubscriptionData({client, subscriptionData}) {
@@ -138,25 +129,24 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
       }
     });
 
-
-
-  const [state, dispatch] = useReducer<TemplateListReducer>(reducer, initialState);
   return (
     <Fragment>
       <ButtonToolbar>
-        <ButtonGroup className="ml-auto" size="lg">
-          <RecycleBinButton
-            destroyMutationName="templateDelete"
-            state={state}
-            destroyMutationDocument={DeleteTemplateDocument}
-            readCacheFunction={readTemplate}
-          />
+        <ButtonGroup size="lg">
           <SetAccessButton
             ALL={TemplateActions.ALL}
             readCacheFunction={readTemplate}
             state={state}
             mutationName="templateAccessSet"
             mutationNode={TemplateAccessSetMutationDocument}
+          />
+        </ButtonGroup>
+        <ButtonGroup className="ml-auto" size="lg">
+          <RecycleBinButton
+            destroyMutationName="templateDelete"
+            state={state}
+            destroyMutationDocument={DeleteTemplateDocument}
+            readCacheFunction={readTemplate}
           />
         </ButtonGroup>
       </ButtonToolbar>

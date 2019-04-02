@@ -3,6 +3,8 @@
 fragment NetworkListFragment on GNetwork {
   ref
   nameLabel
+  myActions
+  isOwner
 }
 
 query NetworkList {
