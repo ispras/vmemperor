@@ -48,6 +48,9 @@ const result: IntrospectionResultData = {
             name: "GNetworkAccessEntry"
           },
           {
+            name: "GVDIAccessEntry"
+          },
+          {
             name: "GSRAccessEntry"
           },
           {

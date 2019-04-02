@@ -12,3 +12,4 @@ class GXenObject(graphene.Interface):
 
 class GAclXenObject(GXenObject):
     access = graphene.List(GAccessEntry, required=True)
+    is_owner = graphene.Field(graphene.Boolean, required=True)

@@ -1,0 +1,11 @@
+query VDITableSelection {
+  selectedItems(tableId: VDIs ) @client
+}
+
+mutation VDITableSelect ($item: ID!, $isSelect: Boolean! ){
+  selectedItems(tableId: VDIs, items: [$item], isSelect: $isSelect) @client
+}
+
+mutation VDITableSelectAll ($items: [ID!]!, $isSelect: Boolean! ){
+  selectedItems(tableId: VDIs, items: $items, isSelect: $isSelect) @client
+}

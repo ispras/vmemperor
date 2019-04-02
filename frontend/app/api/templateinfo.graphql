@@ -23,8 +23,6 @@ fragment TemplateInfoFragment on GTemplate {
     }
     actions
   }
-
-  isOwner
 }
 
 query TemplateInfo ($ref: ID!)  {

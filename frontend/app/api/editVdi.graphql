@@ -1,0 +1,6 @@
+mutation VDIEditOptions ($vdi : VDIInput!) {
+  vdi(vdi: $vdi) {
+    reason
+    granted
+  }
+}

@@ -4,6 +4,7 @@ import graphene
 from serflag import SerFlag
 
 from handlers.graphql.interfaces.xenobject import GAclXenObject
+from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
 from handlers.graphql.resolvers.sr import srType, srContentType
 from handlers.graphql.types.access import create_access_type
@@ -13,7 +14,9 @@ from handlers.graphql.utils.query import resolve_one, resolve_many
 
 
 class VDIActions(SerFlag):
+    rename = auto()
     plug = auto()
+    destroy = auto()
 
 
 class VDIType(graphene.Enum):
@@ -33,6 +36,8 @@ class GVDI(GXenObjectType):
     class Meta:
         interfaces = (GAclXenObject,)
 
+    access = graphene.Field(graphene.List(GVDIAccessEntry), required=True,
+                            resolver=resolve_accessentries(VDIActions))
     my_actions = graphene.Field(graphene.List(GVDIActions), required=True, resolver=resolve_myactions(VDIActions))
     is_owner = graphene.Field(graphene.Boolean, required=True, resolver=resolve_owner(VDIActions))
 

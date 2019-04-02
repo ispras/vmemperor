@@ -1,14 +1,14 @@
 # import DeletedFragment from "./deleted.graphql"
 # import VDIListFragment from "./vdiListFragment.graphql"
 
-query ISOList {
-  vdis(onlyIsos: true) {
+query VDIList {
+  vdis(onlyIsos: false) {
     ...VDIListFragment
   }
 }
 
-subscription ISOListUpdate {
-  vdis(onlyIsos: true) {
+subscription VDIListUpdate {
+  vdis(onlyIsos: false) {
     changeType
     value {
       ...VDIListFragment

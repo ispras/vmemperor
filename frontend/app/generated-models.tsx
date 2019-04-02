@@ -137,6 +137,7 @@ export type GAclXenObject = {
   /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: Scalars["ID"];
   access: Array<Maybe<GAccessEntry>>;
+  isOwner: Scalars["Boolean"];
 };
 
 export type GHost = GXenObject & {
@@ -200,8 +201,8 @@ export type GNetwork = GAclXenObject & {
   /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: Scalars["ID"];
   access: Array<Maybe<GNetworkAccessEntry>>;
-  myActions: Array<Maybe<NetworkActions>>;
   isOwner: Scalars["Boolean"];
+  myActions: Array<Maybe<NetworkActions>>;
   VIFs?: Maybe<Array<Maybe<GVIF>>>;
   otherConfig?: Maybe<Scalars["JSONString"]>;
 };
@@ -282,8 +283,8 @@ export type GSR = GAclXenObject & {
   /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: Scalars["ID"];
   access: Array<Maybe<GSRAccessEntry>>;
-  myActions: Array<Maybe<SRActions>>;
   isOwner: Scalars["Boolean"];
+  myActions: Array<Maybe<SRActions>>;
   /** Connections to host. Usually one, unless the storage repository is shared: e.g. iSCSI */
   PBDs: Array<Maybe<GPBD>>;
   VDIs?: Maybe<Array<Maybe<GVDI>>>;
@@ -316,8 +317,8 @@ export type GTask = GAclXenObject & {
   /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: Scalars["ID"];
   access: Array<Maybe<GTaskAccessEntry>>;
-  myActions: Array<Maybe<TaskActions>>;
   isOwner: Scalars["Boolean"];
+  myActions: Array<Maybe<TaskActions>>;
   /** Task creation time */
   created: Scalars["DateTime"];
   /** Task finish time */
@@ -360,6 +361,7 @@ export type GTemplate = GAclXenObject &
     /** Unique constant identifier/object reference (used in XenCenter) */
     uuid: Scalars["ID"];
     access: Array<Maybe<GTemplateAccessEntry>>;
+    isOwner: Scalars["Boolean"];
     /** CPU platform parameters */
     platform?: Maybe<Platform>;
     VCPUsAtStartup: Scalars["Int"];
@@ -373,7 +375,6 @@ export type GTemplate = GAclXenObject &
     memoryDynamicMin: Scalars["Float"];
     memoryDynamicMax: Scalars["Float"];
     myActions: Array<Maybe<TemplateActions>>;
-    isOwner: Scalars["Boolean"];
     /** This template is preinstalled with XenServer */
     isDefaultTemplate: Scalars["Boolean"];
     /** If the template supports unattended installation, its options are there */
@@ -416,14 +417,19 @@ export type GVDI = GAclXenObject & {
   ref: Scalars["ID"];
   /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: Scalars["ID"];
-  access: Array<Maybe<GAccessEntry>>;
-  myActions: Array<Maybe<VDIActions>>;
+  access: Array<Maybe<GVDIAccessEntry>>;
   isOwner: Scalars["Boolean"];
+  myActions: Array<Maybe<VDIActions>>;
   SR?: Maybe<GSR>;
   virtualSize: Scalars["Float"];
   VBDs: Array<Maybe<GVBD>>;
   contentType: SRContentType;
   type: VDIType;
+};
+
+export type GVDIAccessEntry = GAccessEntry & {
+  userId: User;
+  actions: Array<VDIActions>;
 };
 
 export type GVDIOrDeleted = GVDI | Deleted;
@@ -460,6 +466,7 @@ export type GVM = GAclXenObject &
     /** Unique constant identifier/object reference (used in XenCenter) */
     uuid: Scalars["ID"];
     access: Array<Maybe<GVMAccessEntry>>;
+    isOwner: Scalars["Boolean"];
     /** CPU platform parameters */
     platform?: Maybe<Platform>;
     VCPUsAtStartup: Scalars["Int"];
@@ -473,7 +480,6 @@ export type GVM = GAclXenObject &
     memoryDynamicMin: Scalars["Float"];
     memoryDynamicMax: Scalars["Float"];
     myActions: Array<Maybe<VMActions>>;
-    isOwner: Scalars["Boolean"];
     /** True if PV drivers are up to date, reported if Guest Additions are installed */
     PVDriversUpToDate?: Maybe<Scalars["Boolean"]>;
     /** PV drivers version, if available */
@@ -579,7 +585,7 @@ export type Mutation = {
   /** If VM is Running, suspend VM. If Suspended, resume VM */
   vmSuspend?: Maybe<VMSuspendMutation>;
   /** Delete a Halted VM */
-  vmDelete?: Maybe<VMDeleteMutation>;
+  vmDelete?: Maybe<VMDestroyMutation>;
   /** Set VM access rights */
   vmAccessSet?: Maybe<VMAccessSet>;
   /** Launch an Ansible Playbook on specified VMs */
@@ -590,12 +596,20 @@ export type Mutation = {
   netAttach?: Maybe<AttachNetworkMutation>;
   /** Set network access rights */
   netAccessSet?: Maybe<NetAccessSet>;
+  /** Edit VDI options */
+  vdi?: Maybe<VDIMutation>;
   /** Attach VDI to a VM by creating a new virtual block device */
   vdiAttach?: Maybe<AttachVDIMutation>;
   /** Set VDI access rights */
   vdiAccessSet?: Maybe<VDIAccessSet>;
+  /** Delete a VDI */
+  vdiDelete?: Maybe<VDIDestroyMutation>;
+  /** Edit SR options */
+  sr?: Maybe<SRMutation>;
   /** Set SR access rights */
   srAccessSet?: Maybe<SRAccessSet>;
+  /** Delete a SR */
+  srDelete?: Maybe<SRDestroyMutation>;
   selectedItems?: Maybe<Array<Scalars["ID"]>>;
 };
 
@@ -689,6 +703,10 @@ export type MutationnetAccessSetArgs = {
   user: Scalars["String"];
 };
 
+export type MutationvdiArgs = {
+  vdi: VDIInput;
+};
+
 export type MutationvdiAttachArgs = {
   isAttach: Scalars["Boolean"];
   vdiRef: Scalars["ID"];
@@ -702,11 +720,23 @@ export type MutationvdiAccessSetArgs = {
   user: Scalars["String"];
 };
 
+export type MutationvdiDeleteArgs = {
+  ref: Scalars["ID"];
+};
+
+export type MutationsrArgs = {
+  sr: SRInput;
+};
+
 export type MutationsrAccessSetArgs = {
   actions: Array<SRActions>;
   ref: Scalars["ID"];
   revoke: Scalars["Boolean"];
   user: Scalars["String"];
+};
+
+export type MutationsrDeleteArgs = {
+  ref: Scalars["ID"];
 };
 
 export type MutationselectedItemsArgs = {
@@ -975,6 +1005,7 @@ export type SRAccessSet = {
 
 /** An enumeration. */
 export enum SRActions {
+  rename = "rename",
   scan = "scan",
   destroy = "destroy",
   vdi_create = "vdi_create",
@@ -989,6 +1020,28 @@ export enum SRContentType {
   Disk = "Disk",
   ISO = "ISO"
 }
+
+export type SRDestroyMutation = {
+  /** destroy task ID */
+  taskId?: Maybe<Scalars["ID"]>;
+  /** Shows if access to destroy is granted */
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
+};
+
+export type SRInput = {
+  /** Object's ref */
+  ref: Scalars["ID"];
+  /** Object's human-readable name */
+  nameLabel?: Maybe<Scalars["String"]>;
+  /** Object's human-readable description */
+  nameDescription?: Maybe<Scalars["String"]>;
+};
+
+export type SRMutation = {
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
+};
 
 /** All subscriptions must return  Observable */
 export type Subscription = {
@@ -1014,6 +1067,8 @@ export type Subscription = {
   network?: Maybe<GNetwork>;
   /** Updates for all VDIs */
   vdis: GVDIsSubscription;
+  /** Updates for a particular VDI */
+  vdi?: Maybe<GVDI>;
   /** Updates for all XenServer tasks */
   tasks: GTasksSubscription;
   /** Updates for a particular XenServer Task */
@@ -1078,6 +1133,11 @@ export type SubscriptionnetworkArgs = {
 export type SubscriptionvdisArgs = {
   withInitials: Scalars["Boolean"];
   onlyIsos?: Maybe<Scalars["Boolean"]>;
+};
+
+/** All subscriptions must return  Observable */
+export type SubscriptionvdiArgs = {
+  ref: Scalars["ID"];
 };
 
 /** All subscriptions must return  Observable */
@@ -1202,10 +1262,34 @@ export type VDIAccessSet = {
 
 /** An enumeration. */
 export enum VDIActions {
+  rename = "rename",
   plug = "plug",
+  destroy = "destroy",
   NONE = "NONE",
   ALL = "ALL"
 }
+
+export type VDIDestroyMutation = {
+  /** destroy task ID */
+  taskId?: Maybe<Scalars["ID"]>;
+  /** Shows if access to destroy is granted */
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
+};
+
+export type VDIInput = {
+  /** Object's ref */
+  ref: Scalars["ID"];
+  /** Object's human-readable name */
+  nameLabel?: Maybe<Scalars["String"]>;
+  /** Object's human-readable description */
+  nameDescription?: Maybe<Scalars["String"]>;
+};
+
+export type VDIMutation = {
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
+};
 
 /** VDI class supports only a subset of VDI types, that are listed below. */
 export enum VDIType {
@@ -1255,7 +1339,7 @@ export enum VMActions {
   ALL = "ALL"
 }
 
-export type VMDeleteMutation = {
+export type VMDestroyMutation = {
   /** Deleting task ID */
   taskId?: Maybe<Scalars["ID"]>;
   /** Shows if access to delete is granted */
@@ -1532,13 +1616,23 @@ export type DeleteTemplateMutation = { __typename?: "Mutation" } & {
   >;
 };
 
+export type DeleteVDIMutationVariables = {
+  ref: Scalars["ID"];
+};
+
+export type DeleteVDIMutation = { __typename?: "Mutation" } & {
+  vdiDelete: Maybe<
+    { __typename?: "VDIDestroyMutation" } & Pick<VDIDestroyMutation, "taskId">
+  >;
+};
+
 export type DeleteVMMutationVariables = {
   ref: Scalars["ID"];
 };
 
 export type DeleteVMMutation = { __typename?: "Mutation" } & {
   vmDelete: Maybe<
-    { __typename?: "VMDeleteMutation" } & Pick<VMDeleteMutation, "taskId">
+    { __typename?: "VMDestroyMutation" } & Pick<VMDestroyMutation, "taskId">
   >;
 };
 
@@ -1565,6 +1659,16 @@ export type TemplateEditOptionsMutation = { __typename?: "Mutation" } & {
       TemplateMutation,
       "reason" | "granted"
     >
+  >;
+};
+
+export type VDIEditOptionsMutationVariables = {
+  vdi: VDIInput;
+};
+
+export type VDIEditOptionsMutation = { __typename?: "Mutation" } & {
+  vdi: Maybe<
+    { __typename?: "VDIMutation" } & Pick<VDIMutation, "reason" | "granted">
   >;
 };
 
@@ -1643,15 +1747,10 @@ export type ISOSCreateVMListQuery = { __typename?: "Query" } & {
   vdis: Array<Maybe<{ __typename?: "GVDI" } & ISOCreateVMListFragmentFragment>>;
 };
 
-export type ISOListFragmentFragment = { __typename?: "GVDI" } & Pick<
-  GVDI,
-  "ref" | "nameLabel"
->;
-
 export type ISOListQueryVariables = {};
 
 export type ISOListQuery = { __typename?: "Query" } & {
-  vdis: Array<Maybe<{ __typename?: "GVDI" } & Pick<GVDI, "ref" | "nameLabel">>>;
+  vdis: Array<Maybe<{ __typename?: "GVDI" } & VDIListFragmentFragment>>;
 };
 
 export type ISOListUpdateSubscriptionVariables = {};
@@ -1660,7 +1759,7 @@ export type ISOListUpdateSubscription = { __typename?: "Subscription" } & {
   vdis: { __typename?: "GVDIsSubscription" } & Pick<
     GVDIsSubscription,
     "changeType"
-  > & { value: ISOListFragmentFragment | DeletedFragmentFragment };
+  > & { value: VDIListFragmentFragment | DeletedFragmentFragment };
 };
 
 export type DiskAttachTableSelectionQueryVariables = {};
@@ -1801,6 +1900,33 @@ export type TemplateTableSelectAllMutationVariables = {
 };
 
 export type TemplateTableSelectAllMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
+  "selectedItems"
+>;
+
+export type VDITableSelectionQueryVariables = {};
+
+export type VDITableSelectionQuery = { __typename?: "Query" } & Pick<
+  Query,
+  "selectedItems"
+>;
+
+export type VDITableSelectMutationVariables = {
+  item: Scalars["ID"];
+  isSelect: Scalars["Boolean"];
+};
+
+export type VDITableSelectMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
+  "selectedItems"
+>;
+
+export type VDITableSelectAllMutationVariables = {
+  items: Array<Scalars["ID"]>;
+  isSelect: Scalars["Boolean"];
+};
+
+export type VDITableSelectAllMutation = { __typename?: "Mutation" } & Pick<
   Mutation,
   "selectedItems"
 >;
@@ -2114,7 +2240,7 @@ export type TemplateSettingsFragmentFragment = { __typename?: "GTemplate" } & {
 
 export type TemplateInfoFragmentFragment = { __typename?: "GTemplate" } & Pick<
   GTemplate,
-  "myActions" | "isOwner"
+  "myActions"
 > & {
     access: Array<
       Maybe<
@@ -2194,6 +2320,46 @@ export type UserFragmentFragment = { __typename?: "User" } & Pick<
   "username" | "id" | "name"
 >;
 
+export type VDIInfoFragmentFragment = { __typename?: "GVDI" } & Pick<
+  GVDI,
+  "myActions"
+> & {
+    access: Array<
+      Maybe<
+        { __typename?: "GVDIAccessEntry" } & Pick<
+          GVDIAccessEntry,
+          "actions"
+        > & {
+            userId: { __typename?: "User" } & Pick<
+              User,
+              "id" | "name" | "username"
+            >;
+          }
+      >
+    >;
+  } & ACLXenObjectFragmentFragment;
+
+export type VDIInfoQueryVariables = {
+  ref: Scalars["ID"];
+};
+
+export type VDIInfoQuery = { __typename?: "Query" } & {
+  vdi: Maybe<{ __typename?: "GVDI" } & VDIInfoFragmentFragment>;
+};
+
+export type VDIInfoUpdateSubscriptionVariables = {
+  ref: Scalars["ID"];
+};
+
+export type VDIInfoUpdateSubscription = { __typename?: "Subscription" } & {
+  vdi: Maybe<{ __typename?: "GVDI" } & VDIInfoFragmentFragment>;
+};
+
+export type VDIListFragmentFragment = { __typename?: "GVDI" } & Pick<
+  GVDI,
+  "ref" | "nameLabel" | "myActions" | "isOwner"
+>;
+
 export type StorageAttachVDIListFragmentFragment = {
   __typename?: "GVDI";
 } & Pick<GVDI, "ref" | "nameLabel" | "nameDescription" | "virtualSize">;
@@ -2212,6 +2378,21 @@ export type StorageAttachISOListQuery = { __typename?: "Query" } & {
   vdis: Array<
     Maybe<{ __typename?: "GVDI" } & StorageAttachVDIListFragmentFragment>
   >;
+};
+
+export type VDIListQueryVariables = {};
+
+export type VDIListQuery = { __typename?: "Query" } & {
+  vdis: Array<Maybe<{ __typename?: "GVDI" } & VDIListFragmentFragment>>;
+};
+
+export type VDIListUpdateSubscriptionVariables = {};
+
+export type VDIListUpdateSubscription = { __typename?: "Subscription" } & {
+  vdis: { __typename?: "GVDIsSubscription" } & Pick<
+    GVDIsSubscription,
+    "changeType"
+  > & { value: VDIListFragmentFragment | DeletedFragmentFragment };
 };
 
 export type VMVIFFragmentFragment = { __typename?: "GVIF" } & Pick<
@@ -2244,7 +2425,7 @@ export type VMAccessFragmentFragment = { __typename?: "GVMAccessEntry" } & Pick<
 
 export type VMInfoFragmentFragment = { __typename?: "GVM" } & Pick<
   GVM,
-  "powerState" | "startTime" | "domainType" | "myActions" | "isOwner"
+  "powerState" | "startTime" | "domainType" | "myActions"
 > & {
     VIFs: Array<Maybe<{ __typename?: "GVIF" } & VMVIFFragmentFragment>>;
     VBDs: Array<Maybe<{ __typename?: "GVBD" } & VMVBDFragmentFragment>>;
@@ -2297,7 +2478,7 @@ export type XenObjectFragmentFragment = Pick<
 
 export type ACLXenObjectFragmentFragment = Pick<
   GAclXenObject,
-  "ref" | "nameLabel" | "nameDescription"
+  "ref" | "nameLabel" | "nameDescription" | "isOwner"
 >;
 
 import {
@@ -2449,6 +2630,7 @@ export type GAccessEntryResolvers<Context = any, ParentType = GAccessEntry> = {
   __resolveType: TypeResolveFn<
     | "GVMAccessEntry"
     | "GNetworkAccessEntry"
+    | "GVDIAccessEntry"
     | "GSRAccessEntry"
     | "GTemplateAccessEntry"
     | "GTaskAccessEntry",
@@ -2472,6 +2654,7 @@ export type GAclXenObjectResolvers<
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
   uuid?: Resolver<Scalars["ID"], ParentType, Context>;
   access?: Resolver<Array<Maybe<GAccessEntry>>, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
 };
 
 export type GHostResolvers<Context = any, ParentType = GHost> = {
@@ -2527,8 +2710,8 @@ export type GNetworkResolvers<Context = any, ParentType = GNetwork> = {
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
   uuid?: Resolver<Scalars["ID"], ParentType, Context>;
   access?: Resolver<Array<Maybe<GNetworkAccessEntry>>, ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<NetworkActions>>, ParentType, Context>;
   isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  myActions?: Resolver<Array<Maybe<NetworkActions>>, ParentType, Context>;
   VIFs?: Resolver<Maybe<Array<Maybe<GVIF>>>, ParentType, Context>;
   otherConfig?: Resolver<Maybe<Scalars["JSONString"]>, ParentType, Context>;
 };
@@ -2604,8 +2787,8 @@ export type GSRResolvers<Context = any, ParentType = GSR> = {
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
   uuid?: Resolver<Scalars["ID"], ParentType, Context>;
   access?: Resolver<Array<Maybe<GSRAccessEntry>>, ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<SRActions>>, ParentType, Context>;
   isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  myActions?: Resolver<Array<Maybe<SRActions>>, ParentType, Context>;
   PBDs?: Resolver<Array<Maybe<GPBD>>, ParentType, Context>;
   VDIs?: Resolver<Maybe<Array<Maybe<GVDI>>>, ParentType, Context>;
   contentType?: Resolver<SRContentType, ParentType, Context>;
@@ -2631,8 +2814,8 @@ export type GTaskResolvers<Context = any, ParentType = GTask> = {
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
   uuid?: Resolver<Scalars["ID"], ParentType, Context>;
   access?: Resolver<Array<Maybe<GTaskAccessEntry>>, ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<TaskActions>>, ParentType, Context>;
   isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  myActions?: Resolver<Array<Maybe<TaskActions>>, ParentType, Context>;
   created?: Resolver<Scalars["DateTime"], ParentType, Context>;
   finished?: Resolver<Scalars["DateTime"], ParentType, Context>;
   progress?: Resolver<Scalars["Float"], ParentType, Context>;
@@ -2676,6 +2859,7 @@ export type GTemplateResolvers<Context = any, ParentType = GTemplate> = {
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
   uuid?: Resolver<Scalars["ID"], ParentType, Context>;
   access?: Resolver<Array<Maybe<GTemplateAccessEntry>>, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   platform?: Resolver<Maybe<Platform>, ParentType, Context>;
   VCPUsAtStartup?: Resolver<Scalars["Int"], ParentType, Context>;
   VCPUsMax?: Resolver<Scalars["Int"], ParentType, Context>;
@@ -2688,7 +2872,6 @@ export type GTemplateResolvers<Context = any, ParentType = GTemplate> = {
   memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
   memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
   myActions?: Resolver<Array<Maybe<TemplateActions>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   isDefaultTemplate?: Resolver<Scalars["Boolean"], ParentType, Context>;
   installOptions?: Resolver<Maybe<InstallOSOptions>, ParentType, Context>;
 };
@@ -2733,14 +2916,22 @@ export type GVDIResolvers<Context = any, ParentType = GVDI> = {
   nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
   uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GAccessEntry>>, ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<VDIActions>>, ParentType, Context>;
+  access?: Resolver<Array<Maybe<GVDIAccessEntry>>, ParentType, Context>;
   isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  myActions?: Resolver<Array<Maybe<VDIActions>>, ParentType, Context>;
   SR?: Resolver<Maybe<GSR>, ParentType, Context>;
   virtualSize?: Resolver<Scalars["Float"], ParentType, Context>;
   VBDs?: Resolver<Array<Maybe<GVBD>>, ParentType, Context>;
   contentType?: Resolver<SRContentType, ParentType, Context>;
   type?: Resolver<VDIType, ParentType, Context>;
+};
+
+export type GVDIAccessEntryResolvers<
+  Context = any,
+  ParentType = GVDIAccessEntry
+> = {
+  userId?: Resolver<User, ParentType, Context>;
+  actions?: Resolver<Array<VDIActions>, ParentType, Context>;
 };
 
 export type GVDIOrDeletedResolvers<
@@ -2776,6 +2967,7 @@ export type GVMResolvers<Context = any, ParentType = GVM> = {
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
   uuid?: Resolver<Scalars["ID"], ParentType, Context>;
   access?: Resolver<Array<Maybe<GVMAccessEntry>>, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   platform?: Resolver<Maybe<Platform>, ParentType, Context>;
   VCPUsAtStartup?: Resolver<Scalars["Int"], ParentType, Context>;
   VCPUsMax?: Resolver<Scalars["Int"], ParentType, Context>;
@@ -2788,7 +2980,6 @@ export type GVMResolvers<Context = any, ParentType = GVM> = {
   memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
   memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
   myActions?: Resolver<Array<Maybe<VMActions>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   PVDriversUpToDate?: Resolver<Maybe<Scalars["Boolean"]>, ParentType, Context>;
   PVDriversVersion?: Resolver<Maybe<PvDriversVersion>, ParentType, Context>;
   metrics?: Resolver<Scalars["ID"], ParentType, Context>;
@@ -2905,7 +3096,7 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
     MutationvmSuspendArgs
   >;
   vmDelete?: Resolver<
-    Maybe<VMDeleteMutation>,
+    Maybe<VMDestroyMutation>,
     ParentType,
     Context,
     MutationvmDeleteArgs
@@ -2940,6 +3131,7 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
     Context,
     MutationnetAccessSetArgs
   >;
+  vdi?: Resolver<Maybe<VDIMutation>, ParentType, Context, MutationvdiArgs>;
   vdiAttach?: Resolver<
     Maybe<AttachVDIMutation>,
     ParentType,
@@ -2952,11 +3144,24 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
     Context,
     MutationvdiAccessSetArgs
   >;
+  vdiDelete?: Resolver<
+    Maybe<VDIDestroyMutation>,
+    ParentType,
+    Context,
+    MutationvdiDeleteArgs
+  >;
+  sr?: Resolver<Maybe<SRMutation>, ParentType, Context, MutationsrArgs>;
   srAccessSet?: Resolver<
     Maybe<SRAccessSet>,
     ParentType,
     Context,
     MutationsrAccessSetArgs
+  >;
+  srDelete?: Resolver<
+    Maybe<SRDestroyMutation>,
+    ParentType,
+    Context,
+    MutationsrDeleteArgs
   >;
   selectedItems?: Resolver<
     Maybe<Array<Scalars["ID"]>>,
@@ -3117,6 +3322,20 @@ export type SRAccessSetResolvers<Context = any, ParentType = SRAccessSet> = {
   success?: Resolver<Scalars["Boolean"], ParentType, Context>;
 };
 
+export type SRDestroyMutationResolvers<
+  Context = any,
+  ParentType = SRDestroyMutation
+> = {
+  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
+  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+};
+
+export type SRMutationResolvers<Context = any, ParentType = SRMutation> = {
+  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+};
+
 export type SubscriptionResolvers<Context = any, ParentType = Subscription> = {
   vms?: SubscriptionResolver<
     GVMsSubscription,
@@ -3183,6 +3402,12 @@ export type SubscriptionResolvers<Context = any, ParentType = Subscription> = {
     ParentType,
     Context,
     SubscriptionvdisArgs
+  >;
+  vdi?: SubscriptionResolver<
+    Maybe<GVDI>,
+    ParentType,
+    Context,
+    SubscriptionvdiArgs
   >;
   tasks?: SubscriptionResolver<
     GTasksSubscription,
@@ -3253,13 +3478,27 @@ export type VDIAccessSetResolvers<Context = any, ParentType = VDIAccessSet> = {
   success?: Resolver<Scalars["Boolean"], ParentType, Context>;
 };
 
+export type VDIDestroyMutationResolvers<
+  Context = any,
+  ParentType = VDIDestroyMutation
+> = {
+  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
+  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+};
+
+export type VDIMutationResolvers<Context = any, ParentType = VDIMutation> = {
+  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+};
+
 export type VMAccessSetResolvers<Context = any, ParentType = VMAccessSet> = {
   success?: Resolver<Scalars["Boolean"], ParentType, Context>;
 };
 
-export type VMDeleteMutationResolvers<
+export type VMDestroyMutationResolvers<
   Context = any,
-  ParentType = VMDeleteMutation
+  ParentType = VMDestroyMutation
 > = {
   taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
   granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
@@ -3358,6 +3597,7 @@ export type Resolvers<Context = any> = {
   GTemplatesSubscription?: GTemplatesSubscriptionResolvers<Context>;
   GVBD?: GVBDResolvers<Context>;
   GVDI?: GVDIResolvers<Context>;
+  GVDIAccessEntry?: GVDIAccessEntryResolvers<Context>;
   GVDIOrDeleted?: GVDIOrDeletedResolvers;
   GVDIsSubscription?: GVDIsSubscriptionResolvers<Context>;
   GVIF?: GVIFResolvers<Context>;
@@ -3382,6 +3622,8 @@ export type Resolvers<Context = any> = {
   Query?: QueryResolvers<Context>;
   SoftwareVersion?: SoftwareVersionResolvers<Context>;
   SRAccessSet?: SRAccessSetResolvers<Context>;
+  SRDestroyMutation?: SRDestroyMutationResolvers<Context>;
+  SRMutation?: SRMutationResolvers<Context>;
   Subscription?: SubscriptionResolvers<Context>;
   TemplateAccessSet?: TemplateAccessSetResolvers<Context>;
   TemplateCloneMutation?: TemplateCloneMutationResolvers<Context>;
@@ -3389,8 +3631,10 @@ export type Resolvers<Context = any> = {
   TemplateMutation?: TemplateMutationResolvers<Context>;
   User?: UserResolvers<Context>;
   VDIAccessSet?: VDIAccessSetResolvers<Context>;
+  VDIDestroyMutation?: VDIDestroyMutationResolvers<Context>;
+  VDIMutation?: VDIMutationResolvers<Context>;
   VMAccessSet?: VMAccessSetResolvers<Context>;
-  VMDeleteMutation?: VMDeleteMutationResolvers<Context>;
+  VMDestroyMutation?: VMDestroyMutationResolvers<Context>;
   VMMutation?: VMMutationResolvers<Context>;
   VMPauseMutation?: VMPauseMutationResolvers<Context>;
   VMRebootMutation?: VMRebootMutationResolvers<Context>;
@@ -3453,17 +3697,12 @@ export const ISOCreateVMListFragmentFragmentDoc = gql`
     }
   }
 `;
-export const ISOListFragmentFragmentDoc = gql`
-  fragment ISOListFragment on GVDI {
-    ref
-    nameLabel
-  }
-`;
 export const ACLXenObjectFragmentFragmentDoc = gql`
   fragment ACLXenObjectFragment on GAclXenObject {
     ref
     nameLabel
     nameDescription
+    isOwner
   }
 `;
 export const NetworkInfoFragmentFragmentDoc = gql`
@@ -3563,7 +3802,6 @@ export const TemplateInfoFragmentFragmentDoc = gql`
       }
       actions
     }
-    isOwner
   }
   ${TemplateSettingsFragmentFragmentDoc}
   ${ACLXenObjectFragmentFragmentDoc}
@@ -3595,6 +3833,29 @@ export const UserFragmentFragmentDoc = gql`
     username
     id
     name
+  }
+`;
+export const VDIInfoFragmentFragmentDoc = gql`
+  fragment VDIInfoFragment on GVDI {
+    ...ACLXenObjectFragment
+    access {
+      actions
+      userId {
+        id
+        name
+        username
+      }
+    }
+    myActions
+  }
+  ${ACLXenObjectFragmentFragmentDoc}
+`;
+export const VDIListFragmentFragmentDoc = gql`
+  fragment VDIListFragment on GVDI {
+    ref
+    nameLabel
+    myActions
+    isOwner
   }
 `;
 export const StorageAttachVDIListFragmentFragmentDoc = gql`
@@ -3664,7 +3925,6 @@ export const VMInfoFragmentFragmentDoc = gql`
       ...VMAccessFragment
     }
     myActions
-    isOwner
   }
   ${ACLXenObjectFragmentFragmentDoc}
   ${AbstractVMFragmentFragmentDoc}
@@ -3980,6 +4240,25 @@ export function useDeleteTemplateMutation(
     DeleteTemplateMutationVariables
   >(DeleteTemplateDocument, baseOptions);
 }
+export const DeleteVDIDocument = gql`
+  mutation DeleteVDI($ref: ID!) {
+    vdiDelete(ref: $ref) {
+      taskId
+    }
+  }
+`;
+
+export function useDeleteVDIMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    DeleteVDIMutation,
+    DeleteVDIMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    DeleteVDIMutation,
+    DeleteVDIMutationVariables
+  >(DeleteVDIDocument, baseOptions);
+}
 export const DeleteVMDocument = gql`
   mutation DeleteVM($ref: ID!) {
     vmDelete(ref: $ref) {
@@ -4038,6 +4317,26 @@ export function useTemplateEditOptionsMutation(
     TemplateEditOptionsMutation,
     TemplateEditOptionsMutationVariables
   >(TemplateEditOptionsDocument, baseOptions);
+}
+export const VDIEditOptionsDocument = gql`
+  mutation VDIEditOptions($vdi: VDIInput!) {
+    vdi(vdi: $vdi) {
+      reason
+      granted
+    }
+  }
+`;
+
+export function useVDIEditOptionsMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    VDIEditOptionsMutation,
+    VDIEditOptionsMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    VDIEditOptionsMutation,
+    VDIEditOptionsMutationVariables
+  >(VDIEditOptionsDocument, baseOptions);
 }
 export const VMEditOptionsDocument = gql`
   mutation VMEditOptions($vm: VMInput!) {
@@ -4140,10 +4439,10 @@ export function useISOSCreateVMListQuery(
 export const ISOListDocument = gql`
   query ISOList {
     vdis(onlyIsos: true) {
-      ref
-      nameLabel
+      ...VDIListFragment
     }
   }
+  ${VDIListFragmentFragmentDoc}
 `;
 
 export function useISOListQuery(
@@ -4159,12 +4458,12 @@ export const ISOListUpdateDocument = gql`
     vdis(onlyIsos: true) {
       changeType
       value {
-        ...ISOListFragment
+        ...VDIListFragment
         ...DeletedFragment
       }
     }
   }
-  ${ISOListFragmentFragmentDoc}
+  ${VDIListFragmentFragmentDoc}
   ${DeletedFragmentFragmentDoc}
 `;
 
@@ -4451,6 +4750,56 @@ export function useTemplateTableSelectAllMutation(
     TemplateTableSelectAllMutation,
     TemplateTableSelectAllMutationVariables
   >(TemplateTableSelectAllDocument, baseOptions);
+}
+export const VDITableSelectionDocument = gql`
+  query VDITableSelection {
+    selectedItems(tableId: VDIs) @client
+  }
+`;
+
+export function useVDITableSelectionQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<
+    VDITableSelectionQueryVariables
+  >
+) {
+  return ReactApolloHooks.useQuery<
+    VDITableSelectionQuery,
+    VDITableSelectionQueryVariables
+  >(VDITableSelectionDocument, baseOptions);
+}
+export const VDITableSelectDocument = gql`
+  mutation VDITableSelect($item: ID!, $isSelect: Boolean!) {
+    selectedItems(tableId: VDIs, items: [$item], isSelect: $isSelect) @client
+  }
+`;
+
+export function useVDITableSelectMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    VDITableSelectMutation,
+    VDITableSelectMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    VDITableSelectMutation,
+    VDITableSelectMutationVariables
+  >(VDITableSelectDocument, baseOptions);
+}
+export const VDITableSelectAllDocument = gql`
+  mutation VDITableSelectAll($items: [ID!]!, $isSelect: Boolean!) {
+    selectedItems(tableId: VDIs, items: $items, isSelect: $isSelect) @client
+  }
+`;
+
+export function useVDITableSelectAllMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    VDITableSelectAllMutation,
+    VDITableSelectAllMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    VDITableSelectAllMutation,
+    VDITableSelectAllMutationVariables
+  >(VDITableSelectAllDocument, baseOptions);
 }
 export const VmTableSelectionDocument = gql`
   query VmTableSelection {
@@ -4989,6 +5338,43 @@ export function useTemplateListUpdateSubscription(
     TemplateListUpdateSubscriptionVariables
   >(TemplateListUpdateDocument, baseOptions);
 }
+export const VDIInfoDocument = gql`
+  query VDIInfo($ref: ID!) {
+    vdi(ref: $ref) {
+      ...VDIInfoFragment
+    }
+  }
+  ${VDIInfoFragmentFragmentDoc}
+`;
+
+export function useVDIInfoQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<VDIInfoQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<VDIInfoQuery, VDIInfoQueryVariables>(
+    VDIInfoDocument,
+    baseOptions
+  );
+}
+export const VDIInfoUpdateDocument = gql`
+  subscription VDIInfoUpdate($ref: ID!) {
+    vdi(ref: $ref) {
+      ...VDIInfoFragment
+    }
+  }
+  ${VDIInfoFragmentFragmentDoc}
+`;
+
+export function useVDIInfoUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    VDIInfoUpdateSubscription,
+    VDIInfoUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    VDIInfoUpdateSubscription,
+    VDIInfoUpdateSubscriptionVariables
+  >(VDIInfoUpdateDocument, baseOptions);
+}
 export const StorageAttachVDIListDocument = gql`
   query StorageAttachVDIList {
     vdis(onlyIsos: false) {
@@ -5026,6 +5412,48 @@ export function useStorageAttachISOListQuery(
     StorageAttachISOListQuery,
     StorageAttachISOListQueryVariables
   >(StorageAttachISOListDocument, baseOptions);
+}
+export const VDIListDocument = gql`
+  query VDIList {
+    vdis(onlyIsos: false) {
+      ...VDIListFragment
+    }
+  }
+  ${VDIListFragmentFragmentDoc}
+`;
+
+export function useVDIListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<VDIListQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<VDIListQuery, VDIListQueryVariables>(
+    VDIListDocument,
+    baseOptions
+  );
+}
+export const VDIListUpdateDocument = gql`
+  subscription VDIListUpdate {
+    vdis(onlyIsos: false) {
+      changeType
+      value {
+        ...VDIListFragment
+        ...DeletedFragment
+      }
+    }
+  }
+  ${VDIListFragmentFragmentDoc}
+  ${DeletedFragmentFragmentDoc}
+`;
+
+export function useVDIListUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    VDIListUpdateSubscription,
+    VDIListUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    VDIListUpdateSubscription,
+    VDIListUpdateSubscriptionVariables
+  >(VDIListUpdateDocument, baseOptions);
 }
 export const VMInfoDocument = gql`
   query VMInfo($ref: ID!) {

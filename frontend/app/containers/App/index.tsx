@@ -20,6 +20,9 @@ import {GlobalStyle} from '../../global-styles';
 import reducer from "./reducer";
 import {compose} from "redux";
 import NetworkSettings from "../NetworkSettings";
+import ISOs from "../ISOList";
+import VDIs from "../VDIList";
+import VDISettings from "../VDISettings";
 
 
 interface State {
@@ -71,6 +74,9 @@ class App extends React.Component<{}, State> {
           {/*<PrivateRoute path="/desktop/:ref" component={VncView}/>*/}
           <PrivateRoute path="/networks" component={Networks}/>
           <PrivateRoute path="/network/:ref" component={NetworkSettings}/>
+          <PrivateRoute path="/isos" component={ISOs}/>
+          <PrivateRoute path="/vdis" component={VDIs}/>
+          <PrivateRoute path="/vdi/:ref" component={VDISettings}/>
           <Route component={NotFoundPage}/>
         </Switch>
         <GlobalStyle/>

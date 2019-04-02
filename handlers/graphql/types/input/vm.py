@@ -185,7 +185,7 @@ class VMSuspendMutation(graphene.Mutation):
         return VMSuspendMutation(taskId=VM.async_suspend(), granted=True)
 
 
-class VMDeleteMutation(graphene.Mutation):
+class VMDestroyMutation(graphene.Mutation):
     taskId = graphene.ID(required=False, description="Deleting task ID")
     granted = graphene.Boolean(required=True, description="Shows if access to delete is granted")
     reason = graphene.String()
@@ -198,8 +198,8 @@ class VMDeleteMutation(graphene.Mutation):
     @return_if_access_is_not_granted([("VM", "ref", VM.Actions.destroy)])
     def mutate(root, info, ref, VM):
         if VM.get_power_state() == "Halted":
-            return VMDeleteMutation(taskId=VM.async_destroy(), granted=True)
+            return VMDestroyMutation(taskId=VM.async_destroy(), granted=True)
         else:
-            return VMDeleteMutation(granted=False, reason=f"Power state of VM {VM.ref} is not Halted, unable to delete")
+            return VMDestroyMutation(granted=False, reason=f"Power state of VM {VM.ref} is not Halted, unable to delete")
 
 

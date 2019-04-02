@@ -26,6 +26,18 @@ export default defineMessages({
     id: "app.components.navbar.networks",
     defaultMessage: "Networks",
   },
+  vdis: {
+    id: "app.components.navbar.vdis",
+    defaultMessage: "Virtual HDDs",
+  },
+  isos: {
+    id: "app.components.navbar.isos",
+    defaultMessage: "ISOs",
+  },
+  srs: {
+    id: "app.components.navbar.srs",
+    defaultMessage: "SRs",
+  },
   logout: {
     id: "app.components.navbar.logout",
     defaultMessage: "Logout",

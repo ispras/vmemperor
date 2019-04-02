@@ -40,6 +40,8 @@ class SRContentType(graphene.Enum):
 
 
 class SRActions(SerFlag):
+    rename = auto()
+
     scan = auto()
     destroy = auto()
     vdi_create = auto()

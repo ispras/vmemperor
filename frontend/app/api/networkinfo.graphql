@@ -1,4 +1,3 @@
-# import AbstractVMFragment from "abstractVmFragment.graphql"
 # import ACLXenObjectFragment from "xenObjectFragment.graphql"
 
 fragment NetworkInfoFragment on GNetwork {

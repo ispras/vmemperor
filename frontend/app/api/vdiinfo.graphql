@@ -1,0 +1,25 @@
+# import ACLXenObjectFragment from "xenObjectFragment.graphql"
+
+fragment VDIInfoFragment on GVDI {
+  ...ACLXenObjectFragment
+  access {
+    actions
+    userId {
+      id
+      name
+      username
+    }
+  }
+  myActions
+}
+
+query VDIInfo ($ref: ID!)  {
+  vdi (ref: $ref) {
+    ...VDIInfoFragment
+  }
+}
+subscription VDIInfoUpdate ($ref: ID!) {
+  vdi(ref: $ref) {
+    ...VDIInfoFragment
+  }
+}

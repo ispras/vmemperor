@@ -105,6 +105,10 @@ const Networks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
           hover: true,
           filter: filterFactory(),
         }}
+        onSelect={(key, isSelect) => dispatch({
+          type: isSelect ? "Add" : "Remove",
+          ref: key,
+        })}
       />
     </Fragment>
   );

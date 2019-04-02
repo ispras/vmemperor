@@ -58,8 +58,6 @@ fragment VMInfoFragment on GVM {
     ...VMAccessFragment
   }
   myActions
-  isOwner
-
 }
 
 query VMInfo ($ref: ID!) {

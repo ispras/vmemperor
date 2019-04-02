@@ -6,6 +6,8 @@ from handlers.graphql.graphene_with_flags.schema import SchemaWithFlags
 from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.resolvers.vdi import resolve_vdis
 from handlers.graphql.types.input.network import NetworkMutation
+from handlers.graphql.types.input.sr import SRMutation, SRDestroyMutation
+from handlers.graphql.types.input.vdi import VDIMutation, VDIDestroyMutation
 from handlers.graphql.utils.query import resolve_all, resolve_one
 from handlers.graphql.utils.subscription import MakeSubscription, resolve_xen_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_xen_items_changes, resolve_item_by_key, resolve_all_items_changes
@@ -15,7 +17,7 @@ from handlers.graphql.types.input.attachnet import AttachNetworkMutation
 from handlers.graphql.types.input.attachvdi import AttachVDIMutation
 from handlers.graphql.types.input.createvm import CreateVM
 from handlers.graphql.types.input.vm import VMMutation, VMStartMutation, VMShutdownMutation, VMRebootMutation, \
-    VMPauseMutation, VMDeleteMutation, VMSuspendMutation
+    VMPauseMutation, VMDestroyMutation, VMSuspendMutation
 from handlers.graphql.types.input.accessset import VMAccessSet, NetAccessSet, VDIAccessSet, SRAccessSet, \
     TemplateAccessSet
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
@@ -106,7 +108,7 @@ class Mutation(ObjectType):
     vm_reboot = VMRebootMutation.Field(description="Reboot VM")
     vm_pause = VMPauseMutation.Field(description="If VM is Running, pause VM. If Paused, unpause VM")
     vm_suspend = VMSuspendMutation.Field(description="If VM is Running, suspend VM. If Suspended, resume VM")
-    vm_delete = VMDeleteMutation.Field(description="Delete a Halted VM")
+    vm_delete = VMDestroyMutation.Field(description="Delete a Halted VM")
     vm_access_set = VMAccessSet.Field(description="Set VM access rights")
 
     playbook_launch = PlaybookLaunchMutation.Field(description="Launch an Ansible Playbook on specified VMs")
@@ -115,11 +117,14 @@ class Mutation(ObjectType):
     net_attach = AttachNetworkMutation.Field(description="Attach VM to a Network by creating a new Interface")
     net_access_set = NetAccessSet.Field(description="Set network access rights")
 
+    vdi = VDIMutation.Field(description="Edit VDI options")
     vdi_attach = AttachVDIMutation.Field(description="Attach VDI to a VM by creating a new virtual block device")
     vdi_access_set = VDIAccessSet.Field(description="Set VDI access rights")
+    vdi_delete = VDIDestroyMutation.Field(description="Delete a VDI")
 
+    sr = SRMutation.Field(description="Edit SR options")
     sr_access_set = SRAccessSet.Field(description="Set SR access rights")
-
+    sr_delete = SRDestroyMutation.Field(description="Delete a SR")
 
 
 
@@ -146,10 +151,10 @@ class Subscription(ObjectType):
     vdis = graphene.Field(MakeSubscriptionWithChangeType(GVDI), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False),
                               only_isos=graphene.Boolean(description="True - print only ISO images; False - print everything but ISO images; null - print everything"),
                               description="Updates for all VDIs", resolver=resolve_vdis)
+    vdi = graphene.Field(MakeSubscription(GVDI), ref=graphene.NonNull(graphene.ID), description="Updates for a particular VDI")
 
     tasks = graphene.Field(MakeSubscriptionWithChangeType(GTask), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all XenServer tasks")
     task = graphene.Field(MakeSubscription(GTask),  ref=graphene.NonNull(graphene.ID), description="Updates for a particular XenServer Task")
-
 
 
     playbook_task = graphene.Field(MakeSubscription(PlaybookTask), id=graphene.NonNull(graphene.ID), description="Updates for a particular Playbook installation Task")
@@ -168,8 +173,8 @@ class Subscription(ObjectType):
     def resolve_vm(*args, **kwargs):
         return resolve_xen_item_by_key()(*args, **kwargs)
 
-
-
+    def resolve_vdi(*args, **kwargs):
+        return resolve_xen_item_by_key()(*args, **kwargs)
 
     def resolve_templates(*args, **kwargs):
         return resolve_all_xen_items_changes(GTemplate)(*args, **kwargs)

@@ -4,13 +4,13 @@
  */
 import StatefulTable, {ColumnType} from "../StatefulTable";
 import {
-  ISOListDocument,
-  VDIListFragmentFragment, VDIListFragmentFragmentDoc, ISOListUpdateDocument,
-  ISOTableSelectAllDocument,
-  ISOTableSelectDocument,
-  ISOTableSelectionDocument,
-  useISOListQuery,
-  useISOTableSelectionQuery, VDIAccessSetMutationDocument, VDIActions,
+  VDIListDocument,
+  VDIListFragmentFragment, VDIListFragmentFragmentDoc, VDIListUpdateDocument,
+  VDITableSelectAllDocument,
+  VDITableSelectDocument,
+  VDITableSelectionDocument,
+  useVDIListQuery,
+  useVDITableSelectionQuery, VDIAccessSetMutationDocument, VDIActions, DeleteVDIDocument,
 } from "../../generated-models";
 import {nameFormatter} from "../../utils/formatters";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter';
@@ -21,7 +21,7 @@ import {Fragment, Reducer, ReducerState, useCallback, useReducer} from 'react';
 import {
   readCacheObject,
   selectedForSetActionReducer,
-  SelectedForSetActionState
+  SelectedForSetActionState, selectedForTrashReducer, SelectedForTrashState
 } from "../../utils/componentStateReducers";
 import {ListAction} from "../../utils/reducer";
 import {Set} from 'immutable';
@@ -29,10 +29,11 @@ import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription
 import {useApolloClient} from "react-apollo-hooks";
 import {ButtonGroup, ButtonToolbar} from "reactstrap";
 import SetAccessButton from "../../components/SetAccessButton";
+import RecycleBinButton from "../../components/RecycleBinButton";
 
-type ISOColumnType = ColumnType<VDIListFragmentFragment>;
+type VDIColumnType = ColumnType<VDIListFragmentFragment>;
 
-const columns: ISOColumnType[] = [
+const columns: VDIColumnType[] = [
   {
     dataField: "nameLabel",
     text: "Name",
@@ -43,34 +44,35 @@ const columns: ISOColumnType[] = [
 ];
 
 
-interface State extends SelectedForSetActionState /*,SelectedForTrashState */
-{
+interface State extends SelectedForSetActionState, SelectedForTrashState {
 
 }
 
-type ISOListReducer = Reducer<State, ListAction>;
+type VDIListReducer = Reducer<State, ListAction>;
 
-const initialState: ReducerState<ISOListReducer> = {
-  selectedForSetAction: Set.of<string>()
+const initialState: ReducerState<VDIListReducer> = {
+  selectedForSetAction: Set.of<string>(),
+  selectedForTrash: Set.of<string>(),
 };
 
-const ISOs: React.FunctionComponent<RouteComponentProps> = ({history}) => {
-  const {data: {vdis}} = useISOListQuery();
+const VDIs: React.FunctionComponent<RouteComponentProps> = ({history}) => {
+  const {data: {vdis}} = useVDIListQuery();
   const client = useApolloClient();
   const readVDI = useCallback((ref) => {
     return readCacheObject<VDIListFragmentFragment>(client, VDIListFragmentFragmentDoc, "GVDI", ref);
   }, [client]);
 
-  const reducer: ISOListReducer = (state, action) => {
+  const reducer: VDIListReducer = (state, action) => {
     const [type, info] = getStateInfoAndTypeFromCache(action, readVDI);
     return {
-      ...selectedForSetActionReducer(type, info, state)
+      ...selectedForSetActionReducer(type, info, state),
+      ...selectedForTrashReducer(VDIActions.destroy, type, info, state)
     }
   };
-  const {data: {selectedItems}} = useISOTableSelectionQuery();
-  const [state, dispatch] = useReducer<ISOListReducer>(reducer, initialState);
+  const {data: {selectedItems}} = useVDITableSelectionQuery();
+  const [state, dispatch] = useReducer<VDIListReducer>(reducer, initialState);
   useTableSelectionInInternalState(dispatch, selectedItems);
-  useUpdateInternalStateWithSubscription(dispatch, ISOListUpdateDocument, ISOListDocument, client, "vdis");
+  useUpdateInternalStateWithSubscription(dispatch, VDIListUpdateDocument, VDIListDocument, client, "vdis");
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: VDIListFragmentFragment, index) => {
     e.preventDefault();
@@ -87,24 +89,31 @@ const ISOs: React.FunctionComponent<RouteComponentProps> = ({history}) => {
             mutationNode={VDIAccessSetMutationDocument}
             readCacheFunction={readVDI}/>
         </ButtonGroup>
+        <ButtonGroup size="lg">
+          <RecycleBinButton
+            destroyMutationName="vdiDelete"
+            state={state}
+            destroyMutationDocument={DeleteVDIDocument}
+            readCacheFunction={readVDI}/>
+        </ButtonGroup>
       </ButtonToolbar>
       <StatefulTable
         keyField="ref"
         data={vdis}
-        tableSelectOne={ISOTableSelectDocument}
-        tableSelectMany={ISOTableSelectAllDocument}
-        tableSelectionQuery={ISOTableSelectionDocument}
+        tableSelectOne={VDITableSelectDocument}
+        tableSelectMany={VDITableSelectAllDocument}
+        tableSelectionQuery={VDITableSelectionDocument}
         columns={columns}
         onDoubleClick={onDoubleClick}
+        onSelect={(key, isSelect) => dispatch({
+          type: isSelect ? "Add" : "Remove",
+          ref: key,
+        })}
         props={{
           striped: true,
           hover: true,
           filter: filterFactory(),
         }}
-        onSelect={(key, isSelect) => dispatch({
-          type: isSelect ? "Add" : "Remove",
-          ref: key,
-        })}
       />
     </Fragment>
   );
@@ -112,4 +121,4 @@ const ISOs: React.FunctionComponent<RouteComponentProps> = ({history}) => {
 
 };
 
-export default ISOs;
+export default VDIs;

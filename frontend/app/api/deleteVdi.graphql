@@ -1,0 +1,5 @@
+mutation DeleteVDI($ref :ID!) {
+  vdiDelete(ref: $ref) {
+    taskId
+  }
+}

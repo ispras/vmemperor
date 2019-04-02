@@ -1,0 +1,6 @@
+fragment VDIListFragment on GVDI {
+  ref
+  nameLabel
+  myActions
+  isOwner
+}

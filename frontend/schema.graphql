@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Tue Apr 02 15:30:54 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Tue Apr 02 20:34:39 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -27,6 +27,7 @@ interface GAccessEntry {
 
 interface GAclXenObject {
   access: [GAccessEntry]!
+  isOwner: Boolean!
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
@@ -374,7 +375,7 @@ type GVBD {
 type GVDI implements GAclXenObject {
   SR: GSR
   VBDs: [GVBD]!
-  access: [GAccessEntry]!
+  access: [GVDIAccessEntry]!
   contentType: SRContentType!
   isOwner: Boolean!
   myActions: [VDIActions]!
@@ -388,6 +389,11 @@ type GVDI implements GAclXenObject {
   "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
   virtualSize: Float!
+}
+
+type GVDIAccessEntry implements GAccessEntry {
+  actions: [VDIActions!]!
+  userId: User!
 }
 
 type GVDIsSubscription {
@@ -504,8 +510,15 @@ type Mutation {
     #VM UUIDs to run Playbook on. Ignored if this is a Playbook with provided Inventory
     vms: [ID]
   ): PlaybookLaunchMutation
+  "Edit SR options"
+  sr(
+    #Sr to change
+    sr: SRInput!
+  ): SRMutation
   "Set SR access rights"
   srAccessSet(actions: [SRActions!]!, ref: ID!, revoke: Boolean!, user: String!): SRAccessSet
+  "Delete a SR"
+  srDelete(ref: ID!): SRDestroyMutation
   "Edit template options"
   template(
     #Template to change
@@ -521,6 +534,11 @@ type Mutation {
   ): TemplateCloneMutation
   "Delete template"
   templateDelete(ref: ID!): TemplateDestroyMutation
+  "Edit VDI options"
+  vdi(
+    #Vdi to change
+    vdi: VDIInput!
+  ): VDIMutation
   "Set VDI access rights"
   vdiAccessSet(actions: [VDIActions!]!, ref: ID!, revoke: Boolean!, user: String!): VDIAccessSet
   "Attach VDI to a VM by creating a new virtual block device"
@@ -530,6 +548,8 @@ type Mutation {
     vdiRef: ID!,
     vmRef: ID!
   ): AttachVDIMutation
+  "Delete a VDI"
+  vdiDelete(ref: ID!): VDIDestroyMutation
   "Edit VM options"
   vm(
     #Vm to change
@@ -538,7 +558,7 @@ type Mutation {
   "Set VM access rights"
   vmAccessSet(actions: [VMActions!]!, ref: ID!, revoke: Boolean!, user: String!): VMAccessSet
   "Delete a Halted VM"
-  vmDelete(ref: ID!): VMDeleteMutation
+  vmDelete(ref: ID!): VMDestroyMutation
   "If VM is Running, pause VM. If Paused, unpause VM"
   vmPause(ref: ID!): VMPauseMutation
   "Reboot VM"
@@ -675,6 +695,19 @@ type SRAccessSet {
   success: Boolean!
 }
 
+type SRDestroyMutation {
+  "Shows if access to destroy is granted"
+  granted: Boolean!
+  reason: String
+  "destroy task ID"
+  taskId: ID
+}
+
+type SRMutation {
+  granted: Boolean!
+  reason: String
+}
+
 type SoftwareVersion {
   buildNumber: String!
   date: String!
@@ -721,6 +754,8 @@ type Subscription {
   template(ref: ID!): GTemplate
   "Updates for all Templates"
   templates(withInitials: Boolean): GTemplatesSubscription!
+  "Updates for a particular VDI"
+  vdi(ref: ID!): GVDI
   "Updates for all VDIs"
   vdis(
     #True - print only ISO images; False - print everything but ISO images; null - print everything
@@ -768,11 +803,24 @@ type VDIAccessSet {
   success: Boolean!
 }
 
+type VDIDestroyMutation {
+  "Shows if access to destroy is granted"
+  granted: Boolean!
+  reason: String
+  "destroy task ID"
+  taskId: ID
+}
+
+type VDIMutation {
+  granted: Boolean!
+  reason: String
+}
+
 type VMAccessSet {
   success: Boolean!
 }
 
-type VMDeleteMutation {
+type VMDestroyMutation {
   "Shows if access to delete is granted"
   granted: Boolean!
   reason: String
@@ -909,6 +957,7 @@ enum SRActions {
   ALL
   NONE
   destroy
+  rename
   scan
   vdi_clone
   vdi_create
@@ -958,7 +1007,9 @@ enum VBDType {
 enum VDIActions {
   ALL
   NONE
+  destroy
   plug
+  rename
 }
 
 "VDI class supports only a subset of VDI types, that are listed below."
@@ -1065,6 +1116,15 @@ input PlatformInput {
   videoram: Int
 }
 
+input SRInput {
+  "Object's human-readable description"
+  nameDescription: String
+  "Object's human-readable name"
+  nameLabel: String
+  "Object's ref"
+  ref: ID!
+}
+
 input TemplateInput {
   "Number of VCPUs at startup"
   VCPUsAtStartup: Int
@@ -1087,6 +1147,15 @@ input TemplateInput {
   nameLabel: String
   "VCPU platform properties"
   platform: PlatformInput
+  "Object's ref"
+  ref: ID!
+}
+
+input VDIInput {
+  "Object's human-readable description"
+  nameDescription: String
+  "Object's human-readable name"
+  nameLabel: String
   "Object's ref"
   ref: ID!
 }
