@@ -9,8 +9,13 @@ from rethinkdb.errors import ReqlNonExistenceError
 from authentication import BasicAuthenticator
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
 from xenadapter.aclxenobject import ACLXenObject
-import  constants.re as re
+import  constants.re as re # used by eval
 
+def user_entities(authenticator: BasicAuthenticator):
+    yield f'users/{authenticator.get_id()}'
+    yield 'any'
+    for group in authenticator.get_user_groups():
+        yield f'groups/{group}'
 
 class QueryBuilder:
     '''
@@ -39,12 +44,6 @@ class QueryBuilder:
         return f"QueryBuilder <{self.query_string}>"
 
     def build_query(self, additional_string):
-        def user_entities():
-            yield f'users/{self.authenticator.get_id()}'
-            yield 'any'
-            for group in self.authenticator.get_user_groups():
-                yield f'groups/{group}'
-
 
         def group_by_ref(table_name):
             query = [".group('ref')",
@@ -56,7 +55,7 @@ class QueryBuilder:
 
         def get_all_user_items(table_name):
             query = [f"re.db.table('{table_name}_user').get_all("]
-            query.append(f','.join([f"'{item}'" for item in user_entities()]))
+            query.append(f','.join([f"'{item}'" for item in user_entities(self.authenticator)]))
             query.append(",index='userid')")
             query.append(group_by_ref(xenobject_type.db_table_name))
             return ''.join(query)
@@ -84,11 +83,11 @@ class QueryBuilder:
             ]
             if list:
                 query.append(f".get_all(re.r.args(value['{item_name}'].concat_map(lambda value: [")
-                query.append(','.join((f"[value, '{entity}']" for entity in user_entities())))
+                query.append(','.join((f"[value, '{entity}']" for entity in user_entities(self.authenticator))))
                 query.append("]))")
             else:
                 query.append(f".get_all(")
-                query.append(','.join((f"[value['{item_name}'], '{entity}']" for entity in user_entities())))
+                query.append(','.join((f"[value['{item_name}'], '{entity}']" for entity in user_entities(self.authenticator))))
 
             query.append(", index='ref_and_userid')")
 
@@ -102,7 +101,7 @@ class QueryBuilder:
                 f"re.db.table('{table_name}_user')"
             ]
             query.append(f".get_all(")
-            query.append(','.join((f"['{self.id}', '{entity}']" for entity in user_entities())))
+            query.append(','.join((f"['{self.id}', '{entity}']" for entity in user_entities(self.authenticator))))
             query.append(", index='ref_and_userid')")
             query.append(group_by_ref(table_name))
             query.append(".reduce(lambda left, right: left).default(None)")
@@ -113,7 +112,7 @@ class QueryBuilder:
                 f"re.db.table('{table_name}_user')"
             ]
             query.append(f".get_all(")
-            query.append(','.join((f"['{id}', '{entity}']" for id, entity in itertools.product(self.id, user_entities()))))
+            query.append(','.join((f"['{id}', '{entity}']" for id, entity in itertools.product(self.id, user_entities(self.authenticator)))))
             query.append(", index='ref_and_userid')")
 
             query.append(group_by_ref(table_name))

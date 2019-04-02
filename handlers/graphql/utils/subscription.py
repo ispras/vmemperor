@@ -16,6 +16,7 @@ from connman import ReDBConnection
 from handlers.graphql.types.deleted import Deleted
 from handlers.graphql.utils.querybuilder.changefeedbuilder import ChangefeedBuilder
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
+from handlers.graphql.utils.querybuilder.querybuilder import user_entities
 from xenadapter.xenobject import XenObject
 from xenadapter.aclxenobject import ACLXenObject
 
@@ -46,7 +47,7 @@ class TaskCounter:
     count = 1
 
 
-async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, user_authenticator : BasicAuthenticator, xenobject_type: Type[XenObject], with_initials : bool, additional_string: str = None):
+async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, user_authenticator : BasicAuthenticator, xenobject_type: Type[XenObject], with_initials : bool, filter_function=None):
      async with ReDBConnection().get_async_connection() as conn:
         tasks: Dict[str, TaskCounter] = {}
 
@@ -54,7 +55,7 @@ async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, use
             if not user_authenticator or user_authenticator.is_admin() or not issubclass(xenobject_type, ACLXenObject):
                 table = re.db.table(xenobject_type.db_table_name)
             else:
-                table = re.db.table(f'{xenobject_type.db_table_name}_user')
+                table = re.db.table(f'{xenobject_type.db_table_name}_user').get_all(*[entity for entity in user_entities(user_authenticator)], index='userid')
 
             changes = await table.pluck('ref').changes(include_types=True, include_initial=True).run(conn)
             while True:
@@ -86,10 +87,12 @@ async def create_single_changefeeds(queue: asyncio.Queue, info: ResolveInfo, use
                     continue
                 else:
                     value = change['new_val']
+                    if filter_function and not (await filter_function(value['ref'], conn)):
+                        continue
                     builder = ChangefeedBuilder(id=value['ref'],
                                                 info=info,
                                                 queue=queue,
-                                                additional_string=additional_string,
+                                                additional_string=None,
                                                 select_subfield=['value'],  # { value : {...} <-- this is what we need in info
                                                 status=change['type'],
                                                 ignore_initials=not with_initials)
@@ -186,14 +189,17 @@ def resolve_xen_item_by_key(key_name:str = 'ref'):
     return resolve_item
 
 
-def resolve_all_xen_items_changes(item_class: type):
+def resolve_all_xen_items_changes(item_class: type, filter_function=None):
     """
     Returns an asynchronous function that resolves every change in RethinkDB table
-
     :param item_class:  GraphQL object type that has same shape as a table
+    :param filter_function: this function is given a ref of potential subscription candidate (0th arg) and an asyncio connection to work with DB (1st arg).
+    This function should return true or false answering whether we should include this item in our subscripion
+    resolve_vdis is usage example.
+    Bear in mind that this function is called only once when a new item is added, and with all initial items
     :return:
     """
-    def resolve_items(root, info : ResolveInfo, with_initials : bool) -> Observable:
+    def resolve_items(root, info : ResolveInfo, with_initials : bool, **kwargs) -> Observable:
         '''
         Returns subscription updates with the following shape:
         {
@@ -203,6 +209,7 @@ def resolve_all_xen_items_changes(item_class: type):
         Create a field with MakeSubscriptionWithChangeType(type)
         :param info:
         :param with_initials: Supply subscription with initial values (default: False). Use True, when a Subscription is not used as a backer for Query
+
         '''
 
         async def iterable_to_items():
@@ -210,7 +217,7 @@ def resolve_all_xen_items_changes(item_class: type):
             xenobject_type = fields_for_return_type['_xenobject_type_']
             queue = asyncio.Queue()
             authenticator = info.context.user_authenticator
-            creator_task = asyncio.create_task(create_single_changefeeds(queue, info, authenticator, xenobject_type, with_initials))
+            creator_task = asyncio.create_task(create_single_changefeeds(queue, info, authenticator, xenobject_type, with_initials, filter_function))
             try:
                 while True:
                     change = await queue.get()
