@@ -31,7 +31,7 @@ import {
   VMActions,
   VMListDocument,
   VMListFragmentFragment,
-  VMListFragmentFragmentDoc,
+  VMListFragmentFragmentDoc, VMListUpdateDocument,
   VMStateForButtonToolbarDocument,
   VmTableSelectAllDocument,
   VmTableSelectDocument,
@@ -43,7 +43,7 @@ import {
   SelectedForSetActionState
 } from "../../utils/componentStateReducers";
 import {buttonTitle} from "../../utils/buttonTitle";
-import {useTableSelectionInInternalState} from "../../hooks/listSelectionState";
+import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
 
 
 type VMColumnType = ColumnType<VMListFragmentFragment>;
@@ -218,28 +218,7 @@ export default function ({history}: RouteComponentProps) {
     history.push(`/vm/${row.ref}`);
   }, [history]);
 
-  useVMListUpdateSubscription(
-    {
-      onSubscriptionData({client, subscriptionData}) {
-        //Changing is handled automatically, here we're handling removal & addition
-        const change = subscriptionData.data.vms;
-        switch (change.changeType) {
-          case Change.Add:
-          case Change.Remove:
-            console.log("Add/Remove: ", change);
-            handleAddRemove(client, VMListDocument, 'vms', change);
-            break;
-          case Change.Change: //Update our internal state
-            dispatch({
-              type: "Change",
-              ref: change.value.ref,
-            });
-            break;
-          default:
-            break;
-        }
-      }
-    });
+  useUpdateInternalStateWithSubscription(dispatch, VMListUpdateDocument, VMListDocument, client, 'vms');
 
 
   const startVM = useStartVMMutation();

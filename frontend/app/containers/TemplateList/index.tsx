@@ -9,7 +9,7 @@ import {
   TemplateActions,
   TemplateListDocument,
   TemplateListFragmentFragment,
-  TemplateListFragmentFragmentDoc,
+  TemplateListFragmentFragmentDoc, TemplateListUpdateDocument,
   TemplateTableSelectAllDocument,
   TemplateTableSelectDocument, TemplateTableSelectionDocument,
   useCurrentUserQuery,
@@ -34,7 +34,7 @@ import {
 } from "../../utils/componentStateReducers";
 import {valueFromASTUntyped} from "graphql";
 import SetAccessButton from "../../components/SetAccessButton";
-import {useTableSelectionInInternalState} from "../../hooks/listSelectionState";
+import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
 
 
 type TemplateColumnType = ColumnType<TemplateListFragmentFragment>;
@@ -106,28 +106,7 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {selectedItems}} = useTemplateTableSelectionQuery();
   const [state, dispatch] = useReducer<TemplateListReducer>(reducer, initialState);
   useTableSelectionInInternalState(dispatch, selectedItems);
-  useTemplateListUpdateSubscription(
-    {
-      onSubscriptionData({client, subscriptionData}) {
-        //Changing is handled automatically, here we're handling removal & addition
-        const change = subscriptionData.data.templates;
-        switch (change.changeType) {
-          case Change.Add:
-          case Change.Remove:
-            console.log("Add/Remove: ", change);
-            handleAddRemove(client, TemplateListDocument, 'templates', change);
-            break;
-          case Change.Change: //Update our internal state
-            dispatch({
-              type: "Change",
-              ref: change.value.ref,
-            });
-            break;
-          default:
-            break;
-        }
-      }
-    });
+  useUpdateInternalStateWithSubscription(dispatch, TemplateListUpdateDocument, TemplateListDocument, client, "templates");
 
   return (
     <Fragment>

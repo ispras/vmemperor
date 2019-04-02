@@ -6,7 +6,7 @@ import StatefulTable, {ColumnType} from "../StatefulTable";
 import {
   Change, NetworkAccessSetMutationDocument, NetworkActions,
   NetworkListDocument,
-  NetworkListFragmentFragment, NetworkListFragmentFragmentDoc,
+  NetworkListFragmentFragment, NetworkListFragmentFragmentDoc, NetworkListUpdateDocument,
   NetworkTableSelectAllDocument,
   NetworkTableSelectDocument,
   NetworkTableSelectionDocument,
@@ -29,7 +29,7 @@ import {
 import {ListAction} from "../../utils/reducer";
 import {Set} from 'immutable';
 import {useApolloClient} from "react-apollo-hooks";
-import {useTableSelectionInInternalState} from "../../hooks/listSelectionState";
+import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
 import SetAccessButton from "../../components/SetAccessButton";
 
 type NetworkColumnType = ColumnType<NetworkListFragmentFragment>;
@@ -74,20 +74,7 @@ const Networks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {selectedItems}} = useNetworkTableSelectionQuery();
   const [state, dispatch] = useReducer<NetworkListReducer>(reducer, initialState);
   useTableSelectionInInternalState(dispatch, selectedItems);
-  useNetworkListUpdateSubscription({
-    onSubscriptionData({client, subscriptionData}) {
-      const change = subscriptionData.data.networks;
-      switch (change.changeType) {
-        case Change.Add:
-        case Change.Remove:
-          handleAddRemove(client, NetworkListDocument, 'networks', change);
-          break;
-        case Change.Change:
-          //If any internal state update is needed, go here
-          break;
-      }
-    }
-  });
+  useUpdateInternalStateWithSubscription(dispatch, NetworkListUpdateDocument, NetworkListDocument, client, "networks");
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: NetworkListFragmentFragment, index) => {
     e.preventDefault();
