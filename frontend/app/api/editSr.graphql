@@ -1,0 +1,6 @@
+mutation SREditOptions ($sr: SRInput!){
+  sr(sr: $sr) {
+    granted
+    reason
+  }
+}

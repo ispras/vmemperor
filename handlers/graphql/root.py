@@ -147,6 +147,9 @@ class Subscription(ObjectType):
     
     networks = graphene.Field(MakeSubscriptionWithChangeType(GNetwork), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all Networks")
     network = graphene.Field(MakeSubscription(GNetwork), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Network")
+    
+    srs = graphene.Field(MakeSubscriptionWithChangeType(GSR), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all Storage Repositories")
+    sr = graphene.Field(MakeSubscription(GSR), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Storage Repository")
 
     vdis = graphene.Field(MakeSubscriptionWithChangeType(GVDI), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False),
                               only_isos=graphene.Boolean(description="True - print only ISO images; False - print everything but ISO images; null - print everything"),
@@ -198,6 +201,12 @@ class Subscription(ObjectType):
         return resolve_all_xen_items_changes(GNetwork)(*args, **kwargs)
 
     def resolve_network(*args, **kwargs):
+        return resolve_xen_item_by_key()(*args, **kwargs)
+
+    def resolve_srs(*args, **kwargs):
+        return resolve_all_xen_items_changes(GSR)(*args, **kwargs)
+
+    def resolve_sr(*args, **kwargs):
         return resolve_xen_item_by_key()(*args, **kwargs)
 
     def resolve_playbook_task(*args, **kwargs):

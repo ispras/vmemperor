@@ -1,0 +1,24 @@
+# import DeletedFragment from "./deleted.graphql"
+
+fragment SRListFragment on GSR {
+  ref
+  nameLabel
+  myActions
+  isOwner
+}
+
+query SRList {
+  srs {
+    ...SRListFragment
+  }
+}
+
+subscription SRListUpdate {
+  srs {
+    changeType
+    value {
+      ...SRListFragment
+      ...DeletedFragment
+    }
+  }
+}

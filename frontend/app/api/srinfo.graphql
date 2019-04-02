@@ -1,0 +1,26 @@
+# import ACLXenObjectFragment from "xenObjectFragment.graphql"
+
+fragment SRInfoFragment on GSR {
+  ...ACLXenObjectFragment
+  access {
+    actions
+    userId {
+      id
+      name
+      username
+    }
+  }
+  myActions
+  isOwner
+}
+
+query SRInfo ($ref: ID!)  {
+  sr (ref: $ref) {
+    ...SRInfoFragment
+  }
+}
+subscription SRInfoUpdate ($ref: ID!) {
+  sr(ref: $ref) {
+    ...SRInfoFragment
+  }
+}

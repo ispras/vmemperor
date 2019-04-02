@@ -1,0 +1,11 @@
+query SRTableSelection {
+  selectedItems(tableId: SRs ) @client
+}
+
+mutation SRTableSelect ($item: ID!, $isSelect: Boolean! ){
+  selectedItems(tableId: SRs, items: [$item], isSelect: $isSelect) @client
+}
+
+mutation SRTableSelectAll ($items: [ID!]!, $isSelect: Boolean! ){
+  selectedItems(tableId: SRs, items: $items, isSelect: $isSelect) @client
+}

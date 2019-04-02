@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Tue Apr 02 20:34:39 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Tue Apr 02 21:47:07 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -54,6 +54,8 @@ union GHostOrDeleted = Deleted | GHost
 union GNetworkOrDeleted = Deleted | GNetwork
 
 union GPoolOrDeleted = Deleted | GPool
+
+union GSROrDeleted = Deleted | GSR
 
 union GTaskOrDeleted = Deleted | GTask
 
@@ -274,6 +276,12 @@ type GSR implements GAclXenObject {
 type GSRAccessEntry implements GAccessEntry {
   actions: SRActions!
   userId: User!
+}
+
+type GSRsSubscription {
+  "Change type"
+  changeType: Change!
+  value: GSROrDeleted!
 }
 
 type GTask implements GAclXenObject {
@@ -746,6 +754,10 @@ type Subscription {
   pool(ref: ID!): GPool
   "Updates for all pools available in VMEmperor"
   pools(withInitials: Boolean): GPoolsSubscription!
+  "Updates for a particular Storage Repository"
+  sr(ref: ID!): GSR
+  "Updates for all Storage Repositories"
+  srs(withInitials: Boolean): GSRsSubscription!
   "Updates for a particular XenServer Task"
   task(ref: ID!): GTask
   "Updates for all XenServer tasks"

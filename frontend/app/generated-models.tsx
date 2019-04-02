@@ -304,7 +304,15 @@ export type GSR = GAclXenObject & {
 
 export type GSRAccessEntry = GAccessEntry & {
   userId: User;
-  actions: SRActions;
+  actions: Array<SRActions>;
+};
+
+export type GSROrDeleted = GSR | Deleted;
+
+export type GSRsSubscription = {
+  /** Change type */
+  changeType: Change;
+  value: GSROrDeleted;
 };
 
 export type GTask = GAclXenObject & {
@@ -1065,6 +1073,10 @@ export type Subscription = {
   networks: GNetworksSubscription;
   /** Updates for a particular Network */
   network?: Maybe<GNetwork>;
+  /** Updates for all Storage Repositories */
+  srs: GSRsSubscription;
+  /** Updates for a particular Storage Repository */
+  sr?: Maybe<GSR>;
   /** Updates for all VDIs */
   vdis: GVDIsSubscription;
   /** Updates for a particular VDI */
@@ -1126,6 +1138,16 @@ export type SubscriptionnetworksArgs = {
 
 /** All subscriptions must return  Observable */
 export type SubscriptionnetworkArgs = {
+  ref: Scalars["ID"];
+};
+
+/** All subscriptions must return  Observable */
+export type SubscriptionsrsArgs = {
+  withInitials: Scalars["Boolean"];
+};
+
+/** All subscriptions must return  Observable */
+export type SubscriptionsrArgs = {
   ref: Scalars["ID"];
 };
 
@@ -1649,6 +1671,16 @@ export type NetworkEditOptionsMutation = { __typename?: "Mutation" } & {
   >;
 };
 
+export type SREditOptionsMutationVariables = {
+  sr: SRInput;
+};
+
+export type SREditOptionsMutation = { __typename?: "Mutation" } & {
+  sr: Maybe<
+    { __typename?: "SRMutation" } & Pick<SRMutation, "granted" | "reason">
+  >;
+};
+
 export type TemplateEditOptionsMutationVariables = {
   template: TemplateInput;
 };
@@ -1874,6 +1906,33 @@ export type SelectedItemsQueryQueryVariables = {
 
 export type SelectedItemsQueryQuery = { __typename?: "Query" } & Pick<
   Query,
+  "selectedItems"
+>;
+
+export type SRTableSelectionQueryVariables = {};
+
+export type SRTableSelectionQuery = { __typename?: "Query" } & Pick<
+  Query,
+  "selectedItems"
+>;
+
+export type SRTableSelectMutationVariables = {
+  item: Scalars["ID"];
+  isSelect: Scalars["Boolean"];
+};
+
+export type SRTableSelectMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
+  "selectedItems"
+>;
+
+export type SRTableSelectAllMutationVariables = {
+  items: Array<Scalars["ID"]>;
+  isSelect: Scalars["Boolean"];
+};
+
+export type SRTableSelectAllMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
   "selectedItems"
 >;
 
@@ -2163,6 +2222,58 @@ export type ShutdownVMMutation = { __typename?: "Mutation" } & {
   vmShutdown: Maybe<
     { __typename?: "VMShutdownMutation" } & Pick<VMShutdownMutation, "taskId">
   >;
+};
+
+export type SRInfoFragmentFragment = { __typename?: "GSR" } & Pick<
+  GSR,
+  "myActions" | "isOwner"
+> & {
+    access: Array<
+      Maybe<
+        { __typename?: "GSRAccessEntry" } & Pick<GSRAccessEntry, "actions"> & {
+            userId: { __typename?: "User" } & Pick<
+              User,
+              "id" | "name" | "username"
+            >;
+          }
+      >
+    >;
+  } & ACLXenObjectFragmentFragment;
+
+export type SRInfoQueryVariables = {
+  ref: Scalars["ID"];
+};
+
+export type SRInfoQuery = { __typename?: "Query" } & {
+  sr: Maybe<{ __typename?: "GSR" } & SRInfoFragmentFragment>;
+};
+
+export type SRInfoUpdateSubscriptionVariables = {
+  ref: Scalars["ID"];
+};
+
+export type SRInfoUpdateSubscription = { __typename?: "Subscription" } & {
+  sr: Maybe<{ __typename?: "GSR" } & SRInfoFragmentFragment>;
+};
+
+export type SRListFragmentFragment = { __typename?: "GSR" } & Pick<
+  GSR,
+  "ref" | "nameLabel" | "myActions" | "isOwner"
+>;
+
+export type SRListQueryVariables = {};
+
+export type SRListQuery = { __typename?: "Query" } & {
+  srs: Array<Maybe<{ __typename?: "GSR" } & SRListFragmentFragment>>;
+};
+
+export type SRListUpdateSubscriptionVariables = {};
+
+export type SRListUpdateSubscription = { __typename?: "Subscription" } & {
+  srs: { __typename?: "GSRsSubscription" } & Pick<
+    GSRsSubscription,
+    "changeType"
+  > & { value: SRListFragmentFragment | DeletedFragmentFragment };
 };
 
 export type StartVMMutationVariables = {
@@ -2805,7 +2916,19 @@ export type GSRAccessEntryResolvers<
   ParentType = GSRAccessEntry
 > = {
   userId?: Resolver<User, ParentType, Context>;
-  actions?: Resolver<SRActions, ParentType, Context>;
+  actions?: Resolver<Array<SRActions>, ParentType, Context>;
+};
+
+export type GSROrDeletedResolvers<Context = any, ParentType = GSROrDeleted> = {
+  __resolveType: TypeResolveFn<"GSR" | "Deleted", ParentType, Context>;
+};
+
+export type GSRsSubscriptionResolvers<
+  Context = any,
+  ParentType = GSRsSubscription
+> = {
+  changeType?: Resolver<Change, ParentType, Context>;
+  value?: Resolver<GSROrDeleted, ParentType, Context>;
 };
 
 export type GTaskResolvers<Context = any, ParentType = GTask> = {
@@ -3397,6 +3520,18 @@ export type SubscriptionResolvers<Context = any, ParentType = Subscription> = {
     Context,
     SubscriptionnetworkArgs
   >;
+  srs?: SubscriptionResolver<
+    GSRsSubscription,
+    ParentType,
+    Context,
+    SubscriptionsrsArgs
+  >;
+  sr?: SubscriptionResolver<
+    Maybe<GSR>,
+    ParentType,
+    Context,
+    SubscriptionsrArgs
+  >;
   vdis?: SubscriptionResolver<
     GVDIsSubscription,
     ParentType,
@@ -3587,6 +3722,8 @@ export type Resolvers<Context = any> = {
   GPoolsSubscription?: GPoolsSubscriptionResolvers<Context>;
   GSR?: GSRResolvers<Context>;
   GSRAccessEntry?: GSRAccessEntryResolvers<Context>;
+  GSROrDeleted?: GSROrDeletedResolvers;
+  GSRsSubscription?: GSRsSubscriptionResolvers<Context>;
   GTask?: GTaskResolvers<Context>;
   GTaskAccessEntry?: GTaskAccessEntryResolvers<Context>;
   GTaskOrDeleted?: GTaskOrDeletedResolvers;
@@ -3738,6 +3875,30 @@ export const PoolListFragmentFragmentDoc = gql`
     nameDescription
     ref
     uuid
+  }
+`;
+export const SRInfoFragmentFragmentDoc = gql`
+  fragment SRInfoFragment on GSR {
+    ...ACLXenObjectFragment
+    access {
+      actions
+      userId {
+        id
+        name
+        username
+      }
+    }
+    myActions
+    isOwner
+  }
+  ${ACLXenObjectFragmentFragmentDoc}
+`;
+export const SRListFragmentFragmentDoc = gql`
+  fragment SRListFragment on GSR {
+    ref
+    nameLabel
+    myActions
+    isOwner
   }
 `;
 export const StorageListFragmentFragmentDoc = gql`
@@ -4298,6 +4459,26 @@ export function useNetworkEditOptionsMutation(
     NetworkEditOptionsMutationVariables
   >(NetworkEditOptionsDocument, baseOptions);
 }
+export const SREditOptionsDocument = gql`
+  mutation SREditOptions($sr: SRInput!) {
+    sr(sr: $sr) {
+      granted
+      reason
+    }
+  }
+`;
+
+export function useSREditOptionsMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    SREditOptionsMutation,
+    SREditOptionsMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    SREditOptionsMutation,
+    SREditOptionsMutationVariables
+  >(SREditOptionsDocument, baseOptions);
+}
 export const TemplateEditOptionsDocument = gql`
   mutation TemplateEditOptions($template: TemplateInput!) {
     template(template: $template) {
@@ -4698,6 +4879,56 @@ export function useSelectedItemsQueryQuery(
     SelectedItemsQueryQuery,
     SelectedItemsQueryQueryVariables
   >(SelectedItemsQueryDocument, baseOptions);
+}
+export const SRTableSelectionDocument = gql`
+  query SRTableSelection {
+    selectedItems(tableId: SRs) @client
+  }
+`;
+
+export function useSRTableSelectionQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<
+    SRTableSelectionQueryVariables
+  >
+) {
+  return ReactApolloHooks.useQuery<
+    SRTableSelectionQuery,
+    SRTableSelectionQueryVariables
+  >(SRTableSelectionDocument, baseOptions);
+}
+export const SRTableSelectDocument = gql`
+  mutation SRTableSelect($item: ID!, $isSelect: Boolean!) {
+    selectedItems(tableId: SRs, items: [$item], isSelect: $isSelect) @client
+  }
+`;
+
+export function useSRTableSelectMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    SRTableSelectMutation,
+    SRTableSelectMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    SRTableSelectMutation,
+    SRTableSelectMutationVariables
+  >(SRTableSelectDocument, baseOptions);
+}
+export const SRTableSelectAllDocument = gql`
+  mutation SRTableSelectAll($items: [ID!]!, $isSelect: Boolean!) {
+    selectedItems(tableId: SRs, items: $items, isSelect: $isSelect) @client
+  }
+`;
+
+export function useSRTableSelectAllMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    SRTableSelectAllMutation,
+    SRTableSelectAllMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    SRTableSelectAllMutation,
+    SRTableSelectAllMutationVariables
+  >(SRTableSelectAllDocument, baseOptions);
 }
 export const TemplateTableSelectionDocument = gql`
   query TemplateTableSelection {
@@ -5174,6 +5405,85 @@ export function useShutdownVMMutation(
     ShutdownVMMutation,
     ShutdownVMMutationVariables
   >(ShutdownVMDocument, baseOptions);
+}
+export const SRInfoDocument = gql`
+  query SRInfo($ref: ID!) {
+    sr(ref: $ref) {
+      ...SRInfoFragment
+    }
+  }
+  ${SRInfoFragmentFragmentDoc}
+`;
+
+export function useSRInfoQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<SRInfoQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<SRInfoQuery, SRInfoQueryVariables>(
+    SRInfoDocument,
+    baseOptions
+  );
+}
+export const SRInfoUpdateDocument = gql`
+  subscription SRInfoUpdate($ref: ID!) {
+    sr(ref: $ref) {
+      ...SRInfoFragment
+    }
+  }
+  ${SRInfoFragmentFragmentDoc}
+`;
+
+export function useSRInfoUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    SRInfoUpdateSubscription,
+    SRInfoUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    SRInfoUpdateSubscription,
+    SRInfoUpdateSubscriptionVariables
+  >(SRInfoUpdateDocument, baseOptions);
+}
+export const SRListDocument = gql`
+  query SRList {
+    srs {
+      ...SRListFragment
+    }
+  }
+  ${SRListFragmentFragmentDoc}
+`;
+
+export function useSRListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<SRListQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<SRListQuery, SRListQueryVariables>(
+    SRListDocument,
+    baseOptions
+  );
+}
+export const SRListUpdateDocument = gql`
+  subscription SRListUpdate {
+    srs {
+      changeType
+      value {
+        ...SRListFragment
+        ...DeletedFragment
+      }
+    }
+  }
+  ${SRListFragmentFragmentDoc}
+  ${DeletedFragmentFragmentDoc}
+`;
+
+export function useSRListUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    SRListUpdateSubscription,
+    SRListUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    SRListUpdateSubscription,
+    SRListUpdateSubscriptionVariables
+  >(SRListUpdateDocument, baseOptions);
 }
 export const StartVMDocument = gql`
   mutation StartVM($ref: ID!, $options: VMStartInput) {

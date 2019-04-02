@@ -6,6 +6,7 @@ from serflag import SerFlag
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.diskimage import vdiType
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
+from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.accessentry import GAccessEntry
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.objecttype import ObjectType
@@ -51,14 +52,7 @@ class SRActions(SerFlag):
 
 GSRActions = graphene.Enum.from_enum(SRActions)
 
-
-class GSRAccessEntry(ObjectType):
-    class Meta:
-        interfaces = (GAccessEntry, )
-
-    actions = graphene.Field(GSRActions, required=True)
-
-
+GSRAccessEntry = create_access_type("GSRAccessEntry", GSRActions)
 class GSR(GXenObjectType):
     class Meta:
         interfaces = (GAclXenObject,)

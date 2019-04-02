@@ -23,6 +23,8 @@ import NetworkSettings from "../NetworkSettings";
 import ISOs from "../ISOList";
 import VDIs from "../VDIList";
 import VDISettings from "../VDISettings";
+import SRs from "../SRList";
+import SRSettings from "../SRSettings";
 
 
 interface State {
@@ -77,6 +79,8 @@ class App extends React.Component<{}, State> {
           <PrivateRoute path="/isos" component={ISOs}/>
           <PrivateRoute path="/vdis" component={VDIs}/>
           <PrivateRoute path="/vdi/:ref" component={VDISettings}/>
+          <PrivateRoute path="/srs" component={SRs}/>
+          <PrivateRoute path="/sr/:ref" component={SRSettings}/>
           <Route component={NotFoundPage}/>
         </Switch>
         <GlobalStyle/>
