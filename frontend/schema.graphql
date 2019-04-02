@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Mon Apr 01 20:27:10 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Tue Apr 02 15:30:54 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -57,6 +57,8 @@ union GPoolOrDeleted = Deleted | GPool
 union GTaskOrDeleted = Deleted | GTask
 
 union GTemplateOrDeleted = Deleted | GTemplate
+
+union GVDIOrDeleted = Deleted | GVDI
 
 union GVMOrDeleted = Deleted | GVM
 
@@ -388,6 +390,12 @@ type GVDI implements GAclXenObject {
   virtualSize: Float!
 }
 
+type GVDIsSubscription {
+  "Change type"
+  changeType: Change!
+  value: GVDIOrDeleted!
+}
+
 type GVIF {
   "MAC address"
   MAC: ID!
@@ -713,6 +721,12 @@ type Subscription {
   template(ref: ID!): GTemplate
   "Updates for all Templates"
   templates(withInitials: Boolean): GTemplatesSubscription!
+  "Updates for all VDIs"
+  vdis(
+    #True - print only ISO images; False - print everything but ISO images; null - print everything
+    onlyIsos: Boolean,
+    withInitials: Boolean
+  ): GVDIsSubscription!
   "Updates for a particular VM"
   vm(ref: ID!): GVM
   "Updates for all VMs"

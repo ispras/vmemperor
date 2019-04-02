@@ -122,7 +122,7 @@ class XenObject(metaclass=XenObjectMeta):
         from xenadapter.task import Task
         if event['class'] in cls.EVENT_CLASSES:
             if event['operation'] == 'del':
-                CHECK_ER(re.db.table(cls.db_table_name).get(event['ref']).delete().run())
+                re.db.table(cls.db_table_name).get(event['ref']).delete().run()
                 return
 
             record = event['snapshot']

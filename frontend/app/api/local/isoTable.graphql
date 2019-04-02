@@ -1,0 +1,11 @@
+query ISOTableSelection {
+  selectedItems(tableId: ISOs ) @client
+}
+
+mutation ISOTableSelect ($item: ID!, $isSelect: Boolean! ){
+  selectedItems(tableId: ISOs, items: [$item], isSelect: $isSelect) @client
+}
+
+mutation ISOTableSelectAll ($items: [ID!]!, $isSelect: Boolean! ){
+  selectedItems(tableId: ISOs, items: $items, isSelect: $isSelect) @client
+}

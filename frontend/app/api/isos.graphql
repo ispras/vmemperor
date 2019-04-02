@@ -1,0 +1,23 @@
+# import DeletedFragment from "./deleted.graphql"
+
+fragment ISOListFragment on GVDI {
+  ref
+  nameLabel
+}
+
+query ISOList {
+  vdis(onlyIsos: true) {
+    ref
+    nameLabel
+  }
+}
+
+subscription ISOListUpdate {
+  vdis(onlyIsos: true) {
+    changeType
+    value {
+      ...ISOListFragment
+      ...DeletedFragment
+    }
+  }
+}

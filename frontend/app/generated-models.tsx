@@ -426,6 +426,14 @@ export type GVDI = GAclXenObject & {
   type: VDIType;
 };
 
+export type GVDIOrDeleted = GVDI | Deleted;
+
+export type GVDIsSubscription = {
+  /** Change type */
+  changeType: Change;
+  value: GVDIOrDeleted;
+};
+
 export type GVIF = {
   /** Unique constant identifier/object reference (primary) */
   ref: Scalars["ID"];
@@ -1004,6 +1012,8 @@ export type Subscription = {
   networks: GNetworksSubscription;
   /** Updates for a particular Network */
   network?: Maybe<GNetwork>;
+  /** Updates for all VDIs */
+  vdis: GVDIsSubscription;
   /** Updates for all XenServer tasks */
   tasks: GTasksSubscription;
   /** Updates for a particular XenServer Task */
@@ -1062,6 +1072,12 @@ export type SubscriptionnetworksArgs = {
 /** All subscriptions must return  Observable */
 export type SubscriptionnetworkArgs = {
   ref: Scalars["ID"];
+};
+
+/** All subscriptions must return  Observable */
+export type SubscriptionvdisArgs = {
+  withInitials: Scalars["Boolean"];
+  onlyIsos?: Maybe<Scalars["Boolean"]>;
 };
 
 /** All subscriptions must return  Observable */
@@ -1627,6 +1643,26 @@ export type ISOSCreateVMListQuery = { __typename?: "Query" } & {
   vdis: Array<Maybe<{ __typename?: "GVDI" } & ISOCreateVMListFragmentFragment>>;
 };
 
+export type ISOListFragmentFragment = { __typename?: "GVDI" } & Pick<
+  GVDI,
+  "ref" | "nameLabel"
+>;
+
+export type ISOListQueryVariables = {};
+
+export type ISOListQuery = { __typename?: "Query" } & {
+  vdis: Array<Maybe<{ __typename?: "GVDI" } & Pick<GVDI, "ref" | "nameLabel">>>;
+};
+
+export type ISOListUpdateSubscriptionVariables = {};
+
+export type ISOListUpdateSubscription = { __typename?: "Subscription" } & {
+  vdis: { __typename?: "GVDIsSubscription" } & Pick<
+    GVDIsSubscription,
+    "changeType"
+  > & { value: ISOListFragmentFragment | DeletedFragmentFragment };
+};
+
 export type DiskAttachTableSelectionQueryVariables = {};
 
 export type DiskAttachTableSelectionQuery = { __typename?: "Query" } & Pick<
@@ -1652,6 +1688,33 @@ export type DiskAttachTableSelectAllMutationVariables = {
 export type DiskAttachTableSelectAllMutation = {
   __typename?: "Mutation";
 } & Pick<Mutation, "selectedItems">;
+
+export type ISOTableSelectionQueryVariables = {};
+
+export type ISOTableSelectionQuery = { __typename?: "Query" } & Pick<
+  Query,
+  "selectedItems"
+>;
+
+export type ISOTableSelectMutationVariables = {
+  item: Scalars["ID"];
+  isSelect: Scalars["Boolean"];
+};
+
+export type ISOTableSelectMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
+  "selectedItems"
+>;
+
+export type ISOTableSelectAllMutationVariables = {
+  items: Array<Scalars["ID"]>;
+  isSelect: Scalars["Boolean"];
+};
+
+export type ISOTableSelectAllMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
+  "selectedItems"
+>;
 
 export type NetAttachTableSelectionQueryVariables = {};
 
@@ -2680,6 +2743,21 @@ export type GVDIResolvers<Context = any, ParentType = GVDI> = {
   type?: Resolver<VDIType, ParentType, Context>;
 };
 
+export type GVDIOrDeletedResolvers<
+  Context = any,
+  ParentType = GVDIOrDeleted
+> = {
+  __resolveType: TypeResolveFn<"GVDI" | "Deleted", ParentType, Context>;
+};
+
+export type GVDIsSubscriptionResolvers<
+  Context = any,
+  ParentType = GVDIsSubscription
+> = {
+  changeType?: Resolver<Change, ParentType, Context>;
+  value?: Resolver<GVDIOrDeleted, ParentType, Context>;
+};
+
 export type GVIFResolvers<Context = any, ParentType = GVIF> = {
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
   MAC?: Resolver<Scalars["ID"], ParentType, Context>;
@@ -3100,6 +3178,12 @@ export type SubscriptionResolvers<Context = any, ParentType = Subscription> = {
     Context,
     SubscriptionnetworkArgs
   >;
+  vdis?: SubscriptionResolver<
+    GVDIsSubscription,
+    ParentType,
+    Context,
+    SubscriptionvdisArgs
+  >;
   tasks?: SubscriptionResolver<
     GTasksSubscription,
     ParentType,
@@ -3274,6 +3358,8 @@ export type Resolvers<Context = any> = {
   GTemplatesSubscription?: GTemplatesSubscriptionResolvers<Context>;
   GVBD?: GVBDResolvers<Context>;
   GVDI?: GVDIResolvers<Context>;
+  GVDIOrDeleted?: GVDIOrDeletedResolvers;
+  GVDIsSubscription?: GVDIsSubscriptionResolvers<Context>;
   GVIF?: GVIFResolvers<Context>;
   GVM?: GVMResolvers<Context>;
   GVMAccessEntry?: GVMAccessEntryResolvers<Context>;
@@ -3365,6 +3451,12 @@ export const ISOCreateVMListFragmentFragmentDoc = gql`
         currentlyAttached
       }
     }
+  }
+`;
+export const ISOListFragmentFragmentDoc = gql`
+  fragment ISOListFragment on GVDI {
+    ref
+    nameLabel
   }
 `;
 export const ACLXenObjectFragmentFragmentDoc = gql`
@@ -4043,6 +4135,48 @@ export function useISOSCreateVMListQuery(
     ISOSCreateVMListQueryVariables
   >(ISOSCreateVMListDocument, baseOptions);
 }
+export const ISOListDocument = gql`
+  query ISOList {
+    vdis(onlyIsos: true) {
+      ref
+      nameLabel
+    }
+  }
+`;
+
+export function useISOListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<ISOListQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<ISOListQuery, ISOListQueryVariables>(
+    ISOListDocument,
+    baseOptions
+  );
+}
+export const ISOListUpdateDocument = gql`
+  subscription ISOListUpdate {
+    vdis(onlyIsos: true) {
+      changeType
+      value {
+        ...ISOListFragment
+        ...DeletedFragment
+      }
+    }
+  }
+  ${ISOListFragmentFragmentDoc}
+  ${DeletedFragmentFragmentDoc}
+`;
+
+export function useISOListUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    ISOListUpdateSubscription,
+    ISOListUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    ISOListUpdateSubscription,
+    ISOListUpdateSubscriptionVariables
+  >(ISOListUpdateDocument, baseOptions);
+}
 export const DiskAttachTableSelectionDocument = gql`
   query DiskAttachTableSelection {
     selectedItems(tableId: DiskAttach) @client
@@ -4094,6 +4228,56 @@ export function useDiskAttachTableSelectAllMutation(
     DiskAttachTableSelectAllMutation,
     DiskAttachTableSelectAllMutationVariables
   >(DiskAttachTableSelectAllDocument, baseOptions);
+}
+export const ISOTableSelectionDocument = gql`
+  query ISOTableSelection {
+    selectedItems(tableId: ISOs) @client
+  }
+`;
+
+export function useISOTableSelectionQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<
+    ISOTableSelectionQueryVariables
+  >
+) {
+  return ReactApolloHooks.useQuery<
+    ISOTableSelectionQuery,
+    ISOTableSelectionQueryVariables
+  >(ISOTableSelectionDocument, baseOptions);
+}
+export const ISOTableSelectDocument = gql`
+  mutation ISOTableSelect($item: ID!, $isSelect: Boolean!) {
+    selectedItems(tableId: ISOs, items: [$item], isSelect: $isSelect) @client
+  }
+`;
+
+export function useISOTableSelectMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    ISOTableSelectMutation,
+    ISOTableSelectMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    ISOTableSelectMutation,
+    ISOTableSelectMutationVariables
+  >(ISOTableSelectDocument, baseOptions);
+}
+export const ISOTableSelectAllDocument = gql`
+  mutation ISOTableSelectAll($items: [ID!]!, $isSelect: Boolean!) {
+    selectedItems(tableId: ISOs, items: $items, isSelect: $isSelect) @client
+  }
+`;
+
+export function useISOTableSelectAllMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    ISOTableSelectAllMutation,
+    ISOTableSelectAllMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    ISOTableSelectAllMutation,
+    ISOTableSelectAllMutationVariables
+  >(ISOTableSelectAllDocument, baseOptions);
 }
 export const NetAttachTableSelectionDocument = gql`
   query NetAttachTableSelection {

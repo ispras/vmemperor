@@ -17,7 +17,7 @@ import SuspendButton from "../../components/SuspendButton";
 import SetAccessButton from "../../components/SetAccessButton";
 import ActionListModal from "../../components/AccessView/actionListModal";
 import {
-  Change,
+  Change, DeleteVMDocument,
   PowerState,
   useDeleteVMMutation,
   usePauseVMMutation,
@@ -37,6 +37,12 @@ import {
   VmTableSelectDocument,
   VmTableSelectionDocument
 } from "../../generated-models";
+import {
+  readCacheObject,
+  selectedForSetActionReducer,
+  SelectedForSetActionState
+} from "../../utils/componentStateReducers";
+import {buttonTitle} from "../../utils/buttonTitle";
 
 
 type VMColumnType = ColumnType<VMListFragmentFragment>;
@@ -75,14 +81,12 @@ function rowClasses(row: VMListFragmentFragment, rowIndex) {
   }
 }
 
-interface State {
+interface State extends SelectedForSetActionState {
   selectedForStart: Set<string>;
   selectedForStop: Set<string>;
   selectedForTrash: Set<string>;
   selectedForPause: Set<string>;
   selectedForSuspend: Set<string>;
-  selectedForSetAction: Set<string>;
-  wholeSelection: Map<string, VMListFragmentFragment>;
 }
 
 type VMListReducer = Reducer<State, ListAction>;
@@ -94,8 +98,7 @@ const initialState: ReducerState<VMListReducer> = {
   selectedForTrash: Set.of<string>(),
   selectedForPause: Set.of<string>(),
   selectedForSuspend: Set.of<string>(),
-  selectedForSetAction: Set.of<string>(),
-  wholeSelection: Map.of(),
+  selectedForSetAction: Set.of<string>()
 };
 
 export default function ({history}: RouteComponentProps) {
@@ -104,6 +107,9 @@ export default function ({history}: RouteComponentProps) {
   } = useVMListQuery();
 
   const client = useApolloClient();
+  const readVM = useCallback((ref) => {
+    return readCacheObject<VMListFragmentFragment>(client, VMListFragmentFragmentDoc, "GVM", ref);
+  }, [client]);
 
   const reducer: VMListReducer = (state, action) => {
 
@@ -112,17 +118,7 @@ export default function ({history}: RouteComponentProps) {
       case "Change":
       case "Add":
         //Read fragment associated with this VM in the cache
-        const info = client.cache.readFragment<VMListFragmentFragment>({
-          fragment: VMListFragmentFragmentDoc,
-          id: dataIdFromObject({
-            ref: action.ref,
-            __typename: "GVM",
-          }),
-
-        });
-        console.log("Got associated info: ", info, "Action:", action.type);
-        console.log("State:", state);
-
+        const info = readVM(action.ref);
         return {
           selectedForStart: (info.powerState == PowerState.Halted && info.myActions.includes(VMActions.start)) ||
           (info.powerState == PowerState.Suspended && info.myActions.includes(VMActions.resume))
@@ -143,10 +139,7 @@ export default function ({history}: RouteComponentProps) {
           selectedForSuspend: info.powerState === PowerState.Running && info.myActions.includes(VMActions.suspend)
             ? state.selectedForSuspend.add(action.ref)
             : state.selectedForSuspend.remove(action.ref),
-          selectedForSetAction: info.isOwner
-            ? state.selectedForSetAction.add(action.ref)
-            : state.selectedForSetAction.remove(action.ref),
-          wholeSelection: state.wholeSelection.set(action.ref, info),
+          ...selectedForSetActionReducer("Add", info, state)
         }
           ;
       case
@@ -158,18 +151,15 @@ export default function ({history}: RouteComponentProps) {
           selectedForTrash: state.selectedForTrash.remove(action.ref),
           selectedForPause: state.selectedForPause.remove(action.ref),
           selectedForSuspend: state.selectedForSuspend.remove(action.ref),
-          selectedForSetAction: state.selectedForSetAction.remove(action.ref),
-          wholeSelection: state.wholeSelection.remove(action.ref),
+          ...selectedForSetActionReducer("Remove", action, state),
         }
 
     }
   };
-  const [{selectedForStart, selectedForStop, selectedForTrash, selectedForPause, selectedForSuspend, selectedForSetAction, wholeSelection}, dispatch] = useReducer<VMListReducer>(reducer, initialState);
+  const [{selectedForStart, selectedForStop, selectedForTrash, selectedForPause, selectedForSuspend, selectedForSetAction}, dispatch] = useReducer<VMListReducer>(reducer, initialState);
   const {data: {selectedItems}} = useVmTableSelectionQuery();
 
   useEffect(() => { //Re-add items to our internal state
-    if (!wholeSelection.isEmpty())
-      return;
 
     for (const item of selectedItems)
       dispatch({
@@ -177,40 +167,34 @@ export default function ({history}: RouteComponentProps) {
         ref: item,
       })
   }, []); // To be run only once on loading
-  const buttonTitle = useCallback((startswith: string, array: Array<string>) => {
-    let ret = startswith;
-    for (let i = 0; i < array.length; ++i) {
-      ret += `"${wholeSelection.get(array[i]).nameLabel}"`;
-      if (i < array.length - 1)
-        ret += ', ';
-    }
-    return ret;
-  }, [wholeSelection]);
+  const vmButtonTitle = useCallback((startswith: string, array: Array<string>) => {
+    return buttonTitle(startswith, array, readVM)
+  }, [readVM]);
 
-  const startButtonTitle = useMemo(() => buttonTitle("Start ", selectedForStart.toArray()), [buttonTitle, selectedForStart]);
-  const stopButtonTitle = useMemo(() => buttonTitle("Stop ", selectedForStop.toArray()), [buttonTitle, selectedForStop]);
-  const trashButtonTitle = useMemo(() => buttonTitle("Delete ", selectedForTrash.toArray()), [buttonTitle, selectedForTrash]);
-  const suspendButtonTitle = useMemo(() => buttonTitle("Suspend ", selectedForSuspend.toArray()), [buttonTitle, selectedForSuspend]);
+  const startButtonTitle = useMemo(() => vmButtonTitle("Start ", selectedForStart.toArray()), [vmButtonTitle, selectedForStart]);
+  const stopButtonTitle = useMemo(() => vmButtonTitle("Stop ", selectedForStop.toArray()), [vmButtonTitle, selectedForStop]);
+  const suspendButtonTitle = useMemo(() => vmButtonTitle("Suspend ", selectedForSuspend.toArray()), [vmButtonTitle, selectedForSuspend]);
   const pauseButtonOptions = useMemo(() => {
     const array = selectedForPause.toArray();
     let titlePause = "";
     let titleUnpause = "";
     for (const ref of array) {
-      switch (wholeSelection.get(ref).powerState) {
+      const vm = readVM(ref);
+      switch (vm.powerState) {
         case PowerState.Paused:
           if (titleUnpause != "")
             titleUnpause += ", ";
-          titleUnpause += `"${wholeSelection.get(ref).nameLabel}"`;
+          titleUnpause += `"${vm.nameLabel}"`;
           break;
         case PowerState.Running:
         case PowerState.Suspended:
         case PowerState.Halted:
           if (titlePause != "")
             titlePause += ", ";
-          titlePause += `"${wholeSelection.get(ref).nameLabel}"`;
-          if (wholeSelection.get(ref).powerState == PowerState.Suspended)
+          titlePause += `"${vm.nameLabel}"`;
+          if (vm.powerState == PowerState.Suspended)
             titlePause += " (with resuming)";
-          else if (wholeSelection.get(ref).powerState === PowerState.Halted)
+          else if (vm.powerState === PowerState.Halted)
             titlePause += " (with starting)";
           break;
       }
@@ -232,7 +216,7 @@ export default function ({history}: RouteComponentProps) {
       unpause,
       title: wholeTitle == "" ? "Pause or unpause" : wholeTitle
     }
-  }, [wholeSelection, selectedForPause]);
+  }, [readVM, selectedForPause]);
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: VMListFragmentFragment, index) => {
     e.preventDefault();
@@ -291,7 +275,7 @@ export default function ({history}: RouteComponentProps) {
 
   const onPauseVM = useCallback(async () => {
     for (const id of selectedForPause.toArray()) {
-      const powerState = wholeSelection.get(id).powerState;
+      const powerState = readVM(id).powerState;
       switch (powerState) {
         case PowerState.Running:
         case PowerState.Paused:
@@ -310,7 +294,7 @@ export default function ({history}: RouteComponentProps) {
       }
 
     }
-  }, [selectedForPause, wholeSelection]);
+  }, [selectedForPause, readVM]);
   const onSuspendVM = useCallback(async () => {
     for (const id of selectedForSuspend.toArray()) {
       await suspendVM({variables: {ref: id}});
@@ -330,10 +314,6 @@ export default function ({history}: RouteComponentProps) {
     }
   };
 
-  const [actionModalVisible, setActionModalVisible] = useState(false);
-  const onActionSet = useCallback(() => {
-    setActionModalVisible(true);
-  }, [setActionModalVisible]);
 
   return (
     <Fragment>
@@ -359,28 +339,22 @@ export default function ({history}: RouteComponentProps) {
             disabled={selectedForSuspend.isEmpty()}
           />
           <SetAccessButton
-            onClick={onActionSet}
-            disabled={selectedForSetAction.isEmpty()}
+            ALL={VMActions.ALL}
+            mutationName="vmAccessSet"
+            mutationNode={VMAccessSetMutationDocument}
+            state={{selectedForSetAction}}
+            readCacheFunction={readVM}
           />
         </ButtonGroup>
         <ButtonGroup className="ml-auto">
           <RecycleBinButton
-            title={trashButtonTitle}
-            onClick={onDeleteVM}
-            disabled={selectedForTrash.isEmpty()}/>
+            destroyMutationName="vmDelete"
+            state={{selectedForTrash}}
+            destroyMutationDocument={DeleteVMDocument}
+            readCacheFunction={readVM}
+          />
         </ButtonGroup>
       </ButtonToolbar>
-      {!selectedForSetAction.isEmpty() &&
-      (<ActionListModal
-        setOpen={setActionModalVisible}
-        open={actionModalVisible}
-        actions={wholeSelection.get(selectedForSetAction.toSeq().first()).myActions}
-        refs={selectedForSetAction.toArray()}
-        ALL={VMActions.ALL}
-        mutationName="vmAccessSet"
-        mutationNode={VMAccessSetMutationDocument}
-      />)}
-
       <StatefulTable
         keyField="ref"
         refetchQueriesOnSelect={

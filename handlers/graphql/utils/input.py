@@ -23,5 +23,5 @@ def set_subtype_field(field_name):
     '''
     thunk = set_subtype(field_name)
     def setter(input, obj):
-        thunk(cleanup_defaults(input), obj)
+        thunk(cleanup_defaults(input[field_name]), obj)
     return setter

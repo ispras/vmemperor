@@ -5,7 +5,7 @@ import StatefulTable, {ColumnType} from "../StatefulTable";
 import {useApolloClient} from "react-apollo-hooks";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter'
 import {
-  Change,
+  Change, DeleteTemplateDocument, TemplateAccessSetMutationDocument,
   TemplateActions,
   TemplateListDocument,
   TemplateListFragmentFragment,
@@ -26,6 +26,14 @@ import {dataIdFromObject, handleAddRemove} from "../../utils/cacheUtils";
 import RecycleBinButton from "../../components/RecycleBinButton";
 
 import {installOptionsFormatter} from "./installoptions";
+import {
+  readCacheObject,
+  selectedForSetActionReducer,
+  SelectedForSetActionState, selectedForTrashReducer,
+  SelectedForTrashState
+} from "../../utils/componentStateReducers";
+import {valueFromASTUntyped} from "graphql";
+import SetAccessButton from "../../components/SetAccessButton";
 
 
 type TemplateColumnType = ColumnType<TemplateListFragmentFragment>;
@@ -59,13 +67,14 @@ function rowClasses(row: TemplateListFragmentFragment, rowIndex) {
 }
 
 
-interface State {
-  selectedForTrash: Set<string>;
+interface State extends SelectedForSetActionState, SelectedForTrashState {
 }
+
 
 type TemplateListReducer = Reducer<State, ListAction>;
 
 const initialState: ReducerState<TemplateListReducer> = {
+  selectedForSetAction: Set.of<string>(),
   selectedForTrash: Set.of<string>(),
 };
 
@@ -80,29 +89,29 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {templates}} = useTemplateListQuery();
   //const {data: {currentUser}} = useCurrentUserQuery();
   const client = useApolloClient();
-  const deleteTemplate = useDeleteTemplateMutation();
+  const readTemplate = useCallback((ref) => {
+    return readCacheObject<TemplateListFragmentFragment>(client, TemplateListFragmentFragmentDoc, "GTemplate", ref);
+  }, [client]);
+
 
   const reducer: TemplateListReducer = (state, action) => {
+    let info = null;
+    let type = null;
     switch (action.type) {
       case "Change":
       case "Add":
-        const info = client.cache.readFragment<TemplateListFragmentFragment>({
-          fragment: TemplateListFragmentFragmentDoc,
-          id: dataIdFromObject({
-            ref: action.ref,
-            __typename: "GTemplate",
-          }),
-        });
-
-        return {
-          selectedForTrash: info.myActions.includes(TemplateActions.destroy)
-            ? state.selectedForTrash.add(action.ref)
-            : state.selectedForTrash.remove(action.ref)
-        };
+        info = readTemplate(action.ref);
+        type = "Add";
+        break;
       case "Remove":
-        return {
-          selectedForTrash: state.selectedForTrash.delete(action.ref),
-        };
+        info = {ref: action.ref};
+        type = "Remove";
+        break;
+    }
+    ;
+    return {
+      ...selectedForSetActionReducer(type, info, state),
+      ...selectedForTrashReducer(TemplateActions.destroy, type, info, state),
     }
   };
 
@@ -132,26 +141,23 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
 
 
   const [state, dispatch] = useReducer<TemplateListReducer>(reducer, initialState);
-  const {selectedForTrash} = state;
-
-
-  const onDeleteTemplate = useCallback(async () => {
-    for (const id of selectedForTrash.toArray()) {
-      await deleteTemplate({
-        variables: {
-          ref: id
-        }
-      });
-    }
-  }, [deleteTemplate, selectedForTrash]);
-
   return (
     <Fragment>
       <ButtonToolbar>
         <ButtonGroup className="ml-auto" size="lg">
           <RecycleBinButton
-            onClick={onDeleteTemplate}
-            disabled={selectedForTrash.size == 0}/>
+            destroyMutationName="templateDelete"
+            state={state}
+            destroyMutationDocument={DeleteTemplateDocument}
+            readCacheFunction={readTemplate}
+          />
+          <SetAccessButton
+            ALL={TemplateActions.ALL}
+            readCacheFunction={readTemplate}
+            state={state}
+            mutationName="templateAccessSet"
+            mutationNode={TemplateAccessSetMutationDocument}
+          />
         </ButtonGroup>
       </ButtonToolbar>
       <StatefulTable

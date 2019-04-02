@@ -144,6 +144,18 @@ const result: IntrospectionResultData = {
       },
       {
         kind: "UNION",
+        name: "GVDIOrDeleted",
+        possibleTypes: [
+          {
+            name: "GVDI"
+          },
+          {
+            name: "Deleted"
+          }
+        ]
+      },
+      {
+        kind: "UNION",
         name: "GTaskOrDeleted",
         possibleTypes: [
           {
