@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Sequence, Mapping
 
 from rethinkdb.errors import ReqlTimeoutError, ReqlDriverError
 from sentry_sdk import capture_exception
@@ -8,10 +8,11 @@ from input.vm import AutoInstall, VMInput
 from handlers.graphql.types.vm import SetDisksEntry, VMActions, GVM
 from rethinkdb_tools.helper import CHECK_ER
 from xenadapter.vif import VIF
-from xenadapter.abstractvm import AbstractVM
+from xenadapter.abstractvm import AbstractVM, set_VCPUs, set_memory
 from xenadapter.helpers import use_logger
 import XenAPI
 import provision
+from xenadapter.xenobject import set_subtype
 from xenadapter.xenobjectdict import XenObjectDict
 
 from xentools.os import OSChooser
@@ -129,7 +130,7 @@ class VM (AbstractVM):
 
 
     @use_logger
-    def create(self, user, insert_log_entry, provision_config : Sequence[SetDisksEntry], net, options : VMInput, template : "Template",  override_pv_args=None, iso=None, install_params: AutoInstall=None):
+    def create(self, user, insert_log_entry, provision_config : Sequence[SetDisksEntry], net, options : Mapping, template : "Template",  override_pv_args=None, iso=None, install_params: AutoInstall=None):
         '''
         Creates a virtual machine and installs an OS
 
@@ -137,6 +138,7 @@ class VM (AbstractVM):
         :param provision_config: For help see self.set_disks
         :param net: Network object
         :param iso: ISO Image object. If specified, will be mounted
+        :param options: VMInput-like object with platform options, memory settings & VCPU settings
 
         '''
 
@@ -146,7 +148,9 @@ class VM (AbstractVM):
         self.remove_tags('vmemperor')
         self.manage_actions(self.Actions.ALL, user=user)
 
-        self.set_options(options)
+        set_subtype("platform")(options['platform'], self)
+        set_VCPUs(options,self)
+        set_memory(options, self)
 
         self.set_disks(provision_config)
         if iso:
@@ -171,10 +175,13 @@ class VM (AbstractVM):
             if template.get_distro():
                 self.log.warning(f"os_kind specified as {template.get_distro()}, but no network specified. The OS won't install automatically")
 
-
-        if template.get_distro():
-            self.os_detect(template.get_distro(), device, install_params)
-            self.log.debug(f"OS successfully detected, proceeding with auto installation mode")
+        set_hvm_after_install = False
+        os = self.os_detect(device, install_params)
+        if os:
+            self.log.debug(f"OS successfully detected as {os.get_distro()}, proceeding with auto installation mode")
+            if os.get_release() in os.HVM_RELEASES:
+                set_hvm_after_install = True
+                self.log.debug("fVM mode will automatically be switched to HVM after reboot")
 
 
         self.insert_log_entry('installing', f'The OS is installing')
@@ -200,13 +207,9 @@ class VM (AbstractVM):
             return
 
         cur = re.db.table('vms').get(self.ref).changes().run()
-        other_config = self.get_other_config()
-
         self.log.debug(f"Waiting for {self} to finish installing")
-        if 'convert-to-hvm' in other_config and other_config['convert-to-hvm']:
-            self.log.debug(f"Changing {self} type to HVM after reboot")
-
-
+        if set_hvm_after_install:
+            self.set_domain_type("hvm")
         while True:
             try:
                 change = cur.next(wait=1)
@@ -223,11 +226,6 @@ class VM (AbstractVM):
             if change['new_val']['power_state'] == 'Halted':
                 try:
                     self.log.debug(f"Halted: finalizing installation of {self}")
-                    if 'convert-to-hvm' in other_config and other_config['convert-to-hvm']:
-                        self.set_domain_type('hvm')
-
-
-                    self.start_stop_vm(True)
                     self.insert_log_entry(self.ref, "installed", "OS successfully installed")
                 except XenAdapterAPIError as e:
                     self.insert_log_entry(self.ref, "failed-after-install", e.message)
@@ -270,7 +268,7 @@ class VM (AbstractVM):
         i = 0
         specs = provision.ProvisionSpec()
         for entry in provision_config:
-            size = str(1048576 * int(entry.size))
+            size = str(int(entry.size))
             specs.disks.append(provision.Disk(f'{i}', size, entry.SR.get_uuid(), True))
             i += 1
         try:
@@ -314,12 +312,13 @@ class VM (AbstractVM):
 
 
     @use_logger
-    def os_detect(self, os_kind, guest_device, install_params : AutoInstall):
+    def os_detect(self, guest_device, install_params : AutoInstall):
         '''
-        call only during install
+        Detect auto installation OS and set VM's PV_args
         :param guest_device: Guest CD device name as seen by guest
         :param os_kind
         :param install_params: parameters for automatic installation
+        :return an object with detected os
         '''
 
         if not hasattr(self, 'install'):
@@ -330,10 +329,6 @@ class VM (AbstractVM):
         if os:
             if install_params.static_ip_config:
                 os.set_network_parameters(**install_params.static_ip_config)
-
-
-
-            os.set_install_repository(install_params.mirror_url)
 
             os.hostname = install_params.hostname
             os.fullname = install_params.fullname
@@ -347,6 +342,7 @@ class VM (AbstractVM):
 
             self.log.debug(f"Set PV args: {pv_args}")
             self.log.debug(f"OS detected: {os}")
+        return os
 
 
     @use_logger

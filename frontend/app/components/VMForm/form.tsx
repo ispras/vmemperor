@@ -35,6 +35,7 @@ import {networkTypeOptions} from "./props";
 import {faDesktop} from "@fortawesome/free-solid-svg-icons/faDesktop";
 import styled from "styled-components";
 import {Fields as ResourceFields} from '../AbstractVMSettingsComponents/fields';
+import {TemplateInputField} from "./templateInput";
 
 const H4 = styled.h4`
 margin: 20px;
@@ -69,12 +70,16 @@ const VMForm = (props: FormikPropsValues) => {
     if (!props.values.template)
       return null;
 
-    const installOptions = templates.filter(t => t.ref === props.values.template.value)[0].installOptions;
+    const installOptions = templates.filter(t => t.ref === props.values.template)[0].installOptions;
     return installOptions && installOptions.installRepository;
 
   }, [props.values.template]);
   return (
-      <form className="form-horizontal">
+    <form
+      className="form-horizontal"
+      onSubmit={props.handleSubmit}
+      onReset={props.handleReset}
+    >
         <H4><FormattedMessage {...messages.infrastructure} /></H4>
         <Field name="pool"
                component={Select}
@@ -85,7 +90,7 @@ const VMForm = (props: FormikPropsValues) => {
         {props.values.pool && (
           <Fragment>
             <Field name="template"
-                   component={Select}
+                   component={TemplateInputField}
                    options={templateOptions}
                    placeholder="Select an OS template to install..."
             />
@@ -155,27 +160,27 @@ const VMForm = (props: FormikPropsValues) => {
                   />
                   {props.values.networkType === 'static' && (
                     <Fragment>
-                      <Field name="staticIpConfig.ip"
+                      <Field name="installParams.staticIpConfig.ip"
                              component={Input}
                              placeholder={"Enter IP address..."}
                              label={true}
                       >IP:</Field>
-                      <Field name="staticIpConfig.gateway"
+                      <Field name="installParams.staticIpConfig.gateway"
                              component={Input}
                              placeholder={"Enter gateway address..."}
                              label={true}
                       >Gateway:</Field>
-                      <Field name="staticIpConfig.netmask"
+                      <Field name="installParams.staticIpConfig.netmask"
                              component={Input}
                              placeholder={"Enter netmask address..."}
                              label={true}
                       >Netmask:</Field>
-                      <Field name="staticIpConfig.dns0"
+                      <Field name="installParams.staticIpConfig.dns0"
                              component={Input}
                              placeholder={"Enter DNS #1"}
                              label={true}
                       >DNS 1:</Field>
-                      <Field name="staticIpConfig.dns1"
+                      <Field name="installParams.staticIpConfig.dns1"
                              component={Input}
                              placeholder={"Enter DNS #2"}
                              label={true}
@@ -193,7 +198,7 @@ const VMForm = (props: FormikPropsValues) => {
               )
               }
               <H4><FormattedMessage {...messages.resources} /></H4>
-              <ResourceFields/>
+              <ResourceFields namePrefix="vmOptions."/>
               <Field name="hddSizeGB"
                      component={Input}
                      type="number"
@@ -203,11 +208,10 @@ const VMForm = (props: FormikPropsValues) => {
             </Fragment>
           </Fragment>
         )}
-        <Button type="submit" primary={true}>
+      <Button type="submit" block={true} primary={true}>
           Create
-        </Button>
-
-      </form>
+      </Button>
+    </form>
   )
 
 };

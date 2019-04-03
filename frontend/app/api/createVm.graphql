@@ -1,3 +1,5 @@
+#import AbstractVMFragment from "./abstractVmFragment.graphql"
+
 mutation createVm($vmOptions: VMInput!, $disks: [NewVDI], $installParams: AutoInstall,
 $iso:ID, $template:ID!, $network:ID) {
   createVm(
@@ -12,5 +14,12 @@ $iso:ID, $template:ID!, $network:ID) {
     taskId
     granted
     reason
+  }
+}
+
+query TemplateNewVMOptions($ref: ID!) {
+  template(ref: $ref)
+  {
+    ...AbstractVMFragment
   }
 }

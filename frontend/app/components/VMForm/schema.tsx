@@ -1,4 +1,4 @@
-import {boolean, number, object, string} from "yup";
+import {boolean, mixed, number, object, ObjectSchema, Shape, string} from "yup";
 import {Values} from "./props";
 import {AutoInstall, NetworkConfiguration, VMInput} from "../../generated-models";
 import {schema} from "../AbstractVMSettingsComponents/schema";
@@ -16,11 +16,12 @@ const autoModeRequired = (t) => ({
   otherwise: t().notRequired().nullable(true),
 });
 
+
 const requiredIpWhenNetwork = (message: string, required = true) => {
-  console.log("requiredIp: ", required);
-  return string().when(['autoMode', 'network', 'networkType'], {
-    is: (autoMode, network, networkType: Option) => {
-      return networkType.value === 'dhcp';
+  return string().when(['$networkType'], /* $ means we get these values from the context. The context here is the form values (itself) */ {
+    is: (networkType: string) => {
+      console.log("requiredIpWhenNetwork: $networkType = ", networkType)
+      return networkType === 'dhcp';
     },
     then: string().notRequired().nullable(true),
     otherwise: required ? string().matches(IP_REGEX, message).required() : string().matches(IP_REGEX, message)
@@ -33,15 +34,15 @@ export default object().shape<Values>({
   autoMode: boolean().required(),
   template: string().required(),
   storage: string().required(),
-  network: string().when('autoMode', autoModeRequired(object)),
-  networkType: string().when('autoMode', autoModeRequired(object)),
+  network: string().when('autoMode', autoModeRequired(string)),
+  networkType: string().when('autoMode', autoModeRequired(string)),
   installParams: object().shape<AutoInstall>(
     {
-      hostname: string().min(1).max(255).matches(HOSTNAME_REGEX).when('autoMode', autoModeRequired(string)),
+      hostname: string().min(1).max(255).matches(HOSTNAME_REGEX),
       fullname: string(),
-      username: string().min(1).max(31).matches(USERNAME_REGEX).when('autoMode', autoModeRequired(string)),
-      password: string().min(1).matches(PASSWORD_REGEX).when('autoMode', autoModeRequired(string)),
-      partition: string(), //For now we don't support editing partition options. This is TODO
+      username: string().min(1).max(31).matches(USERNAME_REGEX).when('$autoMode', autoModeRequired(string)),
+      password: string().min(1).matches(PASSWORD_REGEX).when('$autoMode', autoModeRequired(string)),
+      partition: mixed(), //For now we don't support editing partition options. This is TODO
       staticIpConfig: object().shape<NetworkConfiguration>(
         {
           ip: requiredIpWhenNetwork("Enter valid IP"),
@@ -53,7 +54,7 @@ export default object().shape<Values>({
       )
 
     }
-  ),
+  ).when('autoMode', autoModeRequired(object)),
 
   password2: string().required().label("Confirm password").test('pass-match', 'Passwords must match',
     function (value) {
@@ -62,11 +63,9 @@ export default object().shape<Values>({
   iso: string().when('autoMode',
     {
       is: false,
-      then: object().required(),
-      otherwise: object().nullable(true)
+      then: string().required(),
+      otherwise: string().nullable(true)
     }),
   hddSizeGB: number().integer().positive().required().max(2043),
-  vmOptions: object().shape<VMInput>({
-    ...schema
-  }),
+  vmOptions: object().shape<VMInput>(schema("vmOptions.")),
 });

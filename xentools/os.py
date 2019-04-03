@@ -127,7 +127,7 @@ class GenericOS:
         )
 
         return 'http://' + opts.vmemperor_host + ':' + str(
-            opts.vmemperor_port) + AUTOINSTALL_ROUTE + "/" + self.os_kind.split()[0] + "?" \
+            opts.vmemperor_port) + AUTOINSTALL_ROUTE + "/" + self.get_distro() + "?" \
         + urlencode(args, doseq=True)
 
     def get_distro(self):

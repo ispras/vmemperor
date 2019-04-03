@@ -6,8 +6,8 @@ from authentication import with_authentication, with_default_authentication, ret
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils.mutationmethod import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
-from handlers.graphql.types.input.abstractvm import memory_input_validator, set_memory, \
-    vcpus_input_validator, set_VCPUs, platform_validator
+from handlers.graphql.types.input.abstractvm import memory_input_validator, vcpus_input_validator, platform_validator
+from xenadapter.abstractvm import set_memory, set_VCPUs
 from handlers.graphql.types.objecttype import InputObjectType
 from handlers.graphql.utils.editmutation import create_edit_mutation
 from input.vm import VMInput

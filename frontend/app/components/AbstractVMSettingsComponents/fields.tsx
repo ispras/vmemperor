@@ -5,15 +5,22 @@ import {faMemory, faMicrochip} from "@fortawesome/free-solid-svg-icons";
 import {Field} from "formik";
 import {FormGroup, Label} from "reactstrap";
 import {CPUInputComponent} from "./cpuinput";
-import {RAMInputComponent} from "./raminput";
+import RAMInputComponent from "./raminput";
 
-export const Fields = () => {
+interface Props {
+  namePrefix?: string;
+}
+
+export const Fields: React.FunctionComponent<Props> = ({namePrefix}) => {
   return (
     <Fragment>
       <Field
-        component={CPUInputComponent}/>
-      <Field
-        component={RAMInputComponent}/>
+        component={CPUInputComponent}
+        namePrefix={namePrefix}
+      />
+      <RAMInputComponent
+        namePrefix={namePrefix}
+      />
     </Fragment>
   );
 };

@@ -1,33 +1,57 @@
 import {FieldProps} from 'formik'
-import React from 'react'
-import Select, {Option, ReactSelectProps} from 'react-select'
+import React, {useCallback, useMemo} from 'react'
+import Select from 'react-select'
+import {Props as _ReactSelectProps} from 'react-select/lib/Select';
 import {FormFeedback, InputGroup, InputGroupAddon} from "reactstrap";
 import FormGroup from "reactstrap/lib/FormGroup";
 import styled from "styled-components";
+import {OptionsType} from "react-select/lib/types";
+import {isOption, Option} from './guards';
 
 
+export interface SelectFieldProps<Values> extends _ReactSelectProps<Option>, FieldProps<Values> {
+  afterChange?: (newValue: string) => void;
+}
 /* See bug https://github.com/JedWatson/react-select/issues/1453
  and https://github.com/JedWatson/react-select/issues/2930 */
+
 
 const ErrorDiv = styled.div`
 padding-top: 3px;
 font-size: small;
 `;
 
-const SelectField: React.FunctionComponent<ReactSelectProps & FieldProps>
-  = ({
-       options,
-       field,
-       form,
-       placeholder
-     }) => (
+
+function SelectField<Values>
+({
+   options,
+   field,
+   form,
+   placeholder,
+   afterChange
+ }: SelectFieldProps<Values>) {
+  const value = useMemo(() => {
+    if (!options)
+      return '';
+    if (!options.length)
+      return '';
+    //@ts-ignore
+    const found = options.find(option => option.value === field.value);
+    return found ? found : null;
+  }, [options]);
+  const onChange = (option: Option) => {
+    form.setFieldValue(field.name, option.value);
+    if (afterChange)
+      afterChange(option.value);
+  };
+  return (
   <FormGroup style={{paddingRight: "20px", paddingLeft: "20px"}}>
     <div style={{margin: '1rem 0'}}>
       <Select
         options={options}
         name={field.name}
-        value={options ? options.find(option => option === field.value) : ''}
-        onChange={(option: Option) => form.setFieldValue(field.name, option.value)}
+        value={value}
+        onChange={onChange}
         placeholder={placeholder}
         onBlur={field.onBlur}
       />
@@ -39,7 +63,7 @@ const SelectField: React.FunctionComponent<ReactSelectProps & FieldProps>
       )
       }
     </div>
-  </FormGroup>
-);
+  </FormGroup>);
 
+}
 export default SelectField;

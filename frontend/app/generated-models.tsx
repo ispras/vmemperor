@@ -1597,6 +1597,14 @@ export type createVmMutation = { __typename?: "Mutation" } & {
   >;
 };
 
+export type TemplateNewVMOptionsQueryVariables = {
+  ref: Scalars["ID"];
+};
+
+export type TemplateNewVMOptionsQuery = { __typename?: "Query" } & {
+  template: Maybe<{ __typename?: "GTemplate" } & AbstractVMFragmentFragment>;
+};
+
 export type CurrentUserQueryVariables = {};
 
 export type CurrentUserQuery = { __typename?: "Query" } & {
@@ -4343,6 +4351,25 @@ export function usecreateVmMutation(
     createVmMutation,
     createVmMutationVariables
   >(createVmDocument, baseOptions);
+}
+export const TemplateNewVMOptionsDocument = gql`
+  query TemplateNewVMOptions($ref: ID!) {
+    template(ref: $ref) {
+      ...AbstractVMFragment
+    }
+  }
+  ${AbstractVMFragmentFragmentDoc}
+`;
+
+export function useTemplateNewVMOptionsQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<
+    TemplateNewVMOptionsQueryVariables
+  >
+) {
+  return ReactApolloHooks.useQuery<
+    TemplateNewVMOptionsQuery,
+    TemplateNewVMOptionsQueryVariables
+  >(TemplateNewVMOptionsDocument, baseOptions);
 }
 export const CurrentUserDocument = gql`
   query CurrentUser {

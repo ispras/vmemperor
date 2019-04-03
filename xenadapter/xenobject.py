@@ -48,6 +48,38 @@ def set_subtype(field_name: str):
         getattr(obj, f'set_{field_name}')(arg)
     return setter
 
+
+def get_real_value(k : str, v, current_type: Optional[Type[GXenObjectType]]):
+    if current_type and not issubclass(current_type, GXenObjectType):
+        raise ValueError(f"current_type should be a subclass of GXenObjectType. Got: {current_type}")
+    if isinstance(v, xmldt):
+        try:  # XenAPI standard time format. Z means strictly UTC
+            time = datetime.strptime(v.value, "%Y%m%dT%H:%M:%SZ")
+        except ValueError:  # try Python time format
+            time = datetime.strptime(v.value, "%Y%m%dT%H:%M:%S")
+
+        time = time.replace(tzinfo=pytz.utc)
+        return time
+    elif isinstance(v, collections.abc.Mapping):
+        type_for_key = current_type.get_type(k) if current_type else None
+        if type_for_key and not issubclass(type_for_key, GXenObjectType):
+            if hasattr(type_for_key, 'serialize'): # When we have a complex structure (Mapping) but Schema insists on plain type, e.g. JSONString or we substitute complex type with ID
+                return type_for_key.serialize(v)
+            else:
+                raise ValueError(f"type_for_key should be a subclass of GXenObjectType or contain serialize method. Got: {type_for_key}")
+
+        def yield_values():
+            for key, value in v.items():
+                key = key.replace('-', '_')
+                if not type_for_key or key in type_for_key._meta.fields:
+                    yield key, get_real_value(key, value, type_for_key)
+        return {key: value for key, value in yield_values()}
+    else:
+        if current_type:
+            return current_type.get_type(k).serialize(v)
+        else:
+            return v
+
 class XenObject(metaclass=XenObjectMeta):
     '''
     Represents a proxy used to call XAPI methods on particular object (with particular ref)
@@ -66,7 +98,7 @@ class XenObject(metaclass=XenObjectMeta):
     EVENT_CLASSES=[]
     _db_created = False
     FAIL_ON_NON_EXISTENCE = False # Fail if object does not exist in cache database. Usable if you know for sure that filter_record is always true
-
+    OPTIONS_FLOAT_TO_INT = [] #  As GraphQL does not know about big ints, we'll convert floats corresponding to these fields in set_options
 
     def __str__(self):
         return f"<{self.__class__.__name__} \"{self.ref}\">"
@@ -180,37 +212,6 @@ class XenObject(metaclass=XenObjectMeta):
         : default: return record as-is, adding a 'ref' field with current opaque ref
         '''
 
-        def get_real_value(k : str, v, current_type: Optional[Type[GXenObjectType]]):
-            if current_type and not issubclass(current_type, GXenObjectType):
-                raise ValueError(f"current_type should be a subclass of GXenObjectType. Got: {current_type}")
-            if isinstance(v, xmldt):
-                try:  # XenAPI standard time format. Z means strictly UTC
-                    time = datetime.strptime(v.value, "%Y%m%dT%H:%M:%SZ")
-                except ValueError:  # try Python time format
-                    time = datetime.strptime(v.value, "%Y%m%dT%H:%M:%S")
-
-                time = time.replace(tzinfo=pytz.utc)
-                return time
-            elif isinstance(v, collections.abc.Mapping):
-                type_for_key = current_type.get_type(k) if current_type else None
-                if type_for_key and not issubclass(type_for_key, GXenObjectType):
-                    if hasattr(type_for_key, 'serialize'): # When we have a complex structure (Mapping) but Schema insists on plain type, e.g. JSONString or we substitute complex type with ID
-                        return type_for_key.serialize(v)
-                    else:
-                        raise ValueError(f"type_for_key should be a subclass of GXenObjectType or contain serialize method. Got: {type_for_key}")
-
-                def yield_values():
-                    for key, value in v.items():
-                        key = key.replace('-', '_')
-                        if not type_for_key or key in type_for_key._meta.fields:
-                            yield key, get_real_value(key, value, type_for_key)
-                return {key: value for key, value in yield_values()}
-            else:
-                if current_type:
-                    return current_type.get_type(k).serialize(v)
-                else:
-                    return v
-
         if cls.GraphQLType:
             new_record = {k: get_real_value(k, v, cls.GraphQLType if cls.GraphQLType else None)
                           for k, v in record.items() if k in cls.GraphQLType._meta.fields}
@@ -248,12 +249,12 @@ class XenObject(metaclass=XenObjectMeta):
                 if field_name in self.GraphQLType._meta.fields:
                     try:
                         data = re.db.table(self.db_table_name).get(self.ref).pluck(field_name)
-
                         def method():
                             try:
                                 return data.run()[field_name]
                             except re.r.ReqlNonExistenceError as e:
-                                return getattr(self, f'_{name}')()
+                                value = getattr(self, f'_{name}')()
+                                return get_real_value(field_name, value, self.GraphQLType)
 
                         return method
 
@@ -301,6 +302,9 @@ class XenObject(metaclass=XenObjectMeta):
                 set_subtype(key)(options[key], self)
             else:
                 attr = getattr(self, f'set_{key}')
-                attr(options[key])
+                if key in self.OPTIONS_FLOAT_TO_INT:
+                    attr(int(options[key]))
+                else:
+                    attr(options[key])
 
 

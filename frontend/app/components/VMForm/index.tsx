@@ -3,7 +3,7 @@
  * VMform
  *
  */
-import React from 'react';
+import React, {useMemo} from 'react';
 
 
 import * as Yup from "yup";
@@ -12,7 +12,6 @@ import {boolean, number, object, string} from "yup";
 import {AvForm} from 'availity-reactstrap-validation';
 import {Formik, FormikActions} from "formik";
 import {HDD_SIZE_GB_MAX, RAM_MB_MAX, RAM_MB_MIN, VCPU_MAX} from "../../utils/constants";
-import {OptionShape} from "../../hooks/form";
 import VMForm from "./form";
 import {networkTypeOptions, Values} from "./props";
 import {useMutation} from "react-apollo-hooks";
@@ -28,19 +27,22 @@ import {Omit} from "../AbstractSettingsForm/utils";
 import {validation} from "../../utils/forms";
 import validationSchema from './schema';
 
+const baseValues: Values = {
+  pool: null,
+  template: null,
+  storage: null,
+  network: null,
+  vmOptions: null,
+  iso: null,
+  networkType: "dhcp",
+  autoMode: false,
+  installParams: null,
+  hddSizeGB: 10,
+  password2: null,
+};
+
+
 const VMFormContainer: React.FunctionComponent = () => {
-  const initialValues: Values = {
-    pool: null,
-    template: null,
-    storage: null,
-    network: null,
-    vmOptions: null,
-    iso: null,
-    networkType: networkTypeOptions.filter(t => t.value === "dhcp")[0],
-    autoMode: false,
-    installParams: null,
-    hddSizeGB: 0,
-  };
 
 
   const createVM = usecreateVmMutation();
@@ -48,13 +50,13 @@ const VMFormContainer: React.FunctionComponent = () => {
   const onSumbit = async (values: Values, formikActions: FormikActions<Values>) => {
     const hddSizeMegabytes = values.hddSizeGB * 1024;
     if (!(values.autoMode && values.networkType === 'static'))
-      values.installParams.staticIpConfig = null;
+      delete values.installParams.staticIpConfig;
 
     if (values.autoMode) { //Temporary while we do not show partition options to users
       values.installParams.partition = `\-${hddSizeMegabytes}-`
-      values.iso = null; //Auto install is done via network
+      delete values.iso;
     } else {
-      values.installParams = null;
+      delete values.installParams;
     }
 
     const finalValues: createVmMutationVariables = {
@@ -76,8 +78,9 @@ const VMFormContainer: React.FunctionComponent = () => {
   };
 
   const validator = validation(validationSchema);
+
   return (
-    <Formik initialValues={initialValues}
+    <Formik initialValues={baseValues}
             onSubmit={onSumbit}
             validate={validator}
             component={VMForm}

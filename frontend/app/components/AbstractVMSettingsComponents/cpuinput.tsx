@@ -6,10 +6,14 @@ import React from "react";
 import Label from "reactstrap/lib/Label";
 import {ChangeInputEvent, getInput} from "../AbstractSettingsForm/inputUtils";
 
-export const CPUInputComponent: React.FunctionComponent<FieldProps<ResourceFormValues>> = ({form}) => {
-  const VCPUsStartup = "VCPUsAtStartup";
-  const VCPUsMax = "VCPUsMax";
-  const coresPerSocket = "platform.coresPerSocket";
+interface Props extends FieldProps<any> {
+  namePrefix?: string
+}
+
+export const CPUInputComponent: React.FunctionComponent<Props> = ({form, namePrefix = ""}) => {
+  const VCPUsStartup = namePrefix + "VCPUsAtStartup";
+  const VCPUsMax = namePrefix + "VCPUsMax";
+  const coresPerSocket = namePrefix + "platform.coresPerSocket";
 
   function handleChangeVCPUsStartup(e: ChangeInputEvent) {
     const value = parseInt(e.target.value);
@@ -28,7 +32,7 @@ export const CPUInputComponent: React.FunctionComponent<FieldProps<ResourceFormV
   }
 
   return (
-    <Row form="true">
+    <Row>
       <Col md={4}>
         <FormGroup>
           <Label for={VCPUsStartup}>

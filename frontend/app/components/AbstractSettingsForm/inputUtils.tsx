@@ -12,13 +12,15 @@ export function getInput<T>(form: FormikProps<T>, name: string, type: InputType,
   if (!value) {
     value = dlv(form.values, name);
   }
+  if (!onChange)
+    onChange = form.handleChange(name);
   return (
     <Fragment>
       <Input
         name={name}
         type={type}
         onBlur={form.handleBlur(name)}
-        onChange={onChange ? onChange : form.handleChange(name)}
+        onChange={onChange}
         value={value}
         invalid={getInvalid(form, name)}
       />

@@ -49,6 +49,12 @@ class InputObjectType(graphene.InputObjectType):
     def keys(self):
         return self._meta.fields.keys()
 
+    def get(self, item):
+        try:
+            getattr(self, item)
+        except AttributeError:
+            return None
+
     def __getitem__(self, item):
         return getattr(self, item)
 
