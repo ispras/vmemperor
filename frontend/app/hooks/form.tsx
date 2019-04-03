@@ -26,11 +26,6 @@ export interface Option {
   label: string,
 }
 
-export const OptionShape = () => object().shape<Option>({
-    value: string().required(),
-    label: string().required(),
-  }
-);
 
 interface ListItem {
   nameLabel?: string,

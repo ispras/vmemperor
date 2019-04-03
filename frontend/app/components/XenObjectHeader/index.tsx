@@ -29,8 +29,8 @@ const XenObjectHeader: React.FunctionComponent<Props> = ({editMutation, editMuta
         [editMutationName]:
           {
             [name]: value,
-            ref: xenObject.ref,
-          }
+          },
+        ref: xenObject.ref
       }
     });
   };

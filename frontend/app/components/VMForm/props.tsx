@@ -5,17 +5,18 @@ import {ResourceFormValues} from "../AbstractVMSettingsComponents/schema";
 import {AutoInstall, CreateVM, VMInput} from "../../generated-models";
 import {Omit} from "react-apollo-hooks/lib/utils";
 
-
 export interface Values {
-  pool: Option;
-  template: Option;
-  storage: Option;
-  network: Option;
-  networkType: Option;
+  pool: string;
+  template: string;
+  storage: string;
+  network: string;
+  networkType: string;
   installParams?: AutoInstall
-  vmOptions?: VMInput
-  iso: Option;
-  autoMode: boolean,
+  vmOptions: VMInput;
+  password2: string;
+  iso: string;
+  autoMode: boolean;
+  hddSizeGB: number;
 }
 
 export type FormikPropsValues = FormikProps<Values>;

@@ -74,7 +74,6 @@ const VMForm = (props: FormikPropsValues) => {
 
   }, [props.values.template]);
   return (
-    <FormContext.Provider value={props}>
       <form className="form-horizontal">
         <H4><FormattedMessage {...messages.infrastructure} /></H4>
         <Field name="pool"
@@ -122,22 +121,22 @@ const VMForm = (props: FormikPropsValues) => {
               {props.values.autoMode && (
                 <div>
                   <H4 style={{margin: '20px'}}><FormattedMessage {...messages.account} /></H4>
-                  <Field name="hostname"
+                  <Field name="installParams.hostname"
                          component={Input}
                          placeholder="Enter hostname..."
                          addonIcon={faDesktop}
                   />
-                  <Field name="fullname"
+                  <Field name="installParams.fullname"
                          component={Input}
                          placeholder="Enter your full name (Optional)..."
                          addonIcon={faSignature}
                   />
-                  <Field name="username"
+                  <Field name="installParams.username"
                          component={Input}
                          placeholder="Enter username (1-32 latin characters)..."
                          addonIcon={faUser}
                   />
-                  <Field name="password"
+                  <Field name="installParams.password"
                          component={Input}
                          placeholder="Enter password..."
                          addonIcon={faKey}
@@ -154,29 +153,29 @@ const VMForm = (props: FormikPropsValues) => {
                          component={Select}
                          options={networkTypeOptions}
                   />
-                  {props.values.networkType.value === 'static' && (
+                  {props.values.networkType === 'static' && (
                     <Fragment>
-                      <Field name="ip"
+                      <Field name="staticIpConfig.ip"
                              component={Input}
                              placeholder={"Enter IP address..."}
                              label={true}
                       >IP:</Field>
-                      <Field name="gateway"
+                      <Field name="staticIpConfig.gateway"
                              component={Input}
                              placeholder={"Enter gateway address..."}
                              label={true}
                       >Gateway:</Field>
-                      <Field name="netmask"
+                      <Field name="staticIpConfig.netmask"
                              component={Input}
                              placeholder={"Enter netmask address..."}
                              label={true}
                       >Netmask:</Field>
-                      <Field name="dns0"
+                      <Field name="staticIpConfig.dns0"
                              component={Input}
                              placeholder={"Enter DNS #1"}
                              label={true}
                       >DNS 1:</Field>
-                      <Field name="dns1"
+                      <Field name="staticIpConfig.dns1"
                              component={Input}
                              placeholder={"Enter DNS #2"}
                              label={true}
@@ -195,7 +194,7 @@ const VMForm = (props: FormikPropsValues) => {
               }
               <H4><FormattedMessage {...messages.resources} /></H4>
               <ResourceFields/>
-              <Field name="hdd"
+              <Field name="hddSizeGB"
                      component={Input}
                      type="number"
                      addonIcon={faHdd}
@@ -209,7 +208,6 @@ const VMForm = (props: FormikPropsValues) => {
         </Button>
 
       </form>
-    </FormContext.Provider>
   )
 
 };

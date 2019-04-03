@@ -12,14 +12,15 @@ from xenadapter.xenobject import XenObject
 def create_edit_mutation(name: str, argument_name: str, argument_type: Type[BasicXenInput], object_type: Type["XenObject"], mutations: List[MutationMethod]):
 
     Arguments = type('Arguments', (), {
-        argument_name:  graphene.Argument(argument_type, description=f"{argument_name.capitalize()} to change", required=True)
+        argument_name:  graphene.Argument(argument_type, description=f"{argument_name.capitalize()} to change", required=True),
+        "ref": graphene.Argument(graphene.ID, description="Object ID", required=True)
     })
 
     @with_default_authentication
-    def mutate(root, info, **kwargs):
+    def mutate(root, info, ref, **kwargs):
         ctx : ContextProtocol = info.context
         input : BasicXenInput = kwargs[argument_name]
-        mutable = object_type(ctx.xen, input.ref)
+        mutable = object_type(ctx.xen, ref)
 
         helper = MutationHelper(mutations, ctx, mutable)
         granted, reason = helper.perform_mutations(input)

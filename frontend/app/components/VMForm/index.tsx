@@ -16,17 +16,17 @@ import {OptionShape} from "../../hooks/form";
 import VMForm from "./form";
 import {networkTypeOptions, Values} from "./props";
 import {useMutation} from "react-apollo-hooks";
-import {AutoInstall, CreateVM, NetworkConfiguration, usecreateVmMutation} from "../../generated-models";
+import {
+  AutoInstall,
+  CreateVM,
+  createVmMutationVariables,
+  NetworkConfiguration,
+  usecreateVmMutation
+} from "../../generated-models";
 import {schema as resourceSchema} from '../AbstractVMSettingsComponents/schema';
 import {Omit} from "../AbstractSettingsForm/utils";
-
-
-const IP_REGEX = RegExp('^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$');
-const HOSTNAME_REGEX = RegExp('^[a-zA-Z0-9]([a-zA-Z0-9-])*$');
-const USERNAME_REGEX = RegExp('^[a-z_][a-z0-9_]*$');
-const PASSWORD_REGEX = RegExp('^[\x00-\x7F]*$');
-
-type MyAutoInstall = Omit<AutoInstall, "partition" | "mirrorUrl">; //Partitioning is not implemented yet.
+import {validation} from "../../utils/forms";
+import validationSchema from './schema';
 
 const VMFormContainer: React.FunctionComponent = () => {
   const initialValues: Values = {
@@ -39,99 +39,47 @@ const VMFormContainer: React.FunctionComponent = () => {
     networkType: networkTypeOptions.filter(t => t.value === "dhcp")[0],
     autoMode: false,
     installParams: null,
+    hddSizeGB: 0,
   };
-  const requiredIpWhenNetwork = (message: string, required = true) => {
-    console.log("requiredIp: ", required);
-    return string().when(['autoMode', 'network', 'networkType'], {
-      is: (autoMode, network, networkType: Option) => {
-        return networkType.value === 'dhcp';
-      },
-      then: string().notRequired().nullable(true),
-      otherwise: required ? string().matches(IP_REGEX, message).required() : string().matches(IP_REGEX, message)
-    });
-  };
-  const autoModeRequired = (t) => ({
-    is: true,
-    then: t().required(),
-    otherwise: t().notRequired().nullable(true),
-  });
+
 
   const createVM = usecreateVmMutation();
 
   const onSumbit = async (values: Values, formikActions: FormikActions<Values>) => {
-    const hddSizeMegabytes = values.hdd * 1024;
-    const staticNetworkConfiguration: NetworkConfiguration = values.autoMode && values.networkType.value === 'static' ? {
-      ip: values.ip,
-      gateway: values.gateway,
-      netmask: values.netmask,
-      dns0: values.dns0,
-      dns1: values.dns1,
-    } : null;
-    const autoInstallParams: AutoInstall = values.autoMode ? {
-      hostname: values.hostname,
-      username: values.username,
-      password: values.password,
-      partition: `/-${hddSizeMegabytes}-`,
-      staticIpConfig: staticNetworkConfiguration
-    } : null;
+    const hddSizeMegabytes = values.hddSizeGB * 1024;
+    if (!(values.autoMode && values.networkType === 'static'))
+      values.installParams.staticIpConfig = null;
 
+    if (values.autoMode) { //Temporary while we do not show partition options to users
+      values.installParams.partition = `\-${hddSizeMegabytes}-`
+      values.iso = null; //Auto install is done via network
+    } else {
+      values.installParams = null;
+    }
 
+    const finalValues: createVmMutationVariables = {
+      ...values as createVmMutationVariables,
+      disks: [
+        {
+          SR: values.storage,
+          size: hddSizeMegabytes * 1024 * 1024 //Bytes
+        }
+      ],
+    };
+    console.log("VM is created with the following variables: ", finalValues);
     const taskId = await createVM({
-      variables: {
-        template: values.template.value,
-        network: values.network.value,
-        iso: values.autoMode ? null : values.iso.value,
-        disks: [{
-          SR: values.storage.value,
-          size: hddSizeMegabytes //Input: GB; Output: MB
-        }],
-        installParams: autoInstallParams,
-      }
+      variables: finalValues,
+
     });
     console.log("VM  created! Task ID: ", taskId);
     formikActions.setSubmitting(false);
   };
 
-
+  const validator = validation(validationSchema);
   return (
     <Formik initialValues={initialValues}
             onSubmit={onSumbit}
-            validationSchema={object().shape<Values>({
-              pool: OptionShape().required(),
-              autoMode: boolean().required(),
-              template: OptionShape().required(),
-              storage: OptionShape().required(),
-              network: OptionShape().when('autoMode', autoModeRequired(object)),
-              networkType: OptionShape().when('autoMode', autoModeRequired(object)),
-              installParams: object().shape<AutoInstall>(
-                {
-                  hostname: string().min(1).max(255).matches(HOSTNAME_REGEX).when('autoMode', autoModeRequired(string)),
-                }
-              ),
-              fullname: string(),
-              username: string().min(1).max(31).matches(USERNAME_REGEX).when('autoMode', autoModeRequired(string)),
-              password: string().min(1).matches(PASSWORD_REGEX).when('autoMode', autoModeRequired(string)),
-              // @ts-ignore
-              password2: string().required().label("Confirm password").test('pass-match', 'Passwords must match',
-                function (value) {
-                  return this.parent.password === value;
-                }),
-              nameDescription: string(),
-              nameLabel: string().required(),
-              ip: requiredIpWhenNetwork("Enter valid IP"),
-              netmask: requiredIpWhenNetwork("Enter valid netmask)"),
-              gateway: requiredIpWhenNetwork("Enter valid gateway"),
-              dns0: requiredIpWhenNetwork("Enter valid DNS server"),
-              dns1: requiredIpWhenNetwork("Enter valid DNS server", false),
-              iso: OptionShape().when('autoMode',
-                {
-                  is: false,
-                  then: object().required(),
-                  otherwise: object().nullable(true)
-                }),
-              hdd: number().integer().positive().required().max(2043),
-              ...resourceSchema
-            })}
+            validate={validator}
             component={VMForm}
     />
   );

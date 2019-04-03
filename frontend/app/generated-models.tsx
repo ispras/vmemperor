@@ -40,8 +40,6 @@ export type AttachVDIMutation = {
 export type AutoInstall = {
   /** VM hostname */
   hostname: Scalars["String"];
-  /** Network installation URL */
-  mirrorUrl?: Maybe<Scalars["String"]>;
   /** Name of the newly created user */
   username: Scalars["String"];
   /** User and root password */
@@ -631,6 +629,7 @@ export type MutationcreateVmArgs = {
 };
 
 export type MutationtemplateArgs = {
+  ref: Scalars["ID"];
   template: TemplateInput;
 };
 
@@ -651,6 +650,7 @@ export type MutationtemplateAccessSetArgs = {
 };
 
 export type MutationvmArgs = {
+  ref: Scalars["ID"];
   vm: VMInput;
 };
 
@@ -696,6 +696,7 @@ export type MutationplaybookLaunchArgs = {
 
 export type MutationnetworkArgs = {
   network: NetworkInput;
+  ref: Scalars["ID"];
 };
 
 export type MutationnetAttachArgs = {
@@ -712,6 +713,7 @@ export type MutationnetAccessSetArgs = {
 };
 
 export type MutationvdiArgs = {
+  ref: Scalars["ID"];
   vdi: VDIInput;
 };
 
@@ -733,6 +735,7 @@ export type MutationvdiDeleteArgs = {
 };
 
 export type MutationsrArgs = {
+  ref: Scalars["ID"];
   sr: SRInput;
 };
 
@@ -774,8 +777,6 @@ export type NetworkConfiguration = {
 };
 
 export type NetworkInput = {
-  /** Object's ref */
-  ref: Scalars["ID"];
   /** Object's human-readable name */
   nameLabel?: Maybe<Scalars["String"]>;
   /** Object's human-readable description */
@@ -790,7 +791,7 @@ export type NetworkMutation = {
 export type NewVDI = {
   /** Storage repository to create disk on */
   SR: Scalars["ID"];
-  /** Disk size of a newly created disk in megabytes */
+  /** Disk size of a newly created disk in bytes */
   size: Scalars["Float"];
 };
 
@@ -1038,8 +1039,6 @@ export type SRDestroyMutation = {
 };
 
 export type SRInput = {
-  /** Object's ref */
-  ref: Scalars["ID"];
   /** Object's human-readable name */
   nameLabel?: Maybe<Scalars["String"]>;
   /** Object's human-readable description */
@@ -1231,8 +1230,6 @@ export type TemplateDestroyMutation = {
 };
 
 export type TemplateInput = {
-  /** Object's ref */
-  ref: Scalars["ID"];
   /** Object's human-readable name */
   nameLabel?: Maybe<Scalars["String"]>;
   /** Object's human-readable description */
@@ -1300,8 +1297,6 @@ export type VDIDestroyMutation = {
 };
 
 export type VDIInput = {
-  /** Object's ref */
-  ref: Scalars["ID"];
   /** Object's human-readable name */
   nameLabel?: Maybe<Scalars["String"]>;
   /** Object's human-readable description */
@@ -1370,8 +1365,6 @@ export type VMDestroyMutation = {
 };
 
 export type VMInput = {
-  /** Object's ref */
-  ref: Scalars["ID"];
   /** Object's human-readable name */
   nameLabel?: Maybe<Scalars["String"]>;
   /** Object's human-readable description */
@@ -1660,6 +1653,7 @@ export type DeleteVMMutation = { __typename?: "Mutation" } & {
 
 export type NetworkEditOptionsMutationVariables = {
   network: NetworkInput;
+  ref: Scalars["ID"];
 };
 
 export type NetworkEditOptionsMutation = { __typename?: "Mutation" } & {
@@ -1673,6 +1667,7 @@ export type NetworkEditOptionsMutation = { __typename?: "Mutation" } & {
 
 export type SREditOptionsMutationVariables = {
   sr: SRInput;
+  ref: Scalars["ID"];
 };
 
 export type SREditOptionsMutation = { __typename?: "Mutation" } & {
@@ -1683,6 +1678,7 @@ export type SREditOptionsMutation = { __typename?: "Mutation" } & {
 
 export type TemplateEditOptionsMutationVariables = {
   template: TemplateInput;
+  ref: Scalars["ID"];
 };
 
 export type TemplateEditOptionsMutation = { __typename?: "Mutation" } & {
@@ -1696,6 +1692,7 @@ export type TemplateEditOptionsMutation = { __typename?: "Mutation" } & {
 
 export type VDIEditOptionsMutationVariables = {
   vdi: VDIInput;
+  ref: Scalars["ID"];
 };
 
 export type VDIEditOptionsMutation = { __typename?: "Mutation" } & {
@@ -1706,6 +1703,7 @@ export type VDIEditOptionsMutation = { __typename?: "Mutation" } & {
 
 export type VMEditOptionsMutationVariables = {
   vm: VMInput;
+  ref: Scalars["ID"];
 };
 
 export type VMEditOptionsMutation = { __typename?: "Mutation" } & {
@@ -2197,19 +2195,6 @@ export type RebootVmMutationVariables = {
 export type RebootVmMutation = { __typename?: "Mutation" } & {
   vmReboot: Maybe<
     { __typename?: "VMRebootMutation" } & Pick<VMRebootMutation, "taskId">
-  >;
-};
-
-export type TemplateSetEnabledMutationVariables = {
-  template: TemplateInput;
-};
-
-export type TemplateSetEnabledMutation = { __typename?: "Mutation" } & {
-  template: Maybe<
-    { __typename?: "TemplateMutation" } & Pick<
-      TemplateMutation,
-      "granted" | "reason"
-    >
   >;
 };
 
@@ -4440,8 +4425,8 @@ export function useDeleteVMMutation(
   >(DeleteVMDocument, baseOptions);
 }
 export const NetworkEditOptionsDocument = gql`
-  mutation NetworkEditOptions($network: NetworkInput!) {
-    network(network: $network) {
+  mutation NetworkEditOptions($network: NetworkInput!, $ref: ID!) {
+    network(network: $network, ref: $ref) {
       granted
       reason
     }
@@ -4460,8 +4445,8 @@ export function useNetworkEditOptionsMutation(
   >(NetworkEditOptionsDocument, baseOptions);
 }
 export const SREditOptionsDocument = gql`
-  mutation SREditOptions($sr: SRInput!) {
-    sr(sr: $sr) {
+  mutation SREditOptions($sr: SRInput!, $ref: ID!) {
+    sr(sr: $sr, ref: $ref) {
       granted
       reason
     }
@@ -4480,8 +4465,8 @@ export function useSREditOptionsMutation(
   >(SREditOptionsDocument, baseOptions);
 }
 export const TemplateEditOptionsDocument = gql`
-  mutation TemplateEditOptions($template: TemplateInput!) {
-    template(template: $template) {
+  mutation TemplateEditOptions($template: TemplateInput!, $ref: ID!) {
+    template(template: $template, ref: $ref) {
       reason
       granted
     }
@@ -4500,8 +4485,8 @@ export function useTemplateEditOptionsMutation(
   >(TemplateEditOptionsDocument, baseOptions);
 }
 export const VDIEditOptionsDocument = gql`
-  mutation VDIEditOptions($vdi: VDIInput!) {
-    vdi(vdi: $vdi) {
+  mutation VDIEditOptions($vdi: VDIInput!, $ref: ID!) {
+    vdi(vdi: $vdi, ref: $ref) {
       reason
       granted
     }
@@ -4520,8 +4505,8 @@ export function useVDIEditOptionsMutation(
   >(VDIEditOptionsDocument, baseOptions);
 }
 export const VMEditOptionsDocument = gql`
-  mutation VMEditOptions($vm: VMInput!) {
-    vm(vm: $vm) {
+  mutation VMEditOptions($vm: VMInput!, $ref: ID!) {
+    vm(vm: $vm, ref: $ref) {
       reason
       granted
     }
@@ -5366,26 +5351,6 @@ export function useRebootVmMutation(
     RebootVmMutation,
     RebootVmMutationVariables
   >(RebootVmDocument, baseOptions);
-}
-export const TemplateSetEnabledDocument = gql`
-  mutation TemplateSetEnabled($template: TemplateInput!) {
-    template(template: $template) {
-      granted
-      reason
-    }
-  }
-`;
-
-export function useTemplateSetEnabledMutation(
-  baseOptions?: ReactApolloHooks.MutationHookOptions<
-    TemplateSetEnabledMutation,
-    TemplateSetEnabledMutationVariables
-  >
-) {
-  return ReactApolloHooks.useMutation<
-    TemplateSetEnabledMutation,
-    TemplateSetEnabledMutationVariables
-  >(TemplateSetEnabledDocument, baseOptions);
 }
 export const ShutdownVMDocument = gql`
   mutation ShutdownVM($ref: ID!, $force: ShutdownForce) {

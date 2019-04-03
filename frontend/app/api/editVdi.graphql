@@ -1,5 +1,5 @@
-mutation VDIEditOptions ($vdi : VDIInput!) {
-  vdi(vdi: $vdi) {
+mutation VDIEditOptions ($vdi : VDIInput!, $ref: ID!) {
+  vdi(vdi: $vdi, ref: $ref) {
     reason
     granted
   }

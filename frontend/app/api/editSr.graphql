@@ -1,5 +1,5 @@
-mutation SREditOptions ($sr: SRInput!){
-  sr(sr: $sr) {
+mutation SREditOptions ($sr: SRInput!, $ref: ID!){
+  sr(sr: $sr, ref: $ref) {
     granted
     reason
   }

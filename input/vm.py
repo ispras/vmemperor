@@ -13,7 +13,6 @@ class NetworkConfiguration(graphene.InputObjectType):
 
 class AutoInstall(graphene.InputObjectType):
     hostname = graphene.InputField(graphene.String, description="VM hostname", required=True)
-    mirror_url = graphene.InputField(graphene.String, description="Network installation URL")
     username = graphene.InputField(graphene.String, required=True, description="Name of the newly created user")
     password = graphene.InputField(graphene.String, required=True, description="User and root password")
     fullname = graphene.InputField(graphene.String, description="User's full name")

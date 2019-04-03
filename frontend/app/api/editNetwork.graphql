@@ -1,5 +1,5 @@
-mutation NetworkEditOptions ($network: NetworkInput!){
-  network(network: $network) {
+mutation NetworkEditOptions ($network: NetworkInput!, $ref: ID!){
+  network(network: $network, ref: $ref) {
     granted
     reason
   }

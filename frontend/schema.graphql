@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Tue Apr 02 21:47:07 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Wed Apr 03 14:58:26 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -274,7 +274,7 @@ type GSR implements GAclXenObject {
 }
 
 type GSRAccessEntry implements GAccessEntry {
-  actions: SRActions!
+  actions: [SRActions!]!
   userId: User!
 }
 
@@ -507,7 +507,9 @@ type Mutation {
   "Edit Network options"
   network(
     #Network to change
-    network: NetworkInput!
+    network: NetworkInput!,
+    #Object ID
+    ref: ID!
   ): NetworkMutation
   "Launch an Ansible Playbook on specified VMs"
   playbookLaunch(
@@ -520,6 +522,8 @@ type Mutation {
   ): PlaybookLaunchMutation
   "Edit SR options"
   sr(
+    #Object ID
+    ref: ID!,
     #Sr to change
     sr: SRInput!
   ): SRMutation
@@ -529,6 +533,8 @@ type Mutation {
   srDelete(ref: ID!): SRDestroyMutation
   "Edit template options"
   template(
+    #Object ID
+    ref: ID!,
     #Template to change
     template: TemplateInput!
   ): TemplateMutation
@@ -544,6 +550,8 @@ type Mutation {
   templateDelete(ref: ID!): TemplateDestroyMutation
   "Edit VDI options"
   vdi(
+    #Object ID
+    ref: ID!,
     #Vdi to change
     vdi: VDIInput!
   ): VDIMutation
@@ -560,6 +568,8 @@ type Mutation {
   vdiDelete(ref: ID!): VDIDestroyMutation
   "Edit VM options"
   vm(
+    #Object ID
+    ref: ID!,
     #Vm to change
     vm: VMInput!
   ): VMMutation
@@ -1073,8 +1083,6 @@ input AutoInstall {
   fullname: String
   "VM hostname"
   hostname: String!
-  "Network installation URL"
-  mirrorUrl: String
   "Partition scheme (TODO)"
   partition: String!
   "User and root password"
@@ -1105,14 +1113,12 @@ input NetworkInput {
   nameDescription: String
   "Object's human-readable name"
   nameLabel: String
-  "Object's ref"
-  ref: ID!
 }
 
 input NewVDI {
   "Storage repository to create disk on"
   SR: ID!
-  "Disk size of a newly created disk in megabytes"
+  "Disk size of a newly created disk in bytes"
   size: Float!
 }
 
@@ -1133,8 +1139,6 @@ input SRInput {
   nameDescription: String
   "Object's human-readable name"
   nameLabel: String
-  "Object's ref"
-  ref: ID!
 }
 
 input TemplateInput {
@@ -1159,8 +1163,6 @@ input TemplateInput {
   nameLabel: String
   "VCPU platform properties"
   platform: PlatformInput
-  "Object's ref"
-  ref: ID!
 }
 
 input VDIInput {
@@ -1168,8 +1170,6 @@ input VDIInput {
   nameDescription: String
   "Object's human-readable name"
   nameLabel: String
-  "Object's ref"
-  ref: ID!
 }
 
 input VMInput {
@@ -1193,8 +1193,6 @@ input VMInput {
   nameLabel: String
   "VCPU platform properties"
   platform: PlatformInput
-  "Object's ref"
-  ref: ID!
 }
 
 input VMStartInput {

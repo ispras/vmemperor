@@ -8,7 +8,6 @@ import Playbooks from "../../../containers/Playbooks";
 import {
   DomainType,
   PowerState,
-
   ShutdownForce, useRebootVmMutation, useShutdownVMMutation, useStartVMMutation, useVMEditOptionsMutation,
   VMActions, VMInfoFragmentFragment,
 } from "../../../generated-models";
@@ -52,9 +51,9 @@ const Overview = ({vm}: Props) => {
   const onChangeDomainType = useVMEditOptionsMutation({
     variables: {
       vm: {
-        ref: vm.ref,
         domainType: vm.domainType === DomainType.HVM ? DomainType.PV : DomainType.HVM,
-      }
+      },
+      ref: vm.ref
     }
   });
 

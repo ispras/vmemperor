@@ -1,6 +1,7 @@
-mutation TemplateEditOptions ($template : TemplateInput!) {
-  template(template: $template) {
+mutation TemplateEditOptions ($template : TemplateInput!, $ref: ID!) {
+  template(template: $template, ref: $ref) {
     reason
     granted
   }
 }
+

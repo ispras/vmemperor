@@ -27,7 +27,7 @@ const SelectField: React.FunctionComponent<ReactSelectProps & FieldProps>
         options={options}
         name={field.name}
         value={options ? options.find(option => option === field.value) : ''}
-        onChange={(option: Option) => form.setFieldValue(field.name, option)}
+        onChange={(option: Option) => form.setFieldValue(field.name, option.value)}
         placeholder={placeholder}
         onBlur={field.onBlur}
       />
