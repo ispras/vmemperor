@@ -13,6 +13,12 @@ class XenObjectMeta(type):
 
     @staticmethod
     def convert_dict(d):
+        '''
+        XenObject non-static methods require conversion from Python booleans to strings in their dicts.
+        Static methods such as X.create(args), on the other hand, accept Python booleans as is so we don't use it in XenObjectMeta::__getattr__
+        :param d:
+        :return:
+        '''
         if not isinstance(d, Mapping):
             return d
         def convert_value(v):
@@ -52,7 +58,6 @@ class XenObjectMeta(type):
             api_class = getattr(cls, 'api_class')
             api = getattr(xen.api, api_class)
             attr = getattr(api, name)
-            args = [cls.convert_dict(arg) for arg in args]
             try:
                 ret = attr(*args, **kwargs)
                 if isinstance(ret, dict):
