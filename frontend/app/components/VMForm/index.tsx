@@ -58,7 +58,7 @@ const VMFormContainer: React.FunctionComponent = () => {
       delete values.installParams.staticIpConfig;
 
     if (values.autoMode) { //Temporary while we do not show partition options to users
-      values.installParams.partition = "\\-" + Math.round(hddSizeMegabytes) + "-";
+      values.installParams.partition = `/-${hddSizeMegabytes}-`;
       delete values.iso;
     } else {
       delete values.installParams;

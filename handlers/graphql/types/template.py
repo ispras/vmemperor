@@ -19,6 +19,9 @@ class TemplateActions(SerFlag):
     clone = auto()
     destroy = auto()
     change_install_os_options = auto()
+    change_domain_type = auto()
+    changing_VCPUs = auto()
+    changing_memory_limits = auto()
 
 
 
