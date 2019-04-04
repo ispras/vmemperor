@@ -151,6 +151,10 @@ class VM (AbstractVM):
         set_subtype("platform")(options['platform'], self)
         set_VCPUs(options,self)
         set_memory(options, self)
+        if 'name_label' in options:
+            self.set_name_label(options['name_label'])
+        if 'name_description' in options:
+            self.set_name_description(options['name_description'])
 
         self.set_disks(provision_config)
         if iso:
@@ -200,7 +204,7 @@ class VM (AbstractVM):
 
         from constants import need_exit
 
-        state = re.db.table(VM.db_table_name).get(self.ref).pluck('power_state').run()['power_state']
+        state = self._get_power_state() # It's crucial to get that value not from cache but from VM itself.
         if state != 'Running':
             self.insert_log_entry('failed',
                                   f"failed to start VM for installation (low resources?). State: {state}")

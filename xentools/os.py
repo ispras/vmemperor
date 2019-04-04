@@ -3,6 +3,8 @@ from typing import Optional, List, Callable
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
 from constants import AUTOINSTALL_ROUTE
+from xentools.autoinstalllist import AutoInstallList
+
 
 class Distro(Enum):
     Debian = "debianlike"
@@ -125,10 +127,10 @@ class GenericOS:
             partition=self.partition
 
         )
-
+        id = AutoInstallList.insert(args)
         return 'http://' + opts.vmemperor_host + ':' + str(
-            opts.vmemperor_port) + AUTOINSTALL_ROUTE + "/" + self.get_distro() + "?" \
-        + urlencode(args, doseq=True)
+            opts.vmemperor_port) + AUTOINSTALL_ROUTE + "/" + self.get_distro().value + "?" \
+        + urlencode({'id': id}, doseq=True)
 
     def get_distro(self):
         try:

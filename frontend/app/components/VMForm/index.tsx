@@ -32,11 +32,16 @@ const baseValues: Values = {
   template: null,
   storage: null,
   network: null,
-  vmOptions: null,
+  vmOptions: {},
   iso: null,
   networkType: "dhcp",
   autoMode: false,
-  installParams: null,
+  installParams: {
+    hostname: "",
+    username: "",
+    password: "",
+    partition: "",
+  },
   hddSizeGB: 10,
   password2: null,
 };
@@ -53,7 +58,7 @@ const VMFormContainer: React.FunctionComponent = () => {
       delete values.installParams.staticIpConfig;
 
     if (values.autoMode) { //Temporary while we do not show partition options to users
-      values.installParams.partition = `\-${hddSizeMegabytes}-`
+      values.installParams.partition = "\\-" + Math.round(hddSizeMegabytes) + "-";
       delete values.iso;
     } else {
       delete values.installParams;

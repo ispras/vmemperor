@@ -56,9 +56,9 @@ export default object().shape<Values>({
     }
   ).when('autoMode', autoModeRequired(object)),
 
-  password2: string().required().label("Confirm password").test('pass-match', 'Passwords must match',
+  password2: string().nullable(true).label("Confirm password").test('pass-match', 'Passwords must match',
     function (value) {
-      return this.options.context['installParams']['password'] === value;
+      return !this.options.context['autoMode'] || this.options.context['installParams']['password'] === value;
     }),
   iso: string().when('autoMode',
     {
@@ -67,5 +67,9 @@ export default object().shape<Values>({
       otherwise: string().nullable(true)
     }),
   hddSizeGB: number().integer().positive().required().max(2043),
-  vmOptions: object().shape<VMInput>(schema("vmOptions.")),
+  vmOptions: object().shape<VMInput>({
+    ...schema("vmOptions."),
+    nameLabel: string().required(),
+    nameDescription: string()
+  })
 });

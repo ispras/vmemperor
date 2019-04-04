@@ -41,11 +41,12 @@ d-i netcfg/wireless_wep string
 ### Mirror settings
 # If you select ftp, the mirror/country string does not need to be set.
 #d-i mirror/protocol string ftp
-{% if mirror_url %}
+{% if mirror_hostname %}
 d-i mirror/country string manual
-d-i mirror/http/hostname string {{ mirror_url }}
-d-i mirror/http/directory string {{ mirror_path }}
-d-i mirror/http/proxy string
+d-i mirror/protocol string {{ mirror_protocol }}
+d-i mirror/{{ mirror_protocol }}/hostname string {{ mirror_hostname }}
+d-i mirror/{{ mirror_protocol }}/directory string {{ mirror_path }}
+d-i mirror/{{ mirror_protocol }}/proxy string
 {% end %}
 ### Clock and time zone setup
 # Controls whether or not the hardware clock is set to UTC.
@@ -181,7 +182,7 @@ d-i user-setup/encrypt-home boolean false
 # Select which update services to use; define the mirrors to be used.
 # Values shown below are the normal defaults.
 #d-i apt-setup/services-select multiselect security
-#d-i apt-setup/security_host string {{ mirror_url }}
+#d-i apt-setup/security_host string {{ mirror_hostname }}
 #d-i apt-setup/security_path string {{ mirror_path }}
 
 ### Package selection

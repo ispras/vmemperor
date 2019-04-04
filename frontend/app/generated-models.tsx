@@ -625,6 +625,7 @@ export type MutationcreateVmArgs = {
   iso?: Maybe<Scalars["ID"]>;
   network?: Maybe<Scalars["ID"]>;
   template: Scalars["ID"];
+  user?: Maybe<Scalars["String"]>;
   vmOptions: VMInput;
 };
 

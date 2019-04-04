@@ -13,7 +13,7 @@ import {
 import Select from '../Select';
 import {
   SRContentType,
-  StorageListFragmentFragment,
+  StorageListFragmentFragment, useCurrentUserQuery,
   useISOSCreateVMListQuery,
   useNetworkListQuery,
   usePoolListQuery,
@@ -36,6 +36,7 @@ import {faDesktop} from "@fortawesome/free-solid-svg-icons/faDesktop";
 import styled from "styled-components";
 import {Fields as ResourceFields} from '../AbstractVMSettingsComponents/fields';
 import {TemplateInputField} from "./templateInput";
+import {UserInputField} from "./userInput";
 
 const H4 = styled.h4`
 margin: 20px;
@@ -74,142 +75,152 @@ const VMForm = (props: FormikPropsValues) => {
     return installOptions && installOptions.installRepository;
 
   }, [props.values.template]);
+  const {data: {currentUser}} = useCurrentUserQuery();
   return (
     <form
       className="form-horizontal"
       onSubmit={props.handleSubmit}
       onReset={props.handleReset}
     >
-        <H4><FormattedMessage {...messages.infrastructure} /></H4>
-        <Field name="pool"
-               component={Select}
-               options={poolOptions}
-               placeholder="Select a pool to install on..."
-               addonIcon={faServer}
+      {!currentUser.isAdmin && <Fragment>
+        <H4> Ownership </H4>
+        <Field
+          name='user'
+          component={UserInputField}
+          placeholder="Select an owner user/group"
         />
-        {props.values.pool && (
+      </Fragment>}
+
+      <H4><FormattedMessage {...messages.infrastructure} /></H4>
+      <Field name="pool"
+             component={Select}
+             options={poolOptions}
+             placeholder="Select a pool to install on..."
+             addonIcon={faServer}
+      />
+      {props.values.pool && (
+        <Fragment>
+          <Field name="template"
+                 component={TemplateInputField}
+                 options={templateOptions}
+                 placeholder="Select an OS template to install..."
+          />
+          <Field name="storage"
+                 component={Select}
+                 options={srOptions}
+                 placeholder="Select a storage repository to install on..."
+                 addonIcon={faDatabase}
+          />
+          <Field name="network"
+                 component={Select}
+                 options={networkOptions}
+                 placeholder="Select a network to install on..."
+          />
+          <Field name="vmOptions.nameLabel"
+                 component={Input}
+                 placeholder="How you would name this VM"
+                 addonIcon={faTag}
+          />
+          <Field name="vmOptions.nameDescription"
+                 component={Input}
+                 placeholder="Enter a description (Optional)..."
+                 addonIcon={faComment}
+          />
+          <Field name="autoMode"
+                 component={CheckBoxComponent}
+                 disabled={!currentTemplateHasRepository}
+                 tooltip="Automode"
+          >
+            <h6> Unattended installation </h6>
+          </Field>
           <Fragment>
-            <Field name="template"
-                   component={TemplateInputField}
-                   options={templateOptions}
-                   placeholder="Select an OS template to install..."
-            />
-            <Field name="storage"
-                   component={Select}
-                   options={srOptions}
-                   placeholder="Select a storage repository to install on..."
-                   addonIcon={faDatabase}
-            />
-            <Field name="network"
-                   component={Select}
-                   options={networkOptions}
-                   placeholder="Select a network to install on..."
-            />
-            <Field name="nameLabel"
-                   component={Input}
-                   placeholder="How you would name this VM"
-                   addonIcon={faTag}
-            />
-            <Field name="nameDescription"
-                   component={Input}
-                   placeholder="Enter a description (Optional)..."
-                   addonIcon={faComment}
-            />
-            <Field name="autoMode"
-                   component={CheckBoxComponent}
-                   disabled={!currentTemplateHasRepository}
-                   tooltip="Automode"
-            >
-              <h6> Unattended installation </h6>
-            </Field>
-            <Fragment>
-              {props.values.autoMode && (
-                <div>
-                  <H4 style={{margin: '20px'}}><FormattedMessage {...messages.account} /></H4>
-                  <Field name="installParams.hostname"
-                         component={Input}
-                         placeholder="Enter hostname..."
-                         addonIcon={faDesktop}
-                  />
-                  <Field name="installParams.fullname"
-                         component={Input}
-                         placeholder="Enter your full name (Optional)..."
-                         addonIcon={faSignature}
-                  />
-                  <Field name="installParams.username"
-                         component={Input}
-                         placeholder="Enter username (1-32 latin characters)..."
-                         addonIcon={faUser}
-                  />
-                  <Field name="installParams.password"
-                         component={Input}
-                         placeholder="Enter password..."
-                         addonIcon={faKey}
-                         type="password"
-                  />
-                  <Field name="password2"
-                         component={Input}
-                         placeholder="Repeat password"
-                         addonIcon={faKey}
-                         type="password"
-                  />
-                  <h4><FormattedMessage {...messages.network} /></h4>
-                  <Field name="networkType"
-                         component={Select}
-                         options={networkTypeOptions}
-                  />
-                  {props.values.networkType === 'static' && (
-                    <Fragment>
-                      <Field name="installParams.staticIpConfig.ip"
-                             component={Input}
-                             placeholder={"Enter IP address..."}
-                             label={true}
-                      >IP:</Field>
-                      <Field name="installParams.staticIpConfig.gateway"
-                             component={Input}
-                             placeholder={"Enter gateway address..."}
-                             label={true}
-                      >Gateway:</Field>
-                      <Field name="installParams.staticIpConfig.netmask"
-                             component={Input}
-                             placeholder={"Enter netmask address..."}
-                             label={true}
-                      >Netmask:</Field>
-                      <Field name="installParams.staticIpConfig.dns0"
-                             component={Input}
-                             placeholder={"Enter DNS #1"}
-                             label={true}
-                      >DNS 1:</Field>
-                      <Field name="installParams.staticIpConfig.dns1"
-                             component={Input}
-                             placeholder={"Enter DNS #2"}
-                             label={true}
-                      >DNS 2:</Field>
-                    </Fragment>
-                  )
-                  }
-                </div>
-              ) || (
-                <Field name="iso"
-                       component={Select}
-                       placeholder="Select ISO image to install from..."
-                       options={isoOptions}
+            {props.values.autoMode && (
+              <div>
+                <H4 style={{margin: '20px'}}><FormattedMessage {...messages.account} /></H4>
+                <Field name="installParams.hostname"
+                       component={Input}
+                       placeholder="Enter hostname..."
+                       addonIcon={faDesktop}
                 />
-              )
-              }
-              <H4><FormattedMessage {...messages.resources} /></H4>
-              <ResourceFields namePrefix="vmOptions."/>
-              <Field name="hddSizeGB"
-                     component={Input}
-                     type="number"
-                     addonIcon={faHdd}
-                     appendAddonText={"GB"}
+                <Field name="installParams.fullname"
+                       component={Input}
+                       placeholder="Enter your full name (Optional)..."
+                       addonIcon={faSignature}
+                />
+                <Field name="installParams.username"
+                       component={Input}
+                       placeholder="Enter username (1-32 latin characters)..."
+                       addonIcon={faUser}
+                />
+                <Field name="installParams.password"
+                       component={Input}
+                       placeholder="Enter password..."
+                       addonIcon={faKey}
+                       type="password"
+                />
+                <Field name="password2"
+                       component={Input}
+                       placeholder="Repeat password"
+                       addonIcon={faKey}
+                       type="password"
+                />
+                <h4><FormattedMessage {...messages.network} /></h4>
+                <Field name="networkType"
+                       component={Select}
+                       options={networkTypeOptions}
+                />
+                {props.values.networkType === 'static' && (
+                  <Fragment>
+                    <Field name="installParams.staticIpConfig.ip"
+                           component={Input}
+                           placeholder={"Enter IP address..."}
+                           label={true}
+                    >IP:</Field>
+                    <Field name="installParams.staticIpConfig.gateway"
+                           component={Input}
+                           placeholder={"Enter gateway address..."}
+                           label={true}
+                    >Gateway:</Field>
+                    <Field name="installParams.staticIpConfig.netmask"
+                           component={Input}
+                           placeholder={"Enter netmask address..."}
+                           label={true}
+                    >Netmask:</Field>
+                    <Field name="installParams.staticIpConfig.dns0"
+                           component={Input}
+                           placeholder={"Enter DNS #1"}
+                           label={true}
+                    >DNS 1:</Field>
+                    <Field name="installParams.staticIpConfig.dns1"
+                           component={Input}
+                           placeholder={"Enter DNS #2"}
+                           label={true}
+                    >DNS 2:</Field>
+                  </Fragment>
+                )
+                }
+              </div>
+            ) || (
+              <Field name="iso"
+                     component={Select}
+                     placeholder="Select ISO image to install from..."
+                     options={isoOptions}
               />
-            </Fragment>
+            )
+            }
+            <H4><FormattedMessage {...messages.resources} /></H4>
+            <ResourceFields namePrefix="vmOptions."/>
+            <Field name="hddSizeGB"
+                   component={Input}
+                   type="number"
+                   addonIcon={faHdd}
+                   appendAddonText={"GB"}
+            />
           </Fragment>
-        )}
+        </Fragment>
+      )}
       <Button type="submit" block={true} primary={true}>
-          Create
+        Create
       </Button>
     </form>
   )

@@ -4,10 +4,10 @@
  *
  */
 
-import React, {useState} from 'react';
+import React, {useMemo, useState} from 'react';
 import {FormattedMessage} from 'react-intl';
 import styles from './styles.css'
-import {Button, Modal} from 'reactstrap';
+import {Button, Collapse, Modal} from 'reactstrap';
 
 import PoolInfo from '../../components/PoolInfo';
 import {
@@ -31,33 +31,38 @@ const CreateVM = () => {
 
   });
 
-  const [modal, setModal] = useState(false); //This is modality of CreateVM form
-  const toggleModal = (e: Event) => {
-    if (!modal || confirm("Do you want to leave?")) {
-      setModal(!modal);
-    } else {
-      e.stopPropagation();
-    }
-  };
+  const [showForm, setShowForm] = useState(false); //This is modality of CreateVM form
+  const buttonText = useMemo(() => {
+    if (showForm)
+      return "Go back to pool info";
+    else
+      return "Create VM";
 
+  }, [showForm]);
   return (
     <div>
-      <Button primary={true} onClick={() => setModal(true)}>Create VM</Button>
-      <div className={styles.poolsContainer}>
-        {
-          pools.length > 0 ?
-            pools.map(pool => <PoolInfo key={pool.ref} pool={pool}/>)
-            : <h1>No pools available</h1>
+      <Button primary={true}
+              block={true}
+              onClick={() => setShowForm(!showForm)}>
+        {buttonText}
+      </Button>
 
-        }
-      </div>
+      <Collapse
+        isOpen={!showForm}
+      >
+        <div className={styles.poolsContainer}>
+          {
+            pools.length > 0 ?
+              pools.map(pool => <PoolInfo key={pool.ref} pool={pool}/>)
+              : <h1>No pools available</h1>
 
-      <Modal
-        lg={true}
-        toggle={toggleModal}
-        isOpen={modal}>
+          }
+        </div>
+      </Collapse>
+      <Collapse
+        isOpen={showForm}>
         <VMFormContainer/>
-      </Modal>
+      </Collapse>
     </div>
   );
 

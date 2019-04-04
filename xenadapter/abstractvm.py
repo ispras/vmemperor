@@ -40,19 +40,19 @@ class AbstractVM(ACLXenObject):
 
 def set_memory(input: Mapping, vm: AbstractVM):
     try:
-        smin = int(input.get('memory_static_min'))
+        smin = str(int(input.get('memory_static_min')))
     except TypeError:
         smin = None
     try:
-        smax = int(input.get('memory_static_max'))
+        smax = str(int(input.get('memory_static_max')))
     except TypeError:
         smax = None
     try:
-        dmin = int(input.get('memory_dynamic_min'))
+        dmin = str(int(input.get('memory_dynamic_min')))
     except TypeError:
         dmin = None
     try:
-        dmax = int(input.get('memory_dynamic_max'))
+        dmax = str(int(input.get('memory_dynamic_max')))
     except TypeError:
         dmin = None
 

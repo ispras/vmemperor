@@ -12,6 +12,7 @@ import {isOption, Option} from './guards';
 export interface SelectFieldProps<Values> extends _ReactSelectProps<Option>, FieldProps<Values> {
   afterChange?: (newValue: string) => void;
 }
+
 /* See bug https://github.com/JedWatson/react-select/issues/1453
  and https://github.com/JedWatson/react-select/issues/2930 */
 
@@ -38,32 +39,33 @@ function SelectField<Values>
     //@ts-ignore
     const found = options.find(option => option.value === field.value);
     return found ? found : null;
-  }, [options]);
+  }, [options, field.value]);
   const onChange = (option: Option) => {
     form.setFieldValue(field.name, option.value);
     if (afterChange)
       afterChange(option.value);
   };
   return (
-  <FormGroup style={{paddingRight: "20px", paddingLeft: "20px"}}>
-    <div style={{margin: '1rem 0'}}>
-      <Select
-        options={options}
-        name={field.name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        onBlur={field.onBlur}
-      />
+    <FormGroup style={{paddingRight: "20px", paddingLeft: "20px"}}>
+      <div style={{margin: '1rem 0'}}>
+        <Select
+          options={options}
+          name={field.name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          onBlur={field.onBlur}
+        />
 
-      {form.errors[field.name] && form.touched[field.name] && (
-        <ErrorDiv className="text-danger">
-          {form.errors[field.name]}
-        </ErrorDiv>
-      )
-      }
-    </div>
-  </FormGroup>);
+        {form.errors[field.name] && form.touched[field.name] && (
+          <ErrorDiv className="text-danger">
+            {form.errors[field.name]}
+          </ErrorDiv>
+        )
+        }
+      </div>
+    </FormGroup>);
 
 }
+
 export default SelectField;

@@ -83,17 +83,28 @@ class Task(ACLXenObject):
            re.db.table(cls.pending_db_table_name).get(ref).run() is not None:
             return
 
-        def get_access_for_task():
+        def get_access_for_task(object_ref, object_type, action):
             '''
             Returns access rights for task so that only those who have the following access action can view and cancel it
             :return:
             '''
+            if object_type.db_table_name == 'vifs': # Special case, map it onto VM's VMActions.attach_network
+                from xenadapter import VM
+                object_type = VM
+                object_ref = re.db.table(object_type.db_table_name).get(object_ref).pluck('VM').run()['VM']
+                action = "attach_network"
 
-            userids = re.db.table(object_type.db_table_name + '_user')\
+
+
+
+            if issubclass(object_type, ACLXenObject):
+                userids = re.db.table(object_type.db_table_name + '_user')\
                             .get_all(object_ref, index='ref')\
                             .filter(lambda value: value['actions'].set_intersection(['ALL', action]) != [])\
                             .pluck('userid')['userid']\
                             .coerce_to('array').run()
+            else:
+                userids = []
 
 
             return {user: ['cancel'] for user in userids}
@@ -110,7 +121,7 @@ class Task(ACLXenObject):
             "object_ref": object_ref,
             "action": action,
             "vmemperor": vmemperor,
-            "access": get_access_for_task()
+            "access": get_access_for_task(object_ref, object_type, action)
         }
         CHECK_ER(re.db.table(cls.pending_db_table_name).insert(doc).run())
         with cls.global_pending_lock:

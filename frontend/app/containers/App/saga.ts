@@ -48,6 +48,7 @@ export function* loginFlow() {
       try {
         yield call([authAgent, authAgent.logout]);
         yield put({type: LOGGED_OUT});
+        window.location.reload();
       } catch (e) {
         console.log('logout error!', e);
       }

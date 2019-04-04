@@ -43,9 +43,9 @@ AbstractSettingsForm<T extends XenObjectFragmentFragment>({
       const {data} = await mutate({
         errorPolicy: "none",
         variables: {
+          ref,
           [mutationName]:
             {
-              ref,
               ...dirtyValues,
             }
         }

@@ -67,12 +67,13 @@ class Template(AbstractVM):
 
 
     @use_logger
-    def clone(self, name_label=None):
+    def clone_as_vm(self, name_label=None):
         try:
             if not name_label:
                 name_label = self.get_name_label()
             new_vm_ref = self.__getattr__('clone')(name_label)
             vm = VM(self.xen, new_vm_ref)
+
             self.log.info(f"New VM is created: ref:{vm.ref}")
             # Hack: set viridian to false iif linux_template is true (for Guest Additions to work correctly).
             other_config = self.get_other_config()
@@ -82,6 +83,10 @@ class Template(AbstractVM):
                 if 'viridian' not in platform or platform['viridian']:
                     platform['viridian'] = False
                     vm.set_platform(platform)
+            if 'vmemperor' in other_config: # Clear VMEmperor access settings
+                del other_config['vmemperor']
+                vm.set_other_config(other_config)
+
             return vm
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(self.log, f"Failed to clone template: {f.details}")
