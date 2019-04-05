@@ -338,9 +338,10 @@ class CentOS(GenericOS):
         :param callback:
         :return:
         '''
+        if not self.get_install_repository():
+            return
         split_url  = urlsplit(self.get_install_repository())
         path = split_url.path
-
         path_parts = list(path.split('/'))
         if path_parts[-1] == '': # This path part corresponds to final slash in http://host/centos/
             del path_parts[-1]

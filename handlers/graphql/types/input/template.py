@@ -1,3 +1,5 @@
+from urllib.parse import urlsplit
+
 import graphene
 
 from handlers.graphql.graphql_handler import ContextProtocol
@@ -33,6 +35,11 @@ def install_options_validator(input: TemplateInput, _):
         if not (opts.release and opts.arch and opts.install_repository):
             return False, "Specify release, arch and installRepository for distro"
 
+    if opts.install_repository:
+        url =  urlsplit(opts.install_repository)
+        schemes = ('http', 'ftp')
+        if url.scheme not in schemes:
+            return False, f"installOptions.installRepository: unsupported url scheme. Supported: {','.join(schemes)}"
     return True, None
 
 mutations = [

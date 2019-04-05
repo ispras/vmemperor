@@ -1,5 +1,5 @@
 import {useMutation} from "react-apollo-hooks";
-import {Formik, FormikActions, FormikConfig, FormikProps} from "formik";
+import {Formik, FormikActions, FormikConfig, FormikProps, getIn} from "formik";
 import * as React from "react";
 import {ReactNode, useCallback} from "react";
 import {difference, findDeepField, mutationResponseToFormikErrors, setApiError,} from "./utils";
@@ -54,10 +54,12 @@ AbstractSettingsForm<T extends XenObjectFragmentFragment>({
       const response = data[mutationName];
       const errorData = mutationResponseToFormikErrors(response);
       if (errorData) {
-        if (errorData[0] !== null && values.hasOwnProperty(errorData[0]))
+        if (errorData[0] !== null && getIn(values, errorData[0]))
           formikActions.setFieldError(errorData[0], errorData[1]);
-        else
+        else if (errorData[0] === null)
           formikActions.setStatus({'error': errorData[1]});
+        else
+          formikActions.setStatus({'error': `in field ${errorData[0]}: ${errorData[1]}`})
       }
     } catch (e) {
       const [field, message] = setApiError(e, values);
