@@ -5,34 +5,36 @@ import StatefulTable, {ColumnType} from "../StatefulTable";
 import {useApolloClient} from "react-apollo-hooks";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter'
 import {
-  Change, DeleteTemplateDocument, TemplateAccessSetMutationDocument,
+  DeleteTemplateDocument,
+  DomainType,
+  TemplateAccessSetMutationDocument,
   TemplateActions,
   TemplateListDocument,
   TemplateListFragmentFragment,
-  TemplateListFragmentFragmentDoc, TemplateListUpdateDocument,
+  TemplateListFragmentFragmentDoc,
+  TemplateListUpdateDocument,
   TemplateTableSelectAllDocument,
-  TemplateTableSelectDocument, TemplateTableSelectionDocument,
-  useCurrentUserQuery,
-  useDeleteTemplateMutation,
+  TemplateTableSelectDocument,
+  TemplateTableSelectionDocument,
   useTemplateListQuery,
-  useTemplateListUpdateSubscription, useTemplateTableSelectionQuery,
+  useTemplateTableSelectionQuery,
 } from "../../generated-models";
-import {checkBoxFormatter, nameFormatter} from "../../utils/formatters";
-import {Button, ButtonToolbar} from "reactstrap";
+import {nameFormatter} from "../../utils/formatters";
+import {ButtonToolbar} from "reactstrap";
 import {Set} from 'immutable';
 import ButtonGroup from "reactstrap/lib/ButtonGroup";
 import {ListAction} from "../../utils/reducer";
-import {dataIdFromObject, getStateInfoAndTypeFromCache, handleAddRemove} from "../../utils/cacheUtils";
+import {getStateInfoAndTypeFromCache} from "../../utils/cacheUtils";
 import RecycleBinButton from "../../components/RecycleBinButton";
 
 import {installOptionsFormatter} from "./installoptions";
 import {
   readCacheObject,
   selectedForSetActionReducer,
-  SelectedForSetActionState, selectedForTrashReducer,
+  SelectedForSetActionState,
+  selectedForTrashReducer,
   SelectedForTrashState
 } from "../../utils/componentStateReducers";
-import {valueFromASTUntyped} from "graphql";
 import SetAccessButton from "../../components/SetAccessButton";
 import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
 
@@ -56,7 +58,7 @@ const columns: TemplateColumnType[] = [
 ];
 
 function rowClasses(row: TemplateListFragmentFragment, rowIndex) {
-  if (row.installOptions) {
+  if (row.installOptions && row.domainType === DomainType.PV) {
     if (row.installOptions.installRepository && row.installOptions.release && row.installOptions.arch) {
       return "table-success";
     } else {

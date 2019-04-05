@@ -19,14 +19,14 @@ const Inner: React.FunctionComponent<Props> = ({formik}) => {
         name={archId}
         id={Arch.I386}
         label="32-bit"
-        disabled={!formik.values.installOptions.distro}
+        disabled={!formik.values.installOptions || !formik.values.installOptions.distro}
       />
       <Field
         component={RadioButton}
         name={archId}
         id={Arch.X86_64}
         label="64-bit"
-        disabled={!formik.values.installOptions.distro}
+        disabled={!formik.values.installOptions || !formik.values.installOptions.distro}
       />
     </TemplateRadioButtonGroup>);
 };

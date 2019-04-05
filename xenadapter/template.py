@@ -62,6 +62,8 @@ class Template(AbstractVM):
             release = os.get_release()
             if release:
                 install_options['release'] = release
+        else:
+            new_rec['install_options'] = None
 
         return new_rec
 
@@ -101,6 +103,18 @@ class Template(AbstractVM):
         '''
         if 'distro' in options:
             distro = options.pop('distro')
+            if isinstance(distro, str):
+                if distro == "":
+                    distro = None
+                else:
+                    for member in Distro.__members__.values():
+                        if member.value == distro:
+                            distro = member
+                            break
+                    else:
+                        raise ValueError(f"Incorrect distro value: {options['distro']}")
+
+
             self.set_distro(distro)
             if distro is None:
                 if len(options) != 0:
@@ -142,16 +156,20 @@ class Template(AbstractVM):
             except KeyError:
                 return # Nothing to change
         else:
+            if self.get_domain_type() != 'pv':
+                raise ValueError(f"Can't set distro for domain_type: '{self.get_domain_type()}', expected: 'pv'")
+
             other_config['install-distro'] = distro.value
             os = OSChooser.get_os(other_config)
-            oldarch = self.get_install_options().get('arch')
-            try:
-                oldarch = Arch(oldarch)
-            except KeyError:
-                oldarch = None
 
-            os.set_arch(oldarch)
-            self.set_other_config(other_config)
+            try:
+                _oldarch = self.get_install_options().get('arch')
+                oldarch = Arch(_oldarch)
+                os.set_arch(oldarch)
+            except (KeyError, AttributeError):
+                pass
+
+        self.set_other_config(other_config)
 
 
 

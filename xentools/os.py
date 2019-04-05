@@ -85,6 +85,7 @@ class GenericOS:
         return self.other_config.get('install-repository')
 
     def set_arch(self, arch : Arch):
+        assert arch is None or isinstance(arch, Arch)
         if not arch:
             value = None
         else:
@@ -93,8 +94,8 @@ class GenericOS:
 
     def get_arch(self) -> Optional[Arch]:
         try:
-            return Arch[self.other_config.get('install-arch')]
-        except KeyError:
+            return Arch(self.other_config.get('install-arch'))
+        except (KeyError, ValueError):
             return None
 
     def get_release(self):
@@ -174,8 +175,20 @@ class DebianOS(GenericOS):
         scenario = self.get_scenario()
         return f"auto=true console=hvc0 debian-installer/locale=en_US console-setup/layoutcode=us console-setup/ask_detect=false interface=eth0 {net_config} netcfg/get_hostname={self.hostname} preseed/url={scenario} --"
 
+    def set_release(self, release):
+        if not release:
+            if 'debian-release' in self.other_config:
+                del self.other_config['debian-release']
+        self.other_config['debian-release'] = release
+
     def get_release(self):
         return self.other_config.get('debian-release')
+
+    def set_arch(self, arch : Arch):
+        if arch == Arch.X86_64:
+            self.other_config['install-arch'] = 'amd64'
+        else:
+            super().set_arch(arch)
 
     def get_arch(self):
         if self.other_config.get('install-arch') == 'amd64':

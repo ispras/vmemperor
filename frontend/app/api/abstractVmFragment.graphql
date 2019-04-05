@@ -8,4 +8,5 @@ fragment AbstractVMFragment on GAbstractVM {
   platform {
     coresPerSocket
   }
+  domainType
 }

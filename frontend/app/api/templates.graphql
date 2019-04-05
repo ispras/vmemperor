@@ -18,6 +18,7 @@ fragment TemplateListFragment on GTemplate {
     installRepository
   }
   isOwner
+  domainType
 }
 
 query TemplateList {

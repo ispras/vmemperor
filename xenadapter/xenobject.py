@@ -252,9 +252,13 @@ class XenObject(metaclass=XenObjectMeta):
                         def method():
                             try:
                                 return data.run()[field_name]
-                            except re.r.ReqlNonExistenceError as e:
+                            except re.r.ReqlNonExistenceError:
                                 value = getattr(self, f'_{name}')()
                                 return get_real_value(field_name, value, self.GraphQLType)
+                            except KeyError:
+                                raise AttributeError(name)
+
+
 
                         return method
 

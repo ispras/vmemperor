@@ -12,7 +12,7 @@ const Inner: React.FunctionComponent<Props> = ({formik}) => {
   return <Field
     component={Input}
     type="url"
-    disabled={!formik.values.installOptions.distro}
+    disabled={!formik.values.installOptions || !formik.values.installOptions.distro}
     name={prefix + 'installRepository'}
   >
     Installation repository

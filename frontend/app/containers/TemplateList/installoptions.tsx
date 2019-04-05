@@ -1,11 +1,12 @@
-import {Arch, Distro, TemplateListFragmentFragment} from "../../generated-models";
+import {Arch, Distro, DomainType, TemplateListFragmentFragment} from "../../generated-models";
 import React from "react";
 import {faRedhat, faSuse, faUbuntu} from "@fortawesome/free-brands-svg-icons";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 
 
-export function installOptionsFormatter(cell: TemplateListFragmentFragment['installOptions']) {
-  if (!cell)
+export function installOptionsFormatter(cell: TemplateListFragmentFragment['installOptions'], row: TemplateListFragmentFragment) {
+
+  if (!cell || row.domainType !== DomainType.PV)
     return;
   let icon = null;
   switch (cell.distro) {

@@ -48,19 +48,6 @@ const Overview = ({vm}: Props) => {
     }
   });
 
-  const onChangeDomainType = useVMEditOptionsMutation({
-    variables: {
-      vm: {
-        domainType: vm.domainType === DomainType.HVM ? DomainType.PV : DomainType.HVM,
-      },
-      ref: vm.ref
-    }
-  });
-
-  const changeDomainTypeText = useMemo(() => {
-    return `Switch to ${vm.domainType === DomainType.HVM ? "PV" : "HVM"}`;
-  }, [vm.domainType]);
-
 
   const onStart = useStartVMMutation({
     variables: {
@@ -167,21 +154,9 @@ const Overview = ({vm}: Props) => {
           <FullHeightCard>
             <CardBody>
               <CardTitle>Virtualization mode</CardTitle>
-              {vm.powerState !== 'Halted' && (
-                <CardSubtitle>Halt to switch mode</CardSubtitle>)}
-
+              <CardSubtitle>Go to Resources to switch mode</CardSubtitle>
               <CardText><h4>{vm.domainType.toUpperCase()}</h4></CardText>
             </CardBody>
-            <CardFooter>
-              <Button
-                disabled={vm.powerState !== PowerState.Halted}
-                size="lg"
-                color="info"
-                onClick={async () => await onChangeDomainType()}
-              >
-                {changeDomainTypeText}
-              </Button>
-            </CardFooter>
           </FullHeightCard>
         </Col>
       </Row>

@@ -1,7 +1,7 @@
 import React, {ReactNode, useMemo} from "react";
 import {DocumentNode} from "graphql";
 import {AbstractSettingsForm} from "../AbstractSettingsForm";
-import {ResourcesForm} from "./form";
+import {ApplyResetForm} from "./form";
 
 
 interface Props<T> {
@@ -22,7 +22,7 @@ export function ResourcesFormContainer<T>({object, mutationName, mutationNode, d
       mutationNode={mutationNode}
       mutationName={mutationName}
       validationSchema={schema}
-      component={ResourcesForm}
+      component={ApplyResetForm}
     >
       {children}
     </AbstractSettingsForm>

@@ -15,26 +15,33 @@ interface InputProps {
 export const Release: React.FunctionComponent<FieldProps<TemplateSettingsFormValues>> =
   (props) => {
     const inputProps: InputProps = useMemo(() => {
-      const distro = props.form.values.installOptions.distro;
-      if (distro)
-        switch (distro) {
-          case Distro.Debian:
-            return {
-              placeholder: "Debian or Ubuntu release codename (e.g. bionic, wheezy)",
-              disabled: false
-            };
-          case Distro.CentOS:
-            return {
-              placeholder: "RedHat/CentOS version (e.g. 7)",
-              disabled: false
-            };
-          case Distro.SUSE:
-            return {
-              placeholder: "",
-              disabled: false
-            }
-        }
-    }, [props.form.values.installOptions.distro]);
+      if (props.form.values.installOptions) {
+        const distro = props.form.values.installOptions.distro;
+        if (distro)
+          switch (distro) {
+            case Distro.Debian:
+              return {
+                placeholder: "Debian or Ubuntu release codename (e.g. bionic, wheezy)",
+                disabled: false
+              };
+            case Distro.CentOS:
+              return {
+                placeholder: "RedHat/CentOS version (e.g. 7)",
+                disabled: false
+              };
+            case Distro.SUSE:
+              return {
+                placeholder: "",
+                disabled: false
+              }
+          }
+      }
+      return {
+        placeholder: "choose a distro first",
+        disabled: true,
+      }
+
+    }, [props.form.values.installOptions]);
     return (
       <Input
         {...props}

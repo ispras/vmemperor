@@ -13,10 +13,10 @@ import Network from "./subforms/network";
 import Storage from "./subforms/storage";
 import AccessView from '../../components/AccessView';
 import XenObjectHeader from "../XenObjectHeader";
-import {ResourcesFormContainer} from "../ResourcesForm";
+import {ResourcesFormContainer} from "../ApplyResetForm";
 import schema from "../AbstractVMSettingsComponents/schema";
 import {SettingsComponentProps} from "../../containers/Settings";
-import {defaults} from "./defaults";
+import {defaults} from "../AbstractVMSettingsComponents/defaults";
 import {Omit} from "../AbstractSettingsForm/utils";
 import {
   PowerState,
@@ -27,6 +27,7 @@ import {
 } from "../../generated-models";
 import {TabWidget, TabWidgetProps} from "../TabWidget";
 import {Fields} from "../AbstractVMSettingsComponents/fields";
+import {Mode} from "../AbstractVMSettingsComponents/mode";
 
 
 enum Tab {
@@ -100,6 +101,7 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
                 mutationName="vm"
                 defaultValues={defaults}
               >
+                <Mode/>
                 <Fields/>
               </ResourcesFormContainer>
             </Col>

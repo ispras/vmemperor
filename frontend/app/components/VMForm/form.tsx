@@ -12,6 +12,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import Select from '../Select';
 import {
+  DomainType,
   SRContentType,
   StorageListFragmentFragment, useCurrentUserQuery,
   useISOSCreateVMListQuery,
@@ -67,12 +68,13 @@ const VMForm = (props: FormikPropsValues) => {
 
   console.log("Errors:", props.errors);
   console.log("Values:", props.values);
-  const currentTemplateHasRepository = useMemo(() => {
+  const currentTemplateCanAutoinstall = useMemo(() => {
     if (!props.values.template)
-      return null;
+      return false;
 
-    const installOptions = templates.filter(t => t.ref === props.values.template)[0].installOptions;
-    return installOptions && installOptions.installRepository;
+    const template = templates.filter(t => t.ref === props.values.template)[0];
+    const {installOptions, domainType} = template;
+    return domainType === DomainType.PV && installOptions && installOptions.installRepository && installOptions.arch && installOptions.release && installOptions.distro;
 
   }, [props.values.template]);
   const {data: {currentUser}} = useCurrentUserQuery();
@@ -128,7 +130,7 @@ const VMForm = (props: FormikPropsValues) => {
           />
           <Field name="autoMode"
                  component={CheckBoxComponent}
-                 disabled={!currentTemplateHasRepository}
+                 disabled={!currentTemplateCanAutoinstall}
                  tooltip="Automode"
           >
             <h6> Unattended installation </h6>
@@ -219,7 +221,7 @@ const VMForm = (props: FormikPropsValues) => {
           </Fragment>
         </Fragment>
       )}
-      <Button type="submit" block={true} primary={true}>
+      <Button type="submit" block={true} disabled={!props.isValid} primary={true}>
         Create
       </Button>
     </form>

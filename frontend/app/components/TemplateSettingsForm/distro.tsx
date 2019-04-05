@@ -1,15 +1,36 @@
 import * as React from "react";
-import {Fragment} from "react";
-import {Field} from "formik";
+import {Fragment, useMemo} from "react";
+import {connect, Field, FormikProps} from "formik";
 import {RadioButton} from "../RadioButton";
-import {Distro} from "../../generated-models";
+import {Distro, DomainType} from "../../generated-models";
 import {Release} from "./release";
 import {distroId, prefix, TemplateRadioButtonGroup} from "./constants";
 import Arch from './arch';
 import Mirror from './mirror';
+import {TemplateSettingsFormValues} from "./schema";
+import {pick} from 'lodash';
+import {defaults} from "./defaults";
 
-export const DistroType: React.FunctionComponent<{}> =
-  () => {
+interface Props {
+  formik: FormikProps<TemplateSettingsFormValues>;
+}
+
+const DistroType =
+  ({formik}: Props) => {
+    const distroChoiceDisabled = useMemo(() => {
+      if (formik.values.domainType != DomainType.PV) {
+        formik.resetForm({
+          installOptions: formik.initialValues.installOptions,
+          ...formik.values
+        });
+        return true;
+      } else {
+        return false;
+      }
+    }, [formik.values.domainType]);
+    if (distroChoiceDisabled)
+      return null;
+
     return (
       <Fragment>
         <TemplateRadioButtonGroup
@@ -43,7 +64,8 @@ export const DistroType: React.FunctionComponent<{}> =
         />
         <Arch/>
         <Mirror/>
-
       </Fragment>
     );
   };
+
+export default connect<{}, TemplateSettingsFormValues>(DistroType);

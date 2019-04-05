@@ -53,7 +53,6 @@ fragment VMInfoFragment on GVM {
     name
   }
   startTime
-  domainType
   access {
     ...VMAccessFragment
   }

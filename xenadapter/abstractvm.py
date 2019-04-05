@@ -54,7 +54,7 @@ def set_memory(input: Mapping, vm: AbstractVM):
     try:
         dmax = str(int(input.get('memory_dynamic_max')))
     except TypeError:
-        dmin = None
+        dmax = None
 
     if smin and smax and dmin and dmax: # No worries on zeros, memory cant be 0
         vm.set_memory_limits(smin, smax, dmin, dmax)

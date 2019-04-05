@@ -1210,6 +1210,9 @@ export enum TemplateActions {
   clone = "clone",
   destroy = "destroy",
   change_install_os_options = "change_install_os_options",
+  change_domain_type = "change_domain_type",
+  changing_VCPUs = "changing_VCPUs",
+  changing_memory_limits = "changing_memory_limits",
   NONE = "NONE",
   ALL = "ALL"
 }
@@ -1453,6 +1456,7 @@ export type AbstractVMFragmentFragment = Pick<
   | "memoryDynamicMax"
   | "VCPUsAtStartup"
   | "VCPUsMax"
+  | "domainType"
 > & {
   platform: Maybe<
     { __typename?: "Platform" } & Pick<Platform, "coresPerSocket">
@@ -2380,7 +2384,7 @@ export type TemplateInfoUpdateSubscription = { __typename?: "Subscription" } & {
 
 export type TemplateListFragmentFragment = { __typename?: "GTemplate" } & Pick<
   GTemplate,
-  "ref" | "nameLabel" | "myActions" | "isOwner"
+  "ref" | "nameLabel" | "myActions" | "isOwner" | "domainType"
 > & {
     access: Array<
       Maybe<
@@ -2530,7 +2534,7 @@ export type VMAccessFragmentFragment = { __typename?: "GVMAccessEntry" } & Pick<
 
 export type VMInfoFragmentFragment = { __typename?: "GVM" } & Pick<
   GVM,
-  "powerState" | "startTime" | "domainType" | "myActions"
+  "powerState" | "startTime" | "myActions"
 > & {
     VIFs: Array<Maybe<{ __typename?: "GVIF" } & VMVIFFragmentFragment>>;
     VBDs: Array<Maybe<{ __typename?: "GVBD" } & VMVBDFragmentFragment>>;
@@ -3930,6 +3934,7 @@ export const AbstractVMFragmentFragmentDoc = gql`
     platform {
       coresPerSocket
     }
+    domainType
   }
 `;
 export const TemplateSettingsFragmentFragmentDoc = gql`
@@ -3981,6 +3986,7 @@ export const TemplateListFragmentFragmentDoc = gql`
       installRepository
     }
     isOwner
+    domainType
   }
 `;
 export const UserFragmentFragmentDoc = gql`
@@ -4075,7 +4081,6 @@ export const VMInfoFragmentFragmentDoc = gql`
       name
     }
     startTime
-    domainType
     access {
       ...VMAccessFragment
     }

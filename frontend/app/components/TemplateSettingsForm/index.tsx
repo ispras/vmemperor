@@ -10,12 +10,14 @@ import {
   TemplateInfoQuery
 } from "../../generated-models";
 import {TabWidget, TabWidgetProps} from "../TabWidget";
-import {ResourcesFormContainer} from "../ResourcesForm";
-import {defaults} from "../VMSettingsForm/defaults";
+import {ResourcesFormContainer} from "../ApplyResetForm";
+import {defaults} from "./defaults";
 import AccessView from "../AccessView";
 import {Fields} from "../AbstractVMSettingsComponents/fields";
 import schema from "../AbstractVMSettingsComponents/schema";
-import {DistroType} from "./distro";
+import DistroType from "./distro";
+import {Mode} from "../AbstractVMSettingsComponents/mode";
+
 enum Tab {
   Overview = 'overview',
   Access = 'access',
@@ -26,12 +28,12 @@ const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<Templ
     const defaultTab = Tab.Overview;
     const header = useMemo(() => (
       <XenObjectHeader
-          editMutation={TemplateEditOptionsDocument}
-          editMutationName="template"
-          xenObject={template}>
-          {template.installOptions &&
-          <Badge color="primary">{template.installOptions.distro} {template.installOptions.release} </Badge>}
-        </XenObjectHeader>
+        editMutation={TemplateEditOptionsDocument}
+        editMutationName="template"
+        xenObject={template}>
+        {template.installOptions &&
+        <Badge color="primary">{template.installOptions.distro} {template.installOptions.release} </Badge>}
+      </XenObjectHeader>
     ), [template.installOptions, template.nameLabel, template.nameDescription]);
     const tabs: TabWidgetProps["tabs"] = new Map(
       [
@@ -47,6 +49,7 @@ const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<Templ
                   defaultValues={defaults}
                   schema={schema}
                 >
+                  <Mode/>
                   <DistroType/>
                   <Fields/>
                 </ResourcesFormContainer>
