@@ -171,6 +171,7 @@ class XenObject(metaclass=XenObjectMeta):
             record = event['snapshot']
 
             if not cls.filter_record(xen, record, event['ref']):
+                re.db.table(cls.db_table_name).get(event['ref']).delete().run()
                 return
 
 
