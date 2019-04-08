@@ -37,12 +37,8 @@ const TemplateSettingsForm: React.FunctionComponent<SettingsComponentProps<Templ
         [Tab.Overview, {
           header: "Overview",
           content: (
-            <Row>
-              <Col sm="12">
-                <Overview
-                  template={template}/>
-              </Col>
-            </Row>
+            <Overview
+              template={template}/>
           )
         }],
         [Tab.Access, {

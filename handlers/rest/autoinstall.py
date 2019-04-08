@@ -55,7 +55,7 @@ class AutoInstall(RESTHandler):
             args['mirror_protocol'] = mirror_parts.scheme
             args['mirror_hostname'] = mirror_parts.netloc
             args['mirror_path'] = mirror_parts.path
-            args['postinst'] = f"{constants.URL}{constants.POSTINST_ROUTE}?{urlencode({'os': 'debian', 'device': args['device']})}"
+            args['postinst'] = f"{constants.URL}{constants.POSTINST_ROUTE}?{urlencode({'os': os_kind, 'device': args['device']})}"
             filename = 'debian.jinja2'
 
         elif os_kind == 'rhlike':

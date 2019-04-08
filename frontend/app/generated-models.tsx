@@ -1581,6 +1581,20 @@ export type NetDetachMutation = { __typename?: "Mutation" } & {
   >;
 };
 
+export type TemplateCloneMutationVariables = {
+  ref: Scalars["ID"];
+  nameLabel: Scalars["String"];
+};
+
+export type TemplateCloneMutation = { __typename?: "Mutation" } & {
+  templateClone: Maybe<
+    { __typename?: "TemplateCloneMutation" } & Pick<
+      TemplateCloneMutation,
+      "granted" | "reason" | "taskId"
+    >
+  >;
+};
+
 export type ConsoleQueryVariables = {
   id: Scalars["ID"];
 };
@@ -1594,6 +1608,7 @@ export type createVmMutationVariables = {
   iso?: Maybe<Scalars["ID"]>;
   template: Scalars["ID"];
   network?: Maybe<Scalars["ID"]>;
+  user?: Maybe<Scalars["String"]>;
 };
 
 export type createVmMutation = { __typename?: "Mutation" } & {
@@ -4319,6 +4334,27 @@ export function useNetDetachMutation(
     NetDetachMutationVariables
   >(NetDetachDocument, baseOptions);
 }
+export const TemplateCloneDocument = gql`
+  mutation TemplateClone($ref: ID!, $nameLabel: String!) {
+    templateClone(ref: $ref, nameLabel: $nameLabel) {
+      granted
+      reason
+      taskId
+    }
+  }
+`;
+
+export function useTemplateCloneMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    TemplateCloneMutation,
+    TemplateCloneMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    TemplateCloneMutation,
+    TemplateCloneMutationVariables
+  >(TemplateCloneDocument, baseOptions);
+}
 export const ConsoleDocument = gql`
   query Console($id: ID!) {
     console(vmRef: $id)
@@ -4341,6 +4377,7 @@ export const createVmDocument = gql`
     $iso: ID
     $template: ID!
     $network: ID
+    $user: String
   ) {
     createVm(
       disks: $disks
@@ -4349,6 +4386,7 @@ export const createVmDocument = gql`
       network: $network
       iso: $iso
       vmOptions: $vmOptions
+      user: $user
     ) {
       taskId
       granted

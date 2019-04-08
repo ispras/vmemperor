@@ -1,0 +1,7 @@
+mutation TemplateClone($ref: ID!, $nameLabel: String!) {
+  templateClone(ref: $ref, nameLabel: $nameLabel) {
+    granted
+    reason
+    taskId
+  }
+}
