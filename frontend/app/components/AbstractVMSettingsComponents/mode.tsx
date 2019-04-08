@@ -22,7 +22,7 @@ export const Mode = ({PVBootloader}: Props) => {
         id={DomainType.PV}
         label='PV'
         disabled={!PVBootloader}
-        title={"Set PV-bootloader first"}
+        title={PVBootloader ? "" : "Set PV-bootloader first"}
       />
       <Field
         component={RadioButton}
