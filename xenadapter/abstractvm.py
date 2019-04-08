@@ -1,6 +1,8 @@
 from typing import Mapping
 
 from serflag import SerFlag
+
+import XenAPI
 import constants.re as re
 from authentication import BasicAuthenticator
 from xenadapter.aclxenobject import ACLXenObject
@@ -21,6 +23,28 @@ class AbstractVM(ACLXenObject):
         new_rec = super().process_record(xen, ref, record)
         new_rec['_blocked_operations_'] = list(record['blocked_operations'].keys())
         return new_rec
+
+    def set_domain_type(self,  type: str):
+        """
+        set vm domain type to 'pv', 'hvm' (or pv_in_pvh' starting from XenServer 7.5)
+        :param type: pv/hvm
+        :return:
+        """
+        if type == 'pv':
+            if not self.get_PV_bootloader():
+                raise ValueError("Can't set PV domain type since no PV bootloader is set")
+        try:
+            self._set_domain_type(type)
+        except XenAPI.Failure as f:
+            if f.details[0] == "MESSAGE_METHOD_UNKNOWN":
+                hvm_boot_policy = self.get_HVM_boot_policy()
+                if hvm_boot_policy and type == 'pv':
+                    self.set_HVM_boot_policy('')
+                if hvm_boot_policy == '' and type == 'hvm':
+                    self.set_HVM_boot_policy('BIOS order')
+            else:
+                raise f
+
 
     def check_access(self, auth : BasicAuthenticator, action : SerFlag):
         if action:

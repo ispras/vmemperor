@@ -3,6 +3,7 @@
 
 fragment TemplateSettingsFragment on GTemplate {
   ...AbstractVMFragment
+  PVBootloader
   installOptions {
     distro
     arch

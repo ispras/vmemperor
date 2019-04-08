@@ -12,7 +12,7 @@ from xenadapter.abstractvm import AbstractVM, set_VCPUs, set_memory
 from xenadapter.helpers import use_logger
 import XenAPI
 import provision
-from xenadapter.xenobject import set_subtype
+from xenadapter.xenobject import set_subtype, set_subtype_from_input
 from xenadapter.xenobjectdict import XenObjectDict
 
 from xentools.os import OSChooser
@@ -148,7 +148,7 @@ class VM (AbstractVM):
         self.remove_tags('vmemperor')
         self.manage_actions(self.Actions.ALL, user=user)
 
-        set_subtype("platform")(options['platform'], self)
+        set_subtype_from_input("platform")(options, self)
         set_VCPUs(options,self)
         set_memory(options, self)
         if 'name_label' in options:
@@ -380,26 +380,7 @@ class VM (AbstractVM):
             else:
                 raise f
 
-    def set_domain_type(self,  type: str):
-        """
-        set vm domain type to 'pv', 'hvm' (or pv_in_pvh' starting from XenServer 7.5)
-        :param type: pv/hvm
-        :return:
-        """
-        try:
-            self._set_domain_type(type)
-        except XenAPI.Failure as f:
-            if f.details[0] == "MESSAGE_METHOD_UNKNOWN":
-                hvm_boot_policy = self.get_HVM_boot_policy()
-                if hvm_boot_policy and type == 'pv':
-                    self.set_HVM_boot_policy('')
-                if hvm_boot_policy == '' and type == 'hvm':
-                    self.set_HVM_boot_policy('BIOS order')
-            else:
-                raise f
 
-
-    @use_logger
     def start_stop_vm(self, enable):
 
         """

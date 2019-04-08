@@ -39,6 +39,7 @@ fragment VMAccessFragment on GVMAccessEntry {
 }
 
 fragment VMInfoFragment on GVM {
+  PVBootloader
   ...ACLXenObjectFragment
   ...AbstractVMFragment
   VIFs {

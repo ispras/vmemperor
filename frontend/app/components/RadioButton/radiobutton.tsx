@@ -1,4 +1,4 @@
-import {Input, Label} from "reactstrap";
+import {Input, InputProps, Label} from "reactstrap";
 import React, {ChangeEvent} from "react";
 import {FieldProps} from "formik";
 import {FormGroup} from "../MarginFormGroup";
@@ -7,7 +7,6 @@ import {ChangeInputEvent} from "../AbstractSettingsForm/inputUtils";
 interface Props<T> extends FieldProps<T> {
   id: string;
   label: string;
-  disabled?: boolean;
 }
 
 /**
@@ -16,28 +15,28 @@ interface Props<T> extends FieldProps<T> {
  * @param props
  * @constructor
  */
-export function RadioButton<T>(props: Props<T>) {
+export function RadioButton<T>({form, field, id, label, ...props}: Props<T> & InputProps) {
   const onChange: Props<T>['field']['onChange'] = (e: ChangeInputEvent) => {
     if (e.target.value == '')
-      props.form.setFieldValue(props.field.name, null);
+      form.setFieldValue(field.name, null);
     else
-      props.field.onChange(e)
+      field.onChange(e)
 
   };
   return (
     <FormGroup check={true}>
       <Label check={true}>
         <Input
-          name={props.field.name}
-          id={props.id}
+          name={field.name}
+          id={id}
           type="radio"
-          value={props.id}
-          checked={props.id === props.field.value}
+          value={id}
+          checked={id === field.value}
           onChange={onChange}
-          onBlur={props.field.onBlur}
-          disabled={props.disabled}
+          onBlur={field.onBlur}
+          {...props}
         />
-        {props.label}
+        {label}
       </Label>
     </FormGroup>
   );

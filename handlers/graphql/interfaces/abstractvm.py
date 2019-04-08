@@ -41,3 +41,4 @@ class GAbstractVM(graphene.Interface):
     memory_static_max = graphene.Field(graphene.Float, required=True)
     memory_dynamic_min = graphene.Field(graphene.Float, required=True)
     memory_dynamic_max = graphene.Field(graphene.Float, required=True)
+    PV_bootloader = graphene.Field(graphene.String, required=True)

@@ -101,7 +101,7 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
                 mutationName="vm"
                 defaultValues={defaults}
               >
-                <Mode/>
+                <Mode PVBootloader={vm.PVBootloader}/>
                 <Fields/>
               </ResourcesFormContainer>
             </Col>

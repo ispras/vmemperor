@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Wed Apr 03 14:58:26 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Mon Apr 08 16:59:45 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -7,6 +7,7 @@ schema {
 }
 
 interface GAbstractVM {
+  PVBootloader: String!
   VCPUsAtStartup: Int!
   VCPUsMax: Int!
   domainType: DomainType!
@@ -326,6 +327,7 @@ type GTasksSubscription {
 }
 
 type GTemplate implements GAbstractVM & GAclXenObject {
+  PVBootloader: String!
   VCPUsAtStartup: Int!
   VCPUsMax: Int!
   access: [GTemplateAccessEntry]!
@@ -426,6 +428,7 @@ type GVIF {
 }
 
 type GVM implements GAbstractVM & GAclXenObject {
+  PVBootloader: String!
   "True if PV drivers are up to date, reported if Guest Additions are installed"
   PVDriversUpToDate: Boolean
   "PV drivers version, if available"
@@ -492,6 +495,8 @@ type Mutation {
     network: ID,
     #Template ID
     template: ID!,
+    #User or group we should create VM as
+    user: String,
     #Basic VM options. Leave fields empty to use Template options
     vmOptions: VMInput!
   ): CreateVM
@@ -1008,7 +1013,10 @@ enum TaskActions {
 enum TemplateActions {
   ALL
   NONE
+  change_domain_type
   change_install_os_options
+  changing_VCPUs
+  changing_memory_limits
   clone
   destroy
   rename

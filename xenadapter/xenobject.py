@@ -11,6 +11,7 @@ import pytz
 import constants.re as re
 from exc import *
 from authentication import BasicAuthenticator
+from handlers.graphql.mutation_utils.cleanup import cleanup_defaults
 
 from handlers.graphql.types.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.objecttype import InputObjectType
@@ -35,7 +36,6 @@ def set_subtype(field_name: str):
             for delete_key in to_delete:
                 del input_dict[delete_key]
                 del old_dict[delete_key]
-
             for key in old_dict:
                 if key in input_dict:
                     yield key, input_dict.pop(key)
@@ -46,6 +46,17 @@ def set_subtype(field_name: str):
 
         arg = {k:v for k,v in item_yielder()}
         getattr(obj, f'set_{field_name}')(arg)
+    return setter
+
+def set_subtype_from_input(field_name):
+    '''
+    Sets a subtype named field_name of XenObject, cleaning input dict of defaults (empty dict)
+    :param field_name:
+    :return:
+    '''
+    thunk = set_subtype(field_name)
+    def setter(input, obj):
+        thunk(cleanup_defaults(input[field_name]), obj)
     return setter
 
 
@@ -303,7 +314,7 @@ class XenObject(metaclass=XenObjectMeta):
                 continue
 
             if isinstance(options[key], Mapping):
-                set_subtype(key)(options[key], self)
+                set_subtype_from_input(key)(options, self)
             else:
                 attr = getattr(self, f'set_{key}')
                 if key in self.OPTIONS_FLOAT_TO_INT:

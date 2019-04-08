@@ -9,7 +9,7 @@ from handlers.graphql.resolvers import with_connection
 from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
 from handlers.graphql.types.input.abstractvm import platform_validator, vcpus_input_validator, memory_input_validator
 from handlers.graphql.utils.editmutation import create_edit_mutation
-from handlers.graphql.utils.input import set_subtype_field
+from xenadapter.xenobject import set_subtype_from_input
 from input.template import TemplateInput, InstallOSOptionsInput
 from xenadapter.abstractvm import set_VCPUs, set_memory
 from xenadapter.template import Template
@@ -46,7 +46,7 @@ mutations = [
             MutationMethod(func="name_label", access_action=Template.Actions.rename),
             MutationMethod(func="name_description", access_action=Template.Actions.rename),
             MutationMethod(func="domain_type", access_action=Template.Actions.change_domain_type),
-            MutationMethod(func=(set_subtype_field("platform"), platform_validator), access_action=Template.Actions.changing_VCPUs),
+            MutationMethod(func=(set_subtype_from_input("platform"), platform_validator), access_action=Template.Actions.changing_VCPUs),
             MutationMethod(func=(set_VCPUs, vcpus_input_validator), access_action=Template.Actions.changing_VCPUs),
             MutationMethod(func=(set_memory, memory_input_validator), access_action=Template.Actions.changing_memory_limits),
             MutationMethod(func=(set_install_options, install_options_validator), access_action=Template.Actions.change_install_os_options),

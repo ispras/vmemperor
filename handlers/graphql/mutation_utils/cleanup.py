@@ -8,6 +8,6 @@ def cleanup_defaults(input):
     :return:
     '''
     if isinstance(input, Mapping):
-        return  {k:cleanup_defaults(v) for k,v in {**input}.items() if v != {}}
+        return  {k:cleanup_defaults(v) for k,v in input.items() if v != {}}
     else:
         return input

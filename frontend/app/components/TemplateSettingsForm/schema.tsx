@@ -11,7 +11,7 @@ const schema = {
     release: string(),
     installRepository: string(),
   }),
-  ...ResourceSchema
+  ...ResourceSchema()
 };
 
 export default object().shape<TemplateSettingsFormValues>(schema);

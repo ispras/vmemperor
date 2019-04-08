@@ -119,6 +119,7 @@ export type GAbstractVM = {
   memoryStaticMax: Scalars["Float"];
   memoryDynamicMin: Scalars["Float"];
   memoryDynamicMax: Scalars["Float"];
+  PVBootloader: Scalars["String"];
 };
 
 export type GAccessEntry = {
@@ -380,6 +381,7 @@ export type GTemplate = GAclXenObject &
     memoryStaticMax: Scalars["Float"];
     memoryDynamicMin: Scalars["Float"];
     memoryDynamicMax: Scalars["Float"];
+    PVBootloader: Scalars["String"];
     myActions: Array<Maybe<TemplateActions>>;
     /** This template is preinstalled with XenServer */
     isDefaultTemplate: Scalars["Boolean"];
@@ -485,6 +487,7 @@ export type GVM = GAclXenObject &
     memoryStaticMax: Scalars["Float"];
     memoryDynamicMin: Scalars["Float"];
     memoryDynamicMax: Scalars["Float"];
+    PVBootloader: Scalars["String"];
     myActions: Array<Maybe<VMActions>>;
     /** True if PV drivers are up to date, reported if Guest Additions are installed */
     PVDriversUpToDate?: Maybe<Scalars["Boolean"]>;
@@ -2338,14 +2341,16 @@ export type TasksSubscription = { __typename?: "Subscription" } & {
   > & { value: TaskFragmentFragment | DeletedFragmentFragment };
 };
 
-export type TemplateSettingsFragmentFragment = { __typename?: "GTemplate" } & {
-  installOptions: Maybe<
-    { __typename?: "InstallOSOptions" } & Pick<
-      InstallOSOptions,
-      "distro" | "arch" | "release" | "installRepository"
-    >
-  >;
-} & AbstractVMFragmentFragment;
+export type TemplateSettingsFragmentFragment = {
+  __typename?: "GTemplate";
+} & Pick<GTemplate, "PVBootloader"> & {
+    installOptions: Maybe<
+      { __typename?: "InstallOSOptions" } & Pick<
+        InstallOSOptions,
+        "distro" | "arch" | "release" | "installRepository"
+      >
+    >;
+  } & AbstractVMFragmentFragment;
 
 export type TemplateInfoFragmentFragment = { __typename?: "GTemplate" } & Pick<
   GTemplate,
@@ -2534,7 +2539,7 @@ export type VMAccessFragmentFragment = { __typename?: "GVMAccessEntry" } & Pick<
 
 export type VMInfoFragmentFragment = { __typename?: "GVM" } & Pick<
   GVM,
-  "powerState" | "startTime" | "myActions"
+  "PVBootloader" | "powerState" | "startTime" | "myActions"
 > & {
     VIFs: Array<Maybe<{ __typename?: "GVIF" } & VMVIFFragmentFragment>>;
     VBDs: Array<Maybe<{ __typename?: "GVBD" } & VMVBDFragmentFragment>>;
@@ -2733,6 +2738,7 @@ export type GAbstractVMResolvers<Context = any, ParentType = GAbstractVM> = {
   memoryStaticMax?: Resolver<Scalars["Float"], ParentType, Context>;
   memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
   memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
+  PVBootloader?: Resolver<Scalars["String"], ParentType, Context>;
 };
 
 export type GAccessEntryResolvers<Context = any, ParentType = GAccessEntry> = {
@@ -2992,6 +2998,7 @@ export type GTemplateResolvers<Context = any, ParentType = GTemplate> = {
   memoryStaticMax?: Resolver<Scalars["Float"], ParentType, Context>;
   memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
   memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
+  PVBootloader?: Resolver<Scalars["String"], ParentType, Context>;
   myActions?: Resolver<Array<Maybe<TemplateActions>>, ParentType, Context>;
   isDefaultTemplate?: Resolver<Scalars["Boolean"], ParentType, Context>;
   installOptions?: Resolver<Maybe<InstallOSOptions>, ParentType, Context>;
@@ -3100,6 +3107,7 @@ export type GVMResolvers<Context = any, ParentType = GVM> = {
   memoryStaticMax?: Resolver<Scalars["Float"], ParentType, Context>;
   memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
   memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
+  PVBootloader?: Resolver<Scalars["String"], ParentType, Context>;
   myActions?: Resolver<Array<Maybe<VMActions>>, ParentType, Context>;
   PVDriversUpToDate?: Resolver<Maybe<Scalars["Boolean"]>, ParentType, Context>;
   PVDriversVersion?: Resolver<Maybe<PvDriversVersion>, ParentType, Context>;
@@ -3940,6 +3948,7 @@ export const AbstractVMFragmentFragmentDoc = gql`
 export const TemplateSettingsFragmentFragmentDoc = gql`
   fragment TemplateSettingsFragment on GTemplate {
     ...AbstractVMFragment
+    PVBootloader
     installOptions {
       distro
       arch
@@ -4068,6 +4077,7 @@ export const VMAccessFragmentFragmentDoc = gql`
 `;
 export const VMInfoFragmentFragmentDoc = gql`
   fragment VMInfoFragment on GVM {
+    PVBootloader
     ...ACLXenObjectFragment
     ...AbstractVMFragment
     VIFs {

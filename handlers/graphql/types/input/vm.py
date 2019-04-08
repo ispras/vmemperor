@@ -11,15 +11,14 @@ from xenadapter.abstractvm import set_memory, set_VCPUs
 from handlers.graphql.types.objecttype import InputObjectType
 from handlers.graphql.utils.editmutation import create_edit_mutation
 from input.vm import VMInput
-from xenadapter.xenobject import set_subtype
+from xenadapter.xenobject import set_subtype, set_subtype_from_input
 from xenadapter.vm import VM
-from handlers.graphql.utils.input import set_subtype_field
 
 mutations = [
             MutationMethod(func="name_label", access_action=VM.Actions.rename),
             MutationMethod(func="name_description", access_action=VM.Actions.rename),
             MutationMethod(func="domain_type", access_action=VM.Actions.change_domain_type),
-            MutationMethod(func=(set_subtype_field("platform"), platform_validator), access_action=VM.Actions.changing_VCPUs),
+            MutationMethod(func=(set_subtype_from_input("platform"), platform_validator), access_action=VM.Actions.changing_VCPUs),
             MutationMethod(func=(set_VCPUs, vcpus_input_validator), access_action=VM.Actions.changing_VCPUs),
             MutationMethod(func=(set_memory, memory_input_validator), access_action=VM.Actions.changing_memory_limits)
         ]

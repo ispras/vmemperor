@@ -1,7 +1,3 @@
-from handlers.graphql.mutation_utils.cleanup import cleanup_defaults
-from xenadapter.xenobject import set_subtype
-
-
 def validate_subtype(field_name):
     def validator(input, _):
         '''
@@ -15,13 +11,3 @@ def validate_subtype(field_name):
         return ret, None
     return validator
 
-def set_subtype_field(field_name):
-    '''
-    Sets a subtype named field_name of XenObject, cleaning input dict of defaults (empty dict)
-    :param field_name:
-    :return:
-    '''
-    thunk = set_subtype(field_name)
-    def setter(input, obj):
-        thunk(cleanup_defaults(input[field_name]), obj)
-    return setter
