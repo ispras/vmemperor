@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {Fragment, Reducer, ReducerState, useCallback, useReducer} from 'react';
+import {Fragment, Reducer, ReducerState, useCallback, useEffect, useReducer} from 'react';
 import {RouteComponentProps} from "react-router";
 import StatefulTable, {ColumnType} from "../StatefulTable";
 import {useApolloClient} from "react-apollo-hooks";
@@ -89,7 +89,10 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
     history.push(`/template/${row.ref}`);
   }, [history]);
 
-  const {data: {templates}} = useTemplateListQuery();
+  const {data: {templates}, refetch} = useTemplateListQuery();
+  useEffect(() => {
+    refetch()
+  }, []);
   //const {data: {currentUser}} = useCurrentUserQuery();
   const client = useApolloClient();
   const readTemplate = useCallback((ref) => {
