@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Mon Apr 08 16:59:45 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Tue Apr 09 16:25:40 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -299,6 +299,10 @@ type GTask implements GAclXenObject {
   nameDescription: String!
   "a human-readable name"
   nameLabel: String!
+  "An object this task is running on"
+  objectRef: ID
+  "Object type"
+  objectType: String
   "Task progress"
   progress: Float!
   "Unique constant identifier/object reference (primary)"
@@ -695,6 +699,10 @@ type Query {
   sr(ref: ID!): GSR
   "All Storage repositories available to user"
   srs: [GSR]!
+  "Single Task"
+  task(ref: ID!): GTask
+  "All Tasks available to user"
+  tasks: [GTask]!
   template(ref: ID!): GTemplate
   "All Templates available to user"
   templates: [GTemplate]!

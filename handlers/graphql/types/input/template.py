@@ -1,14 +1,17 @@
+from functools import partial
 from urllib.parse import urlsplit
 
 import graphene
+from graphql import ResolveInfo
 
 from handlers.graphql.graphql_handler import ContextProtocol
+from handlers.graphql.mutation_utils.asyncmutationmethod import AsyncMutationMethod
 from handlers.graphql.mutation_utils.cleanup import cleanup_defaults
 from handlers.graphql.mutation_utils.mutationmethod import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
 from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
 from handlers.graphql.types.input.abstractvm import platform_validator, vcpus_input_validator, memory_input_validator
-from handlers.graphql.utils.editmutation import create_edit_mutation
+from handlers.graphql.utils.editmutation import create_edit_mutation, create_async_mutation
 from xenadapter.xenobject import set_subtype_from_input
 from input.template import TemplateInput, InstallOSOptionsInput
 from xenadapter.abstractvm import set_VCPUs, set_memory
@@ -54,6 +57,10 @@ mutations = [
 
 TemplateMutation = create_edit_mutation("TemplateMutation", "template", TemplateInput, Template, mutations)
 
+
+
+
+
 class TemplateCloneMutation(graphene.Mutation):
     task_id = graphene.ID(required=False, description="clone task ID")
     granted = graphene.Boolean(required=True, description="Shows if access to clone is granted")
@@ -62,25 +69,25 @@ class TemplateCloneMutation(graphene.Mutation):
     class Arguments:
         ref = graphene.ID(required=True)
         name_label = graphene.String(required=True, description="New name label")
+        user = graphene.String(description="User/group to own resulting clone")
 
     @staticmethod
     @with_authentication(access_class=Template, access_action=Template.Actions.clone)
     @return_if_access_is_not_granted([("Template", "ref", Template.Actions.clone)])
-    def mutate(root, info, ref, name_label, Template : Template):
-        return TemplateCloneMutation(granted=True, task_id=Template.async_clone(name_label))
+    def mutate(root, info : ResolveInfo, ref, name_label, **kwargs):
+        user = kwargs.get('user')
+        tmpl: Template = kwargs['Template']
+        if not user and not  info.context.user_authenticator.is_admin():
+            user = 'users/' + info.context.user_authenticator.get_id()
 
-class TemplateDestroyMutation(graphene.Mutation):
-    task_id = graphene.ID(required=False, description="destroy task ID")
-    granted = graphene.Boolean(required=True, description="Shows if access to destroy is granted")
-    reason = graphene.String()
+        def post_template_clone_hook(result, ctx: ContextProtocol):
+            new_template = Template(xen=ctx.xen, ref=result)
+            new_template.manage_actions(Template.Actions.ALL, user=user)
 
-    class Arguments:
-        ref = graphene.ID(required=True)
+        method = partial(tmpl.async_clone, name_label)
+        task_id = AsyncMutationMethod.call(method, info.context,  post_template_clone_hook)
+        return TemplateCloneMutation(granted=True, task_id=task_id)
 
-    @staticmethod
-    @with_authentication(access_class=Template, access_action=Template.Actions.destroy)
-    @return_if_access_is_not_granted([("Template", "ref", Template.Actions.destroy)])
-    def mutate(root, info, ref, Template : Template):
-        return TemplateDestroyMutation(granted=True, task_id=Template.async_destroy())
 
+TemplateDestroyMutation = create_async_mutation("TemplateDestroyMutation", "async_destroy", Template, Template.Actions.destroy)
 

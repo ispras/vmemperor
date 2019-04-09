@@ -40,6 +40,7 @@ export function TemplateClone({template}: Props) {
       initialValues={{
         nameLabel: "Clone of " + template.nameLabel
       }}
+      isInitialValid={true}
       validationSchema={Yup.object().shape<NewTemplateValues>(
         {
           nameLabel: Yup.string().required()

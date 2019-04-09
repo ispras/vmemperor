@@ -1,5 +1,7 @@
 import threading
 from typing import Type, Optional, Dict
+from xml.etree import ElementTree as ET
+from xml.etree.ElementTree import ParseError
 
 from rethinkdb.errors import ReqlNonExistenceError
 
@@ -127,6 +129,13 @@ class Task(ACLXenObject):
         with cls.global_pending_lock:
             cls.pending_values_under_lock.remove(ref)
 
+    @classmethod
+    def process_result(cls, result : str):
+        try:
+            root = ET.fromstring(result)
+            return root.text
+        except ParseError:
+            return result
 
 
     @classmethod
@@ -144,9 +153,11 @@ class Task(ACLXenObject):
         except ReqlNonExistenceError:
             pop_from_pending = re.db.table(cls.pending_db_table_name).get(ref).delete(return_changes=True).run()
             if pop_from_pending['deleted'] != 1:
-                return None  # This task is not being processed because it was not requested
-
-            current_rec = pop_from_pending['changes'][0]['old_val']
+                current_rec = {'vmemperor': False}
+            else:
+                current_rec = pop_from_pending['changes'][0]['old_val']
 
         new_rec = super().process_record(xen, ref, record)
+        new_rec['result'] = cls.process_result(new_rec['result'])
+
         return {**current_rec, **new_rec}

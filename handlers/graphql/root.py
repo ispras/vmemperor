@@ -73,6 +73,8 @@ class Query(ObjectType):
     playbook = graphene.Field(GPlaybook, id=graphene.ID(), resolver=resolve_playbook,
                               description="Information about Ansible-powered playbook")
 
+    tasks = graphene.Field(graphene.List(GTask), required=True, resolver=resolve_all(), description="All Tasks available to user")
+    task = graphene.Field(GTask, ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Single Task")
     playbook_task = graphene.Field(PlaybookTask, id=graphene.NonNull(graphene.ID),
                                    description="Info about a playbook task", resolver=PlaybookTaskList.resolve_one())
     playbook_tasks = graphene.List(PlaybookTask, required=True,
@@ -125,6 +127,7 @@ class Mutation(ObjectType):
     sr = SRMutation.Field(description="Edit SR options")
     sr_access_set = SRAccessSet.Field(description="Set SR access rights")
     sr_delete = SRDestroyMutation.Field(description="Delete a SR")
+
 
 
 

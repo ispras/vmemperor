@@ -4,12 +4,13 @@ import graphene
 
 from authentication import with_authentication, with_default_authentication, return_if_access_is_not_granted
 from handlers.graphql.graphql_handler import ContextProtocol
+from handlers.graphql.mutation_utils.asyncmutationmethod import AsyncMutationMethod
 from handlers.graphql.mutation_utils.mutationmethod import MutationMethod, MutationHelper
 from handlers.graphql.resolvers import with_connection
 from handlers.graphql.types.input.abstractvm import memory_input_validator, vcpus_input_validator, platform_validator
 from xenadapter.abstractvm import set_memory, set_VCPUs
 from handlers.graphql.types.objecttype import InputObjectType
-from handlers.graphql.utils.editmutation import create_edit_mutation
+from handlers.graphql.utils.editmutation import create_edit_mutation, create_async_mutation
 from input.vm import VMInput
 from xenadapter.xenobject import set_subtype, set_subtype_from_input
 from xenadapter.vm import VM
@@ -105,8 +106,8 @@ class VMShutdownMutation(graphene.Mutation):
         vm = get_vm(root, info, ref, force)
         if not vm:
             return VMShutdownMutation(granted=False)
-        call = getattr(vm, method)
-        return VMShutdownMutation(taskId=call(), granted=True)
+        callee = getattr(vm, method)
+        return VMShutdownMutation(taskId=AsyncMutationMethod.call(callee, info.context), granted=True)
 
 
 class VMRebootMutation(graphene.Mutation):
@@ -133,8 +134,8 @@ class VMRebootMutation(graphene.Mutation):
         if not vm:
             return VMRebootMutation(granted=False)
 
-        call = getattr(vm, method)
-        return VMRebootMutation(taskId=call(), granted=True)
+        callee = getattr(vm, method)
+        return VMRebootMutation(taskId=AsyncMutationMethod.call(callee, info.context), granted=True)
 
 
 class VMPauseMutation(graphene.Mutation):
@@ -165,24 +166,10 @@ class VMPauseMutation(graphene.Mutation):
         if not vm.check_access(ctx.user_authenticator, access_action):
             return VMPauseMutation(granted=False, reason=f"Access to action {access_action} for VM {vm.ref} is not granted")
 
-        return VMPauseMutation(taskId=getattr(vm, method)(), granted=True)
+        return VMPauseMutation(taskId=AsyncMutationMethod.call(getattr(vm, method), info.context), granted=True)
 
 
-class VMSuspendMutation(graphene.Mutation):
-    taskId = graphene.ID(required=False, description="Suspend/resume task ID")
-    granted = graphene.Boolean(required=True, description="Shows if access to suspend/resume is granted")
-    reason = graphene.String()
-
-    class Arguments:
-        ref = graphene.ID(required=True)
-
-    @staticmethod
-    @with_authentication(access_class=VM, access_action=VM.Actions.suspend)
-    @return_if_access_is_not_granted([("VM", "ref", VM.Actions.suspend)])
-    def mutate(root, info, ref, VM):
-        ctx: ContextProtocol = info.context
-        return VMSuspendMutation(taskId=VM.async_suspend(), granted=True)
-
+VMSuspendMutation = create_async_mutation("VMSuspendMutation", "async_suspend", VM, VM.Actions.suspend)
 
 class VMDestroyMutation(graphene.Mutation):
     taskId = graphene.ID(required=False, description="Deleting task ID")
@@ -197,7 +184,7 @@ class VMDestroyMutation(graphene.Mutation):
     @return_if_access_is_not_granted([("VM", "ref", VM.Actions.destroy)])
     def mutate(root, info, ref, VM):
         if VM.get_power_state() == "Halted":
-            return VMDestroyMutation(taskId=VM.async_destroy(), granted=True)
+            return VMDestroyMutation(taskId=AsyncMutationMethod.call(VM.async_destroy, info.context), granted=True)
         else:
             return VMDestroyMutation(granted=False, reason=f"Power state of VM {VM.ref} is not Halted, unable to delete")
 

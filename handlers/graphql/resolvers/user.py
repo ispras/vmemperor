@@ -55,7 +55,7 @@ def resolve_user(field_name = "user_id"):
         else:
             if id == "any":
                 return ANY_USER
-            raise ValueError(f"User ID should start with {list(tables)}")
+            return None
 
 
         record = re.db.table(table_name).get(db_id).run()

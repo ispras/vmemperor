@@ -10,6 +10,8 @@ fragment TaskFragment on GTask {
   progress
   result
   residentOn
+  objectRef
+  objectType
 }
 
 subscription Tasks{
@@ -19,5 +21,17 @@ subscription Tasks{
       ...DeletedFragment
     }
     changeType
+  }
+}
+
+query TaskList {
+  tasks {
+    ...TaskFragment
+  }
+}
+
+query TaskInfo ($ref: ID!) {
+  task(ref: $ref) {
+    ...TaskFragment
   }
 }

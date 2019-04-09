@@ -342,6 +342,10 @@ export type GTask = GAclXenObject & {
   errorInfo?: Maybe<Array<Maybe<Scalars["String"]>>>;
   /** Task status */
   status?: Maybe<Scalars["String"]>;
+  /** An object this task is running on */
+  objectRef?: Maybe<Scalars["ID"]>;
+  /** Object type */
+  objectType?: Maybe<Scalars["String"]>;
 };
 
 export type GTaskAccessEntry = GAccessEntry & {
@@ -912,6 +916,10 @@ export type Query = {
   playbooks: Array<Maybe<GPlaybook>>;
   /** Information about Ansible-powered playbook */
   playbook?: Maybe<GPlaybook>;
+  /** All Tasks available to user */
+  tasks: Array<Maybe<GTask>>;
+  /** Single Task */
+  task?: Maybe<GTask>;
   /** Info about a playbook task */
   playbookTask?: Maybe<PlaybookTask>;
   /** All Playbook Tasks */
@@ -965,6 +973,10 @@ export type QueryvdiArgs = {
 
 export type QueryplaybookArgs = {
   id?: Maybe<Scalars["ID"]>;
+};
+
+export type QuerytaskArgs = {
+  ref: Scalars["ID"];
 };
 
 export type QueryplaybookTaskArgs = {
@@ -1199,6 +1211,7 @@ export enum Table {
 /** An enumeration. */
 export enum TaskActions {
   cancel = "cancel",
+  destroy = "destroy",
   NONE = "NONE",
   ALL = "ALL"
 }
@@ -2345,6 +2358,8 @@ export type TaskFragmentFragment = { __typename?: "GTask" } & Pick<
   | "progress"
   | "result"
   | "residentOn"
+  | "objectRef"
+  | "objectType"
 >;
 
 export type TasksSubscriptionVariables = {};
@@ -2354,6 +2369,20 @@ export type TasksSubscription = { __typename?: "Subscription" } & {
     GTasksSubscription,
     "changeType"
   > & { value: TaskFragmentFragment | DeletedFragmentFragment };
+};
+
+export type TaskListQueryVariables = {};
+
+export type TaskListQuery = { __typename?: "Query" } & {
+  tasks: Array<Maybe<{ __typename?: "GTask" } & TaskFragmentFragment>>;
+};
+
+export type TaskInfoQueryVariables = {
+  ref: Scalars["ID"];
+};
+
+export type TaskInfoQuery = { __typename?: "Query" } & {
+  task: Maybe<{ __typename?: "GTask" } & TaskFragmentFragment>;
 };
 
 export type TemplateSettingsFragmentFragment = {
@@ -2970,6 +2999,8 @@ export type GTaskResolvers<Context = any, ParentType = GTask> = {
     Context
   >;
   status?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  objectRef?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
+  objectType?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
 };
 
 export type GTaskAccessEntryResolvers<
@@ -3410,6 +3441,8 @@ export type QueryResolvers<Context = any, ParentType = Query> = {
   vdi?: Resolver<Maybe<GVDI>, ParentType, Context, QueryvdiArgs>;
   playbooks?: Resolver<Array<Maybe<GPlaybook>>, ParentType, Context>;
   playbook?: Resolver<Maybe<GPlaybook>, ParentType, Context, QueryplaybookArgs>;
+  tasks?: Resolver<Array<Maybe<GTask>>, ParentType, Context>;
+  task?: Resolver<Maybe<GTask>, ParentType, Context, QuerytaskArgs>;
   playbookTask?: Resolver<
     Maybe<PlaybookTask>,
     ParentType,
@@ -3944,6 +3977,8 @@ export const TaskFragmentFragmentDoc = gql`
     progress
     result
     residentOn
+    objectRef
+    objectType
   }
 `;
 export const AbstractVMFragmentFragmentDoc = gql`
@@ -5614,6 +5649,40 @@ export function useTasksSubscription(
     TasksSubscription,
     TasksSubscriptionVariables
   >(TasksDocument, baseOptions);
+}
+export const TaskListDocument = gql`
+  query TaskList {
+    tasks {
+      ...TaskFragment
+    }
+  }
+  ${TaskFragmentFragmentDoc}
+`;
+
+export function useTaskListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<TaskListQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<TaskListQuery, TaskListQueryVariables>(
+    TaskListDocument,
+    baseOptions
+  );
+}
+export const TaskInfoDocument = gql`
+  query TaskInfo($ref: ID!) {
+    task(ref: $ref) {
+      ...TaskFragment
+    }
+  }
+  ${TaskFragmentFragmentDoc}
+`;
+
+export function useTaskInfoQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<TaskInfoQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<TaskInfoQuery, TaskInfoQueryVariables>(
+    TaskInfoDocument,
+    baseOptions
+  );
 }
 export const TemplateInfoDocument = gql`
   query TemplateInfo($ref: ID!) {
