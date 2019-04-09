@@ -70,7 +70,9 @@ class VMStartMutation(graphene.Mutation):
         if not vm.check_access(ctx.user_authenticator, access_action):
             return VMStartMutation(granted=False, reason=f"Access to action {access_action} for VM {vm.ref} is not granted")
 
-        return VMStartMutation(granted=True, taskId=getattr(vm, method)(paused, force))
+        callee = getattr(vm, method)(paused, force)
+        return VMStartMutation(granted=True, taskId=AsyncMutationMethod.call(callee, info.context))
+
 
 
 

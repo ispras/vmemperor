@@ -5,7 +5,16 @@ from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.utils.string import camelcase
 from xenadapter.xenobject import XenObject
 from functools import partial
+import constants.re as re
 
+def call_mutation_from_string(mutable_object, changes, function):
+    def f():
+        old_value = getattr(mutable_object, f'get_{function}')()
+        new_value = getattr(changes, function)
+        getattr(mutable_object, f'set_{function}')(new_value)
+        return old_value, new_value
+
+    return f
 
 
 
@@ -24,11 +33,15 @@ class MutationMethod:
         deps: Tuple of dependencies:  lambdas that are called with our object as first argument and returning tuple of Boolean and reason string
     '''
     Input = TypeVar('Input')
-                # std function            custom callable                      custom validator
-    func: Union[str, Tuple[Callable[[Input, "XenObject"], None], Callable[[Input, "XenObject"], Tuple[bool, Optional[str]]]]]
+    InputArgument = TypeVar('InputArgument')
+    MutationFunction = Callable[[Input, "XenObject"], Tuple[InputArgument, InputArgument]]
+    MutationCheckerFunction = Callable[[Input, "XenObject"], Tuple[bool, Optional[str]]]
+    func: Union[str, Tuple[MutationFunction, MutationCheckerFunction]]
     access_action: Optional[SerFlag]
     deps: Tuple[Callable[["XenObject"], Tuple[bool, str]]] = tuple()
 
+def call_mutation_from_function(mutable_object, changes, function: MutationMethod.MutationFunction):
+    return function(changes, mutable_object)
 
 
 @dataclass
@@ -49,7 +62,9 @@ class MutationHelper:
         :param changes: Graphene Input type instance with proposed changes
         :return: Tuple [True, None] or [False, "String reason what's not granted"] where access is not granted]
         '''
-        callables: List[Callable[[], None]] = []
+        task_start_time = re.r.now()
+
+        callables: List[MutationMethod.func] = []
         for item in self.mutations:
             dep_checks : List[Callable[[], Tuple[bool, str]]] = []
             for dep in item.deps:
@@ -75,9 +90,9 @@ class MutationHelper:
                     return False, f"{camelcase(item.func if isinstance(item.func, str) else item.func[0].__name__)}: Access denied: not an administrator"
             else:
                 if isinstance(item.func, str):
-                    callables.append(partial(getattr(self.mutable_object, f'set_{item.func}'), getattr(changes, item.func)))
+                    callables.append(call_mutation_from_string(self.mutable_object, changes, item.func))
                 else:
-                    callables.append(partial(item.func[0], changes, self.mutable_object))
+                    callables.append(call_mutation_from_function(self.mutable_object, changes, item.func[0]))
 
             for dep_check in dep_checks:
                 ret = dep_check()

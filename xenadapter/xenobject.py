@@ -48,7 +48,7 @@ def set_subtype(field_name: str):
         getattr(obj, f'set_{field_name}')(arg)
     return setter
 
-def set_subtype_from_input(field_name):
+def set_subtype_from_input(field_name, return_diff=True):
     '''
     Sets a subtype named field_name of XenObject, cleaning input dict of defaults (empty dict)
     :param field_name:
@@ -56,7 +56,14 @@ def set_subtype_from_input(field_name):
     '''
     thunk = set_subtype(field_name)
     def setter(input, obj):
+        if return_diff:
+            old_val = getattr(obj, f'get_{field_name}')()
+
         thunk(cleanup_defaults(input[field_name]), obj)
+        if return_diff:
+            new_val = getattr(obj, f'get_{field_name}')
+            return old_val, new_val
+
     return setter
 
 

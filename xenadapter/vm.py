@@ -148,9 +148,9 @@ class VM (AbstractVM):
         self.remove_tags('vmemperor')
         self.manage_actions(self.Actions.ALL, user=user)
 
-        set_subtype_from_input("platform")(options, self)
-        set_VCPUs(options,self)
-        set_memory(options, self)
+        set_subtype_from_input("platform")(options, self, return_diff=False)
+        set_VCPUs(options, self, return_diff=False)
+        set_memory(options, self, return_diff=False)
         if 'name_label' in options:
             self.set_name_label(options['name_label'])
         if 'name_description' in options:

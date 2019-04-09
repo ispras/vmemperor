@@ -62,7 +62,17 @@ class AbstractVM(ACLXenObject):
         self._set_platform(platform)
 
 
-def set_memory(input: Mapping, vm: AbstractVM):
+def set_memory(input: Mapping, vm: AbstractVM, return_diff=True):
+    def get_memory_dict():
+        return {
+            'memory_static_min' : vm.get_memory_static_min(),
+            'memory_static_max': vm.get_memory_static_max(),
+            'memory_dynamic_min': vm.get_memory_dynamic_min(),
+            'memory_dynamic_max': vm.get_memory_dynamic_max(),
+        }
+    if return_diff:
+        old_val = get_memory_dict()
+
     try:
         smin = str(int(input.get('memory_static_min')))
     except TypeError:
@@ -99,8 +109,20 @@ def set_memory(input: Mapping, vm: AbstractVM):
         else:
             vm.set_memory_dynamic_max(dmax)
 
+    if return_diff:
+        new_val = get_memory_dict()
+        return old_val, new_val
 
-def set_VCPUs(input: Mapping, vm: AbstractVM):
+
+
+def set_VCPUs(input: Mapping, vm: AbstractVM, return_diff=True):
+    def get_VCPUs_dict():
+        return {
+            'VCPUs_max': vm.get_VCPUs_max(),
+            'VCPUs_at_startup': vm.get_VCPus_at_startup(),
+        }
+    if return_diff:
+        old_val = get_VCPUs_dict()
     current_startup = vm.get_VCPUs_at_startup()
     if current_startup > input['VCPUs_max']:
         if not input.get('VCPUs_at_startup'):
@@ -112,3 +134,7 @@ def set_VCPUs(input: Mapping, vm: AbstractVM):
             vm.set_VCPUs_max(input['VCPUs_max'])
         if input.get('VCPUs_at_startup'):
             vm.set_VCPUs_at_startup(input['VCPUs_at_startup'])
+
+    if return_diff:
+        new_val = get_VCPUs_dict()
+        return old_val, new_val

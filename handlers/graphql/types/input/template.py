@@ -16,13 +16,34 @@ from xenadapter.xenobject import set_subtype_from_input
 from input.template import TemplateInput, InstallOSOptionsInput
 from xenadapter.abstractvm import set_VCPUs, set_memory
 from xenadapter.template import Template
-from xentools.os import Distro
+from xentools.os import Distro, OSChooser
 
 
 def set_install_options(input: TemplateInput, tmpl : Template):
+    def get_install_options_dict():
+        other_config = tmpl.get_other_config()
+        os = OSChooser.get_os(other_config)
+        if not os:
+            return {
+                'distro': None,
+                'release': None,
+                'arch': None,
+                'install_repository': None
+            }
+        return {
+            'distro': os.get_distro(),
+            'release': os.get_release(),
+            'arch': os.get_arch(),
+            'install_repository': os.get_install_repository(),
+        }
+
+    old_val = get_install_options_dict()
     clean_input = cleanup_defaults(input)
     if 'install_options' in clean_input:
         tmpl.set_install_options(clean_input['install_options'])
+
+    new_val = get_install_options_dict()
+    return old_val, new_val
 
 def install_options_validator(input: TemplateInput, _):
     '''
