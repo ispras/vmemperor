@@ -1,3 +1,5 @@
+import json
+import uuid
 from dataclasses import dataclass
 from typing import Callable, Sequence, Any, Optional, Tuple, Union, List, Generic, TypeVar
 from serflag import SerFlag
@@ -6,15 +8,16 @@ from handlers.graphql.utils.string import camelcase
 from xenadapter.xenobject import XenObject
 from functools import partial
 import constants.re as re
-
+from sentry_sdk import capture_exception
 def call_mutation_from_string(mutable_object, changes, function):
     def f():
-        old_value = getattr(mutable_object, f'get_{function}')()
-        new_value = getattr(changes, function)
-        getattr(mutable_object, f'set_{function}')(new_value)
+        old_value = {function: getattr(mutable_object, f'get_{function}')()}
+        new_value = {function: getattr(changes, function)}
+        getattr(mutable_object, f'set_{function}')(new_value[function])
         return old_value, new_value
 
     return f
+
 
 
 
@@ -41,7 +44,7 @@ class MutationMethod:
     deps: Tuple[Callable[["XenObject"], Tuple[bool, str]]] = tuple()
 
 def call_mutation_from_function(mutable_object, changes, function: MutationMethod.MutationFunction):
-    return function(changes, mutable_object)
+    return partial(function, changes, mutable_object)
 
 
 @dataclass
@@ -56,51 +59,96 @@ class MutationHelper:
     ctx: ContextProtocol
     mutable_object: XenObject
 
+    def prepare_mutations_for_item(self, item, changes):
+        dep_checks : List[Callable[[], Tuple[bool, str]]] = []
+        # Filling dependency checks in
+        for dep in item.deps:
+            dep_checks.append(partial(dep, self.mutable_object))
+        if isinstance(item.func, str):
+            if getattr(changes, item.func) is None:
+                return
+        else:
+            granted, reason = item.func[1](changes, self.mutable_object)
+            if not granted:
+                if not reason: # if Reason is None, we're instructed to skip this mutation as user didn't supply anything
+                    return
+                else:
+                    return reason
+        # Checking access
+        if not(item.access_action is None and \
+                self.ctx.user_authenticator.is_admin() or \
+                self.mutable_object.check_access(self.ctx.user_authenticator, item.access_action)):
+
+            if item.access_action:
+                return  f"{camelcase(item.func if isinstance(item.func, str) else item.func[0].__name__)}: Access denied: object {self.mutable_object}; action: {item.access_action}"
+            else:
+                return  f"{camelcase(item.func if isinstance(item.func, str) else item.func[0].__name__)}: Access denied: not an administrator"
+        else:
+            if isinstance(item.func, str):
+                function_candidate =  call_mutation_from_string(self.mutable_object, changes, item.func)
+            else:
+                function_candidate =  call_mutation_from_function(self.mutable_object, changes, item.func[0])
+
+        # Running dependency checks
+        for dep_check in dep_checks:
+            ret = dep_check()
+            if not ret[0]:
+                return f"{camelcase(item.func if isinstance(item.func, str) else '')}: {ret[1]}"
+
+
+        return function_candidate
+
     def perform_mutations(self, changes: MutationMethod.Input) -> Tuple[bool, Optional[str]]:
         '''
         Perform mutations in a transaction fashion: Either all or nothing.
         :param changes: Graphene Input type instance with proposed changes
         :return: Tuple [True, None] or [False, "String reason what's not granted"] where access is not granted]
         '''
-        task_start_time = re.r.now()
 
-        callables: List[MutationMethod.func] = []
+        tasks : List[dict] = []
         for item in self.mutations:
-            dep_checks : List[Callable[[], Tuple[bool, str]]] = []
-            for dep in item.deps:
-                dep_checks.append(partial(dep, self.mutable_object))
-            if isinstance(item.func, str):
-                if getattr(changes, item.func) is None:
-                    continue
+            function_or_error = self.prepare_mutations_for_item(item, changes)
+
+            if not function_or_error:
+                continue
+            new_uuid = str(uuid.uuid4())
+            task = {
+                "ref": new_uuid,
+                "error_info" : [],
+                "created": re.r.now().run(),
+                "name_label": f"{self.mutable_object.__class__.__name__}.{item.access_action.serialize()[0]}",
+                "name_description": "",
+                "uuid": new_uuid,
+                "progress": 1,
+                "resident_on": None,
+                "who": "users/" + self.ctx.user_authenticator.get_id() if not self.ctx.user_authenticator.is_admin()
+                else self.ctx.user_authenticator.get_id(),
+
+            }
+            if isinstance(function_or_error, str):
+                task['status'] = 'failure'
+                task['error_info'].append(function_or_error)
+                task['finished'] = re.r.now().run()
+                re.db.table('tasks').insert(task).run()
+                return False, function_or_error
             else:
-                granted, reason = item.func[1](changes, self.mutable_object)
-                if not granted:
-                    if not reason: # if Reason is None, we're instructed to skip this mutation as user didn't supply anything
-                        continue
-                    else:
-                        return False, reason
+                task['call'] = function_or_error
+                tasks.append(task)
 
-            if not(item.access_action is None and \
-                    self.ctx.user_authenticator.is_admin() or \
-                    self.mutable_object.check_access(self.ctx.user_authenticator, item.access_action)):
-
-                if item.access_action:
-                    return False, f"{camelcase(item.func if isinstance(item.func, str) else item.func[0].__name__)}: Access denied: object {self.mutable_object}; action: {item.access_action}"
-                else:
-                    return False, f"{camelcase(item.func if isinstance(item.func, str) else item.func[0].__name__)}: Access denied: not an administrator"
-            else:
-                if isinstance(item.func, str):
-                    callables.append(call_mutation_from_string(self.mutable_object, changes, item.func))
-                else:
-                    callables.append(call_mutation_from_function(self.mutable_object, changes, item.func[0]))
-
-            for dep_check in dep_checks:
-                ret = dep_check()
-                if not ret[0]:
-                    return False, f"{camelcase(item.func if isinstance(item.func, str) else '')}: {ret[1]}"
-
-        for item in callables:
-            item()
-
+        for task in tasks:
+            try:
+                new_value, old_value = task['call']()
+                task['status'] = 'success'
+                task['result'] = json.dumps({"old_val": old_value, "new_val": new_value})
+                task['finished'] = re.r.now().run()
+            except Exception as e:
+                capture_exception(e)
+                task['status'] = 'failure'
+                task['error_info'].append(str(e))
+                task['result'] = ""
+                task['finished'] = re.r.now().run()
+            finally:
+                del task['call']
+                re.db.table('tasks').insert(task).run()
 
         return True, None

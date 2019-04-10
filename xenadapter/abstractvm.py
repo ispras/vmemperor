@@ -119,7 +119,7 @@ def set_VCPUs(input: Mapping, vm: AbstractVM, return_diff=True):
     def get_VCPUs_dict():
         return {
             'VCPUs_max': vm.get_VCPUs_max(),
-            'VCPUs_at_startup': vm.get_VCPus_at_startup(),
+            'VCPUs_at_startup': vm.get_VCPUs_at_startup(),
         }
     if return_diff:
         old_val = get_VCPUs_dict()
