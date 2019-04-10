@@ -1,5 +1,6 @@
 import threading
-from typing import Type, Optional, Dict
+import time
+from typing import Type, Optional, Dict, List, Callable
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import ParseError
 
@@ -21,6 +22,7 @@ class Task(ACLXenObject):
     pending_db_table_name = 'pending_tasks'
     global_pending_lock = threading.Lock()
     pending_values_under_lock = set()
+    CancelHandlers : List[Callable[[], None]] = []
 
     @classmethod
     def process_event(cls, xen, event):
@@ -159,5 +161,18 @@ class Task(ACLXenObject):
 
         new_rec = super().process_record(xen, ref, record)
         new_rec['result'] = cls.process_result(new_rec['result'])
+        if new_rec['status'] in ('pending', 'cancelling'):
+            del new_rec['finished'] # it doesn't make sense anyway
 
         return {**current_rec, **new_rec}
+
+    def cancel(self):
+        '''
+        Cancel Xen tasks via Xen API.
+        ancel VMEmperor tasks via VMEmperor cancel handlers. Example: PlaybookLauncher
+        :return: 
+        '''
+        if self.ref in self.CancelHandlers:
+            self.CancelHandlers[self.ref]()
+        else:
+            self._cancel()
