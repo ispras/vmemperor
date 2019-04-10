@@ -112,18 +112,21 @@ class MutationHelper:
             if not function_or_error:
                 continue
             new_uuid = str(uuid.uuid4())
+            action = item.access_action.serialize()[0]
             task = {
                 "ref": new_uuid,
+                "object_ref": self.mutable_object.ref,
+                "object_type": self.mutable_object.__class__.__name__,
+                "action": action,
                 "error_info" : [],
                 "created": re.r.now().run(),
-                "name_label": f"{self.mutable_object.__class__.__name__}.{item.access_action.serialize()[0]}",
+                "name_label": f"{self.mutable_object.__class__.__name__}.{action}",
                 "name_description": "",
                 "uuid": new_uuid,
                 "progress": 1,
                 "resident_on": None,
                 "who": "users/" + self.ctx.user_authenticator.get_id() if not self.ctx.user_authenticator.is_admin()
-                else self.ctx.user_authenticator.get_id(),
-
+                else None
             }
             if isinstance(function_or_error, str):
                 task['status'] = 'failure'
