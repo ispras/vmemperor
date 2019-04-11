@@ -38,7 +38,7 @@ class GTask(GXenObjectType):
     is_owner = graphene.Field(graphene.Boolean, required=True, resolver=resolve_owner(TaskActions))
 
     created = graphene.Field(graphene.DateTime, required=True, description="Task creation time")
-    finished = graphene.Field(graphene.DateTime, required=True, description="Task finish time")
+    finished = graphene.Field(graphene.DateTime, description="Task finish time")
     progress = graphene.Field(graphene.Float, required=True, description="Task progress")
     result = graphene.Field(graphene.ID, description="Task result if available")
     who = graphene.Field(User,resolver=resolve_user("who") )

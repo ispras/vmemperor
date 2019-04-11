@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Tue Apr 09 16:25:40 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Thu Apr 11 16:58:20 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -292,7 +292,7 @@ type GTask implements GAclXenObject {
   "Error strings, if failed"
   errorInfo: [String]
   "Task finish time"
-  finished: DateTime!
+  finished: DateTime
   isOwner: Boolean!
   myActions: [TaskActions]!
   "a human-readable description"
@@ -312,11 +312,10 @@ type GTask implements GAclXenObject {
   "Task result if available"
   result: ID
   "Task status"
-  status: String
-  "Task result type"
-  type: String
+  status: TaskStatus!
   "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
+  who: User
 }
 
 type GTaskAccessEntry implements GAccessEntry {
@@ -553,7 +552,9 @@ type Mutation {
   templateClone(
     #New name label
     nameLabel: String!,
-    ref: ID!
+    ref: ID!,
+    #User/group to own resulting clone
+    user: String
   ): TemplateCloneMutation
   "Delete template"
   templateDelete(ref: ID!): TemplateDestroyMutation
@@ -730,7 +731,7 @@ type SRDestroyMutation {
   "Shows if access to destroy is granted"
   granted: Boolean!
   reason: String
-  "destroy task ID"
+  "Task ID"
   taskId: ID
 }
 
@@ -819,7 +820,7 @@ type TemplateDestroyMutation {
   "Shows if access to destroy is granted"
   granted: Boolean!
   reason: String
-  "destroy task ID"
+  "Task ID"
   taskId: ID
 }
 
@@ -842,7 +843,7 @@ type VDIDestroyMutation {
   "Shows if access to destroy is granted"
   granted: Boolean!
   reason: String
-  "destroy task ID"
+  "Task ID"
   taskId: ID
 }
 
@@ -899,10 +900,10 @@ type VMStartMutation {
 }
 
 type VMSuspendMutation {
-  "Shows if access to suspend/resume is granted"
+  "Shows if access to destroy is granted"
   granted: Boolean!
   reason: String
-  "Suspend/resume task ID"
+  "Task ID"
   taskId: ID
 }
 
@@ -1015,6 +1016,16 @@ enum TaskActions {
   ALL
   NONE
   cancel
+  remove
+}
+
+"An enumeration."
+enum TaskStatus {
+  Cancelled
+  Cancelling
+  Failure
+  Pending
+  Success
 }
 
 "An enumeration."
@@ -1077,6 +1088,7 @@ enum VMActions {
   destroy
   hard_reboot
   hard_shutdown
+  launch_playbook
   migrate_send
   pause
   pool_migrate

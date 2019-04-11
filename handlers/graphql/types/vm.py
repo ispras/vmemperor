@@ -71,6 +71,7 @@ class VMActions(SerFlag):
     rename = auto()
     change_domain_type = auto()
     VNC = auto()
+    launch_playbook = auto()
 
     changing_VCPUs = auto()
     changing_memory_limits = auto()

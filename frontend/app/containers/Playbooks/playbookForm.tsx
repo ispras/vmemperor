@@ -51,7 +51,6 @@ const PlaybookForm = ({book, vms}: Props) => {
   const [variables, setVariables] = useState(OrderedMap<VariableName, VariableValue>(initialVariableState));
 
   const onInputTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("Text change: ", e.target.name, e.target.value);
     setVariables(variables.set(e.target.name, e.target.value));
   }, [setVariables, variables]);
 
@@ -59,6 +58,7 @@ const PlaybookForm = ({book, vms}: Props) => {
   const [currentTaskId, setCurrentTaskId] = useState<string>(null);
 
   const onSubmit = useCallback(async (e: Event) => {
+    e.preventDefault();
     const {data} = await launch(
       {
         variables: {
@@ -74,7 +74,6 @@ const PlaybookForm = ({book, vms}: Props) => {
   const generateField = useCallback((id) => {
     const fieldValue = variables.get(id);
     const field = originalVariables[id];
-    console.log("Generating field: ", fieldValue, field);
     let fieldType = null;
     switch (field.type) {
       case 'str': // field type ""

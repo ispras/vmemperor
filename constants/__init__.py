@@ -15,3 +15,4 @@ URL = ""
 ansible_pubkey = ""
 playbooks = Dict[str, PlaybookLoader]
 secrets = {}
+tmpdir_path = '/tmp/vmemperor-'

@@ -5,6 +5,7 @@ from typing import Callable, Sequence, Any, Optional, Tuple, Union, List, Generi
 from serflag import SerFlag
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.utils.string import camelcase
+from xenadapter.task import get_userids
 from xenadapter.xenobject import XenObject
 from functools import partial
 import constants.re as re
@@ -113,10 +114,13 @@ class MutationHelper:
                 continue
             new_uuid = str(uuid.uuid4())
             action = item.access_action.serialize()[0]
+            who = "users/" + self.ctx.user_authenticator.get_id() if not self.ctx.user_authenticator.is_admin() else None
+            object_ref = self.mutable_object.ref
+            object_type = self.mutable_object.__class__.__name__
             task = {
                 "ref": new_uuid,
-                "object_ref": self.mutable_object.ref,
-                "object_type": self.mutable_object.__class__.__name__,
+                "object_ref": object_ref,
+                "object_type": object_type,
                 "action": action,
                 "error_info" : [],
                 "created": re.r.now().run(),
@@ -125,8 +129,8 @@ class MutationHelper:
                 "uuid": new_uuid,
                 "progress": 1,
                 "resident_on": None,
-                "who": "users/" + self.ctx.user_authenticator.get_id() if not self.ctx.user_authenticator.is_admin()
-                else None
+                "who": who,
+                "access" : {user: ['remove'] for user in get_userids(object_type, object_ref, action)}
             }
             if isinstance(function_or_error, str):
                 task['status'] = 'failure'

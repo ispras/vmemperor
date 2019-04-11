@@ -22,4 +22,3 @@ class CreateVMTaskList(GrapheneTaskList):
     def task_type():
         return CreateVMTask
 
-create_db_for_me(CreateVMTaskList)

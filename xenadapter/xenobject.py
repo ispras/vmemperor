@@ -124,7 +124,13 @@ class XenObject(metaclass=XenObjectMeta):
     def __repr__(self):
         return self.__str__()
 
-    def __init__(self, xen : XenAdapter, ref : str =None):
+    def __new__(cls, xen, ref, *args, **kwargs):
+        if not ref or not xen or ref == cls.REF_NULL:
+            return None
+        else:
+            return super().__new__(cls)
+
+    def __init__(self, xen : XenAdapter, ref : str):
         '''
         :param xen: XenAdapter used to obtain this object through XenAPI
         :param ref: object ref
@@ -133,7 +139,6 @@ class XenObject(metaclass=XenObjectMeta):
         #          raise AttributeError("No XenAdapter specified")
         self.xen = xen
         self.log = xen.log
-
         if isinstance(ref, str):
             self.ref = ref
             try:

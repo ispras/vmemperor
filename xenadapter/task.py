@@ -1,6 +1,7 @@
 import threading
 import time
-from typing import Type, Optional, Dict, List, Callable
+from collections import Sequence
+from typing import Type, Optional, Dict, List, Callable, Union
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import ParseError
 
@@ -13,6 +14,22 @@ from xenadapter.aclxenobject import ACLXenObject
 from xenadapter.xenobject import XenObject
 
 
+def get_userids(object_type: Type, object_ref: Optional[Union[str, List[str]]], action: str):
+    if issubclass(object_type, ACLXenObject) and object_ref:
+        userids = re.db.table(object_type.db_table_name + '_user')
+        if isinstance(object_ref, str):
+            userids = userids.get_all(object_ref, index='ref')
+        else:
+            userids = userids.get_all(*object_ref, index='ref')
+        userids = userids\
+            .filter(lambda value: value['actions'].set_intersection(['ALL', action]) != [])\
+            .pluck('userid')['userid']\
+            .coerce_to('array').run()
+    else:
+        userids = []
+
+    return userids
+
 class Task(ACLXenObject):
     api_class = 'task'
     EVENT_CLASSES = ['task']
@@ -22,7 +39,7 @@ class Task(ACLXenObject):
     pending_db_table_name = 'pending_tasks'
     global_pending_lock = threading.Lock()
     pending_values_under_lock = set()
-    CancelHandlers : List[Callable[[], None]] = []
+    CancelHandlers : Dict[str, Callable[[], None]] = {}
 
     @classmethod
     def process_event(cls, xen, event):
@@ -98,20 +115,10 @@ class Task(ACLXenObject):
                 object_ref = re.db.table(object_type.db_table_name).get(object_ref).pluck('VM').run()['VM']
                 action = "attach_network"
 
+            userids = get_userids(object_type, object_ref, action)
 
 
-
-            if issubclass(object_type, ACLXenObject):
-                userids = re.db.table(object_type.db_table_name + '_user')\
-                            .get_all(object_ref, index='ref')\
-                            .filter(lambda value: value['actions'].set_intersection(['ALL', action]) != [])\
-                            .pluck('userid')['userid']\
-                            .coerce_to('array').run()
-            else:
-                userids = []
-
-
-            return {user: ['cancel'] for user in userids}
+            return {user: ['cancel', 'remove'] for user in userids}
 
         with cls.global_pending_lock:
             if ref in cls.pending_values_under_lock:
@@ -174,5 +181,5 @@ class Task(ACLXenObject):
         '''
         if self.ref in self.CancelHandlers:
             self.CancelHandlers[self.ref]()
-        else:
+        elif self.ref.startswith("OpaqueRef"):
             self._cancel()

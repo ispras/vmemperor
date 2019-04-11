@@ -2,10 +2,10 @@ from abc import abstractmethod
 from typing import Union, Type
 import constants.re as re
 from authentication import with_default_authentication
+from customtask.tasklist import TaskList
 from handlers.graphql.resolvers import with_connection
 from handlers.graphql.types.objecttype import ObjectType, InputObjectType
 from handlers.graphql.utils.paging import do_paging
-from tasklist.tasklist import TaskList
 from xenadapter.xenobjectdict import XenObjectDict
 
 

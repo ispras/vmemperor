@@ -18,29 +18,19 @@ class TaskList(ABC, Loggable):
     def __repr__(self):
         return self.__class__.__name__
 
-    @classmethod
-    def create_db(cls):
-        re.db.table_create(cls.table_name(), durability='soft').run()
-        re.db.table(cls.table_name()).wait().run()
 
-
-    @staticmethod
-    @abstractmethod
-    def table_name():
-        ...
-
-    def upsert_task(self, user, task_data):
+    def insert_task(self, user, task_data):
         '''
         Inserts a task considering authentication information
         :param task_data: dict. Use your own class to convert your datatype into a dict and then call upsert_task
         :return:
         '''
 
-        if not isinstance(task_data, XenObjectDict):
-            task_data = XenObjectDict(task_data)
-        self.log.debug(f"Upserting task: {task_data['id']}")
+        #if not isinstance(task_data, XenObjectDict):
+        #    task_data = XenObjectDict(task_data)
+        #self.log.debug(f"Upserting task: {task_data['id']}")
         if user:  # replace
-            query = re.db.table(self.table_name()).insert({**task_data, **{'userid': user}}, conflict='replace').run()
+            query = re.db.table("tasks").insert()
         else:  # update
             CHECK_ER(self.table().insert({**task_data}, conflict='update').run())
         self.log.debug(f"Task upserted: {task_data['id']}")

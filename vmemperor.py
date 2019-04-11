@@ -14,6 +14,7 @@ from handlers.rest.autoinstall import AutoInstall
 from handlers.graphql.root import schema
 from handlers.rest.console import ConsoleHandler
 from handlers.rest.logout import LogOut
+from handlers.rest.playbooklog import PlaybookLogHandler
 from handlers.rest.poollistpublic import PoolListPublic
 from handlers.rest.postinst import Postinst
 from xentools.xenadapter import XenAdapter
@@ -105,6 +106,7 @@ def make_app(executor, auth_class=None, debug=False):
         (constants.AUTOINSTALL_ROUTE + r'/([^/]+)', AutoInstall, dict(pool_executor=executor)),
         (constants.POSTINST_ROUTE + r'.*', Postinst, dict(pool_executor=executor)),
         (r'/console.*', ConsoleHandler, dict(pool_executor=executor)),
+        (r'/pblog.*', PlaybookLogHandler, dict(pool_executor=executor)),
         (r'/list_pools', PoolListPublic, dict(pool_executor=executor)),
         (r'/adminauth', AdminAuth, dict(pool_executor=executor, authenticator=auth_class)),
         (r'/graphql', gql_handler.GraphQLHandler, dict(pool_executor=executor, graphiql=False, schema=schema)),

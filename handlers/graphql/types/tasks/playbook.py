@@ -29,4 +29,3 @@ class PlaybookTaskList(GrapheneTaskList):
     def task_type():
         return PlaybookTask
 
-create_db_for_me(PlaybookTaskList)

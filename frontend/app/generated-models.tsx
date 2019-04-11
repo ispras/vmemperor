@@ -329,19 +329,18 @@ export type GTask = GAclXenObject & {
   /** Task creation time */
   created: Scalars["DateTime"];
   /** Task finish time */
-  finished: Scalars["DateTime"];
+  finished?: Maybe<Scalars["DateTime"]>;
   /** Task progress */
   progress: Scalars["Float"];
   /** Task result if available */
   result?: Maybe<Scalars["ID"]>;
-  /** Task result type */
-  type?: Maybe<Scalars["String"]>;
+  who?: Maybe<User>;
   /** ref of a host that runs this task */
   residentOn?: Maybe<Scalars["ID"]>;
   /** Error strings, if failed */
   errorInfo?: Maybe<Array<Maybe<Scalars["String"]>>>;
   /** Task status */
-  status?: Maybe<Scalars["String"]>;
+  status: TaskStatus;
   /** An object this task is running on */
   objectRef?: Maybe<Scalars["ID"]>;
   /** Object type */
@@ -644,6 +643,7 @@ export type MutationtemplateArgs = {
 export type MutationtemplateCloneArgs = {
   nameLabel: Scalars["String"];
   ref: Scalars["ID"];
+  user?: Maybe<Scalars["String"]>;
 };
 
 export type MutationtemplateDeleteArgs = {
@@ -1047,7 +1047,7 @@ export enum SRContentType {
 }
 
 export type SRDestroyMutation = {
-  /** destroy task ID */
+  /** Task ID */
   taskId?: Maybe<Scalars["ID"]>;
   /** Shows if access to destroy is granted */
   granted: Scalars["Boolean"];
@@ -1211,9 +1211,18 @@ export enum Table {
 /** An enumeration. */
 export enum TaskActions {
   cancel = "cancel",
-  destroy = "destroy",
+  remove = "remove",
   NONE = "NONE",
   ALL = "ALL"
+}
+
+/** An enumeration. */
+export enum TaskStatus {
+  Pending = "Pending",
+  Success = "Success",
+  Failure = "Failure",
+  Cancelling = "Cancelling",
+  Cancelled = "Cancelled"
 }
 
 export type TemplateAccessSet = {
@@ -1242,7 +1251,7 @@ export type TemplateCloneMutation = {
 };
 
 export type TemplateDestroyMutation = {
-  /** destroy task ID */
+  /** Task ID */
   taskId?: Maybe<Scalars["ID"]>;
   /** Shows if access to destroy is granted */
   granted: Scalars["Boolean"];
@@ -1309,7 +1318,7 @@ export enum VDIActions {
 }
 
 export type VDIDestroyMutation = {
-  /** destroy task ID */
+  /** Task ID */
   taskId?: Maybe<Scalars["ID"]>;
   /** Shows if access to destroy is granted */
   granted: Scalars["Boolean"];
@@ -1346,6 +1355,7 @@ export enum VMActions {
   rename = "rename",
   change_domain_type = "change_domain_type",
   VNC = "VNC",
+  launch_playbook = "launch_playbook",
   changing_VCPUs = "changing_VCPUs",
   changing_memory_limits = "changing_memory_limits",
   snapshot = "snapshot",
@@ -1458,9 +1468,9 @@ export type VMStartMutation = {
 };
 
 export type VMSuspendMutation = {
-  /** Suspend/resume task ID */
+  /** Task ID */
   taskId?: Maybe<Scalars["ID"]>;
-  /** Shows if access to suspend/resume is granted */
+  /** Shows if access to destroy is granted */
   granted: Scalars["Boolean"];
   reason?: Maybe<Scalars["String"]>;
 };
@@ -2360,6 +2370,7 @@ export type TaskFragmentFragment = { __typename?: "GTask" } & Pick<
   | "residentOn"
   | "objectRef"
   | "objectType"
+  | "errorInfo"
 >;
 
 export type TasksSubscriptionVariables = {};
@@ -2382,6 +2393,14 @@ export type TaskInfoQueryVariables = {
 };
 
 export type TaskInfoQuery = { __typename?: "Query" } & {
+  task: Maybe<{ __typename?: "GTask" } & TaskFragmentFragment>;
+};
+
+export type TaskInfoUpdateSubscriptionVariables = {
+  ref: Scalars["ID"];
+};
+
+export type TaskInfoUpdateSubscription = { __typename?: "Subscription" } & {
   task: Maybe<{ __typename?: "GTask" } & TaskFragmentFragment>;
 };
 
@@ -2988,17 +3007,17 @@ export type GTaskResolvers<Context = any, ParentType = GTask> = {
   isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   myActions?: Resolver<Array<Maybe<TaskActions>>, ParentType, Context>;
   created?: Resolver<Scalars["DateTime"], ParentType, Context>;
-  finished?: Resolver<Scalars["DateTime"], ParentType, Context>;
+  finished?: Resolver<Maybe<Scalars["DateTime"]>, ParentType, Context>;
   progress?: Resolver<Scalars["Float"], ParentType, Context>;
   result?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  type?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  who?: Resolver<Maybe<User>, ParentType, Context>;
   residentOn?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
   errorInfo?: Resolver<
     Maybe<Array<Maybe<Scalars["String"]>>>,
     ParentType,
     Context
   >;
-  status?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  status?: Resolver<TaskStatus, ParentType, Context>;
   objectRef?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
   objectType?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
 };
@@ -3979,6 +3998,7 @@ export const TaskFragmentFragmentDoc = gql`
     residentOn
     objectRef
     objectType
+    errorInfo
   }
 `;
 export const AbstractVMFragmentFragmentDoc = gql`
@@ -5683,6 +5703,26 @@ export function useTaskInfoQuery(
     TaskInfoDocument,
     baseOptions
   );
+}
+export const TaskInfoUpdateDocument = gql`
+  subscription TaskInfoUpdate($ref: ID!) {
+    task(ref: $ref) {
+      ...TaskFragment
+    }
+  }
+  ${TaskFragmentFragmentDoc}
+`;
+
+export function useTaskInfoUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    TaskInfoUpdateSubscription,
+    TaskInfoUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    TaskInfoUpdateSubscription,
+    TaskInfoUpdateSubscriptionVariables
+  >(TaskInfoUpdateDocument, baseOptions);
 }
 export const TemplateInfoDocument = gql`
   query TemplateInfo($ref: ID!) {

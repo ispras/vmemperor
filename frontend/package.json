@@ -291,6 +291,7 @@
     "react-router-redux": "5.0.0-alpha.9",
     "react-select": "^2.4.2",
     "react-spinners": "^0.3.2",
+    "react-textarea-autosize": "^7.1.0",
     "react-toastify": "^4.5.2",
     "react-toggle-switch": "^3.0.4",
     "react-virtualized-select": "^3.1.3",
