@@ -89,7 +89,7 @@ const PlaybookWatcher = ({taskId}: Props) => {
     </ListGroupItem>
     <ListGroupItem>
       <ListGroupItemHeading>
-        Result
+        Exit code
       </ListGroupItemHeading>
       <ListGroupItemText>
         {task.result}

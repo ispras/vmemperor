@@ -63,13 +63,13 @@ class CustomTask:
             self.set_status(status='cancelling')
             handler()
             self.set_status(status='cancelled')
-                    
+
         Task.CancelHandlers[self.id] = handler_with_status
 
     def unset_cancel_handler(self):
         del Task.CancelHandlers[self.id]
 
     def set_name_description(self, name_description):
-        record = {"ref": self.id, name_description: name_description}
+        record = {"ref": self.id, "name_description": name_description}
         CHECK_ER(re.db.table(Task.db_table_name).insert(record, conflict='update').run())
 
