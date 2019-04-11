@@ -1,15 +1,18 @@
-import React, {Fragment, useMemo} from 'react';
-import {Button, Card, CardBody, CardFooter, CardSubtitle, CardText, CardTitle, Col, Label, Row} from 'reactstrap';
+import React, {Fragment} from 'react';
+import {Card, CardBody, CardFooter, CardSubtitle, CardText, CardTitle, Col, Label, Row} from 'reactstrap';
 import FullHeightCard from '../../../components/FullHeightCard';
 import {VM_STATE_RUNNING} from "../../../containers/App/constants";
 import {FormattedMessage} from 'react-intl';
 import messages from '../messages';
 import Playbooks from "../../../containers/Playbooks";
 import {
-  DomainType,
   PowerState,
-  ShutdownForce, useRebootVmMutation, useShutdownVMMutation, useStartVMMutation, useVMEditOptionsMutation,
-  VMActions, VMInfoFragmentFragment,
+  ShutdownForce,
+  useRebootVmMutation,
+  useShutdownVMMutation,
+  useStartVMMutation,
+  VMActions,
+  VMInfoFragmentFragment,
 } from "../../../generated-models";
 
 
@@ -173,12 +176,14 @@ const Overview = ({vm}: Props) => {
           </Card>
         </Col>
       </Row>
-      <Row>
-        <Col>
-          <Playbooks
-            vms={[vm.ref]}/>
-        </Col>
-      </Row>
+      {vm.myActions.includes(VMActions.launch_playbook) && (
+        <Row>
+          <Col>
+            <Playbooks
+              vms={[vm.ref]}/>
+          </Col>
+        </Row>
+      )}
     </Fragment>
 
   );
