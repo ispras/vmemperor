@@ -30,10 +30,17 @@ def set_install_options(input: TemplateInput, tmpl : Template):
                 'arch': None,
                 'install_repository': None
             }
+        distro = os.get_distro()
+        if distro:
+            distro = distro.value
+
+        arch = os.get_arch()
+        if arch:
+            arch = arch.value
         return {
-            'distro': os.get_distro(),
+            'distro': distro,
             'release': os.get_release(),
-            'arch': os.get_arch(),
+            'arch': arch,
             'install_repository': os.get_install_repository(),
         }
 
@@ -105,10 +112,8 @@ class TemplateCloneMutation(graphene.Mutation):
             new_template = Template(xen=ctx.xen, ref=result)
             new_template.manage_actions(Template.Actions.ALL, user=user)
 
-        method = partial(tmpl.async_clone, name_label)
-        task_id = AsyncMutationMethod.call(method, info.context,  post_template_clone_hook)
+        task_id = AsyncMutationMethod.call(tmpl, 'clone', info.context, (name_label, ),  post_template_clone_hook)
         return TemplateCloneMutation(granted=True, task_id=task_id)
 
 
-TemplateDestroyMutation = create_async_mutation("TemplateDestroyMutation", "async_destroy", Template, Template.Actions.destroy)
-
+TemplateDestroyMutation = create_async_mutation("TemplateDestroyMutation", Template, Template.Actions.destroy)

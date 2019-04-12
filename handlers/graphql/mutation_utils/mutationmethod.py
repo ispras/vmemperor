@@ -116,15 +116,15 @@ class MutationHelper:
             action = item.access_action.serialize()[0]
             who = "users/" + self.ctx.user_authenticator.get_id() if not self.ctx.user_authenticator.is_admin() else None
             object_ref = self.mutable_object.ref
-            object_type = self.mutable_object.__class__.__name__
+            object_type = self.mutable_object.__class__
             task = {
                 "ref": new_uuid,
                 "object_ref": object_ref,
-                "object_type": object_type,
+                "object_type": object_type.__name__,
                 "action": action,
                 "error_info" : [],
                 "created": re.r.now().run(),
-                "name_label": f"{self.mutable_object.__class__.__name__}.{action}",
+                "name_label": f"{object_type.__name__}.{action}",
                 "name_description": "",
                 "uuid": new_uuid,
                 "progress": 1,

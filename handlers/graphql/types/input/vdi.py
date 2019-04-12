@@ -13,4 +13,4 @@ mutations = [
 
 VDIMutation = create_edit_mutation("VDIMutation", "vdi", VDIInput, VDI, mutations)
 
-VDIDestroyMutation = create_async_mutation("VDIDestroyMutation", "async_destroy", VDI, VDI.Actions.destroy)
+VDIDestroyMutation = create_async_mutation("VDIDestroyMutation", VDI, VDI.Actions.destroy)

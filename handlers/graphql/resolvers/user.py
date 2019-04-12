@@ -35,9 +35,14 @@ def resolve_user(field_name = "user_id"):
         from handlers.graphql.types.user import User
         if 'id' in kwargs:
             id = kwargs['ref']
+            if not id:
+                return None
         else:
             if field_name:
-                id = root[field_name]
+                try:
+                    id = root[field_name]
+                except KeyError:
+                    return None
             else:
                 id = root
 

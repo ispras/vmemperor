@@ -36,7 +36,6 @@ class XenObjectMeta(type):
 
         if name.startswith('async_'):
             name = name[6:]
-            from .task import Task
             def async_method(xen, *args, **kwargs):
                 try:
                     args = [cls.convert_dict(arg) for arg in args]
@@ -44,7 +43,6 @@ class XenObjectMeta(type):
                     api = getattr(async_method, cls.api_class)
                     attr = getattr(api, name)
                     ret = attr(*args, **kwargs)
-                    Task.add_pending_task(ret, cls, None, name, True)
                     return ret
 
                 except XenAPI.Failure as f:

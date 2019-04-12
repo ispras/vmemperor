@@ -1,4 +1,5 @@
 import collections
+import threading
 from collections import Mapping
 
 from serflag import SerFlag
@@ -306,11 +307,6 @@ class XenObject(metaclass=XenObjectMeta):
             args = [type(self).convert_dict(arg) for arg in args]
             try:
                 ret = attr(self.ref, *args, **kwargs)
-                if async_call:  # Add task to tasks table, providing vmemperor=True
-                    from .task import Task
-                    Task.add_pending_task(ret, type(self), self.ref, name, True)
-                    return ret
-
                 if isinstance(ret, dict):
                     ret = dict_deep_convert(ret)
 

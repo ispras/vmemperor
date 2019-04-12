@@ -13,4 +13,4 @@ mutations = [
 
 SRMutation = create_edit_mutation("SRMutation", "sr", SRInput, SR, mutations)
 
-SRDestroyMutation = create_async_mutation("SRDestroyMutation", "async_destroy", SR, SR.Actions.destroy)
+SRDestroyMutation = create_async_mutation("SRDestroyMutation", SR, SR.Actions.destroy)

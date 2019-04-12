@@ -39,11 +39,10 @@ def create_edit_mutation(name: str, argument_name: str, argument_type: Type[Basi
     })
 
 
-def create_async_mutation(name: str, method, access_class : type, action : SerFlag, post_mutation_hook =  None):
+def create_async_mutation(name: str, access_class: type, action: SerFlag, post_mutation_hook=None):
     """
     This method creates standard async mutations: one action per one mutation
     :param name:
-    :param method:
     :param action:
     :return:
     """
@@ -64,7 +63,7 @@ def create_async_mutation(name: str, method, access_class : type, action : SerFl
         return type(name, (),
                     dict(
                         granted=True,
-                        task_id=AsyncMutationMethod.call(getattr(object, method), info.context, post_mutation_hook)))
+                        task_id=AsyncMutationMethod.call(object, action.serialize()[0], info.context, post_mutation_hook=post_mutation_hook)))
 
     return type(name, (graphene.Mutation, ), {
     "task_id": task_id,

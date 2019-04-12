@@ -54,25 +54,25 @@ class VMStartMutation(graphene.Mutation):
         if power_state == "Halted":
             if host:
                 access_action = VM.Actions.start_on
-                method = 'async_start_on'
+                method = 'start_on'
             else:
                 access_action = VM.Actions.start
-                method = 'async_start'
+                method = 'start'
         elif power_state == 'Suspended':
             if host:
                 access_action = VM.Actions.resume_on
-                method = 'async_resume_on'
+                method = 'resume_on'
             else:
                 access_action = VM.Actions.resume
-                method = 'async_resume'
+                method = 'resume'
         else:
             return VMStartMutation(granted=False, reason=f"Power state is  {power_state}, expected: Halted or Suspended")
 
         if not vm.check_access(ctx.user_authenticator, access_action):
             return VMStartMutation(granted=False, reason=f"Access to action {access_action} for VM {vm.ref} is not granted")
 
-        callee = partial(getattr(vm, method), paused, force)
-        return VMStartMutation(granted=True, taskId=AsyncMutationMethod.call(callee, info.context))
+        # calling signature: method(paused, force)
+        return VMStartMutation(granted=True, taskId=AsyncMutationMethod.call(vm, method, info.context,  args=(paused, force)))
 
 
 
@@ -94,13 +94,13 @@ class VMShutdownMutation(graphene.Mutation):
     def mutate(root, info, ref, force: Optional[ShutdownForce] = None):
         if force is None:
             access_action = VM.Actions.shutdown
-            method = 'async_shutdown'
+            method = 'shutdown'
         elif force == ShutdownForce.HARD:
             access_action = VM.Actions.hard_shutdown
-            method = 'async_hard_shutdown'
+            method = 'hard_shutdown'
         elif force == ShutdownForce.CLEAN:
             access_action = VM.Actions.clean_shutdown
-            method = 'async_clean_shutdown'
+            method = 'clean_shutdown'
 
         @with_authentication(access_class=VM, access_action=access_action)
         def get_vm(*args, **kwargs):
@@ -109,8 +109,8 @@ class VMShutdownMutation(graphene.Mutation):
         vm = get_vm(root, info, ref, force)
         if not vm:
             return VMShutdownMutation(granted=False)
-        callee = getattr(vm, method)
-        return VMShutdownMutation(taskId=AsyncMutationMethod.call(callee, info.context), granted=True)
+
+        return VMShutdownMutation(taskId=AsyncMutationMethod.call(vm, method, info.context), granted=True)
 
 
 class VMRebootMutation(graphene.Mutation):
@@ -121,13 +121,13 @@ class VMRebootMutation(graphene.Mutation):
         force = graphene.Argument(ShutdownForce, description="Force reboot in a hard or clean way. Default: clean")
 
     @staticmethod
-    def mutate(root, info, ref, force: Optional[ShutdownForce] = ShutdownForce.CLEAN):
+    def mutate(root, info, ref, force: ShutdownForce = ShutdownForce.CLEAN):
         if force == ShutdownForce.HARD:
             access_action = VM.Actions.hard_reboot
-            method = 'async_hard_reboot'
+            method = 'hard_reboot'
         elif force == ShutdownForce.CLEAN:
             access_action = VM.Actions.clean_reboot
-            method = 'async_clean_reboot'
+            method = 'clean_reboot'
 
         @with_authentication(access_class=VM, access_action=access_action)
         def get_vm(*args, **kwargs):
@@ -137,8 +137,8 @@ class VMRebootMutation(graphene.Mutation):
         if not vm:
             return VMRebootMutation(granted=False)
 
-        callee = getattr(vm, method)
-        return VMRebootMutation(taskId=AsyncMutationMethod.call(callee, info.context), granted=True)
+
+        return VMRebootMutation(taskId=AsyncMutationMethod.call(vm, method, info.context), granted=True)
 
 
 class VMPauseMutation(graphene.Mutation):
@@ -158,10 +158,10 @@ class VMPauseMutation(graphene.Mutation):
         power_state = vm.get_power_state()
         if power_state == "Running":
             access_action = VM.Actions.pause
-            method = 'async_pause'
+            method = 'pause'
         elif power_state == "Paused":
             access_action = VM.Actions.unpause
-            method = 'async_unpause'
+            method = 'unpause'
         else:
             return VMPauseMutation(granted=False, reason=f"Power state is {power_state}, expected: Running or Paused")
 
@@ -169,10 +169,10 @@ class VMPauseMutation(graphene.Mutation):
         if not vm.check_access(ctx.user_authenticator, access_action):
             return VMPauseMutation(granted=False, reason=f"Access to action {access_action} for VM {vm.ref} is not granted")
 
-        return VMPauseMutation(taskId=AsyncMutationMethod.call(getattr(vm, method), info.context), granted=True)
+        return VMPauseMutation(taskId=AsyncMutationMethod.call(vm, method, info.context), granted=True)
 
 
-VMSuspendMutation = create_async_mutation("VMSuspendMutation", "async_suspend", VM, VM.Actions.suspend)
+VMSuspendMutation = create_async_mutation("VMSuspendMutation", VM, VM.Actions.suspend)
 
 class VMDestroyMutation(graphene.Mutation):
     taskId = graphene.ID(required=False, description="Deleting task ID")
@@ -187,7 +187,7 @@ class VMDestroyMutation(graphene.Mutation):
     @return_if_access_is_not_granted([("VM", "ref", VM.Actions.destroy)])
     def mutate(root, info, ref, VM):
         if VM.get_power_state() == "Halted":
-            return VMDestroyMutation(taskId=AsyncMutationMethod.call(VM.async_destroy, info.context), granted=True)
+            return VMDestroyMutation(taskId=AsyncMutationMethod.call(VM, 'destroy', info.context), granted=True)
         else:
             return VMDestroyMutation(granted=False, reason=f"Power state of VM {VM.ref} is not Halted, unable to delete")
 

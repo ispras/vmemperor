@@ -6,6 +6,7 @@ from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import ParseError
 
 from rethinkdb.errors import ReqlNonExistenceError
+from sentry_sdk import capture_message
 
 import constants.re as re
 from handlers.graphql.types.task import GTask, TaskActions
@@ -44,10 +45,14 @@ class Task(ACLXenObject):
     @classmethod
     def process_event(cls, xen, event):
         '''
-        Make changes to a RethinkDB-based cache, processing a XenServer event
+        This function processes Task events
 
-        :param event: event dict
-        :return: nothing
+        Implementation detail: in will only delete non-async task with 'pending' state. Those are created by
+        sync XAPI calls. They possess no interest for us. Failed  sync XAPI calls may have some interest though.
+        All other tasks are saved for further review.
+
+
+        XenCenter uses Async API when possible as does VMEmperor
         '''
         from rethinkdb_tools.helper import CHECK_ER
 
@@ -57,17 +62,10 @@ class Task(ACLXenObject):
                 record = re.db.table(cls.db_table_name).get(event['ref']).run()
                 if not record:
                     return
-                new_rec = {}
-                if record['status'] == 'pending':
-                    new_rec['status'] = 'success'
-                    new_rec['progress'] = 1
-                if 'finished' not in record:
-                    new_rec['finished'] = re.r.now().run()
 
+                if not record['name_label'].startswith("Async") or record['status'] == 'pending':
+                    re.db.table(Task.db_table_name).get(event['ref']).delete().run()
 
-                if new_rec:
-                    new_rec['ref'] = event['ref']
-                    CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
                 return
 
             record = event['snapshot']
@@ -77,8 +75,14 @@ class Task(ACLXenObject):
                 if not new_rec:
                     return
                 CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
-                if record['status'] in ['success', 'failure', 'cancelled'] and new_rec['vmemperor']: # only our tasks have non-empty 'access'
-                    xen.api.task.destroy(event['ref'])
+                if record['status'] in ('success', 'failure', 'cancelled'):
+                    try:
+                        task_rec = re.db.table(cls.db_table_name).get(event['ref']).pluck('vmemperor').run()
+                        if task_rec.get('vmemperor'):
+                            Task(xen=xen, ref=event['ref']).destroy()
+                    except ReqlNonExistenceError:
+                        pass
+
 
     @classmethod
     def create_db(cls, indexes=None):
@@ -99,10 +103,12 @@ class Task(ACLXenObject):
         re.db.table_create(cls.pending_db_table_name, durability="soft", primary_key="ref").run()
         re.db.table(cls.pending_db_table_name).wait().run()
 
+
     @classmethod
-    def add_pending_task(cls, ref: str, object_type: Type[XenObject], object_ref: Optional[str], action: str, vmemperor: bool):
+    def add_pending_task(cls, ref: str, object_type: Type[XenObject], object_ref: Optional[str], action: str, vmemperor: bool, who=None):
         '''
-        Add a pending task
+        Add a pending task.
+
         :param ref: Task ref
         :param object_type: Type of caller
         :param object_ref: Object ref of caller (None if it's called by method)
@@ -113,11 +119,20 @@ class Task(ACLXenObject):
         :return:
         '''
 
-        if re.db.table(cls.db_table_name).get(ref).run() is not None or\
-           re.db.table(cls.pending_db_table_name).get(ref).run() is not None:
-            return
+        current_vmemperor_status = re.db.table(cls.db_table_name).get(ref).run()
+        try:
+            if current_vmemperor_status['vmemperor'] and not vmemperor: # We don't need more than 1 record coming from current_operations. Skipping
+                return
 
-        def get_access_for_task(object_ref, object_type, action):
+            pending_vmemperor_status = re.db.table(cls.pending_db_table_name).get(ref).run()
+            if pending_vmemperor_status['vmemperor'] and not vmemperor:
+                return
+        except (KeyError, TypeError): # Either None or doesnt have vmemperor there
+            pass
+
+
+
+        def get_access_for_task(object_ref, object_type, action): #
             '''
             Returns access rights for task so that only those who have the following access action can view and cancel it
             :return:
@@ -139,17 +154,25 @@ class Task(ACLXenObject):
             else:
                 cls.pending_values_under_lock.add(ref)
 
+
+
         doc = {
             "ref": ref,
             "object_type": object_type.__name__,
             "object_ref": object_ref,
             "action": action,
-            "vmemperor": vmemperor,
-            "access": get_access_for_task(object_ref, object_type, action)
+            "access": get_access_for_task(object_ref, object_type, action),
         }
-        CHECK_ER(re.db.table(cls.pending_db_table_name).insert(doc).run())
+        if vmemperor:
+            doc.update({'vmemperor': vmemperor})
+        if who:
+            doc.update({'who': who})
+
+        CHECK_ER(re.db.table(cls.pending_db_table_name).insert(doc, conflict='update').run())
         with cls.global_pending_lock:
             cls.pending_values_under_lock.remove(ref)
+
+
 
     @classmethod
     def process_result(cls, result : str):
@@ -170,14 +193,13 @@ class Task(ACLXenObject):
         :param ref:
         :param record:
         '''
-        try: #  "vmemperor" field is used by Task.process_event
-            current_rec = re.db.table(cls.db_table_name).get(ref).pluck('ref', 'vmemperor').run()
-        except ReqlNonExistenceError:
-            pop_from_pending = re.db.table(cls.pending_db_table_name).get(ref).delete(return_changes=True).run()
-            if pop_from_pending['deleted'] != 1:
-                current_rec = {'vmemperor': False}
-            else:
-                current_rec = pop_from_pending['changes'][0]['old_val']
+
+
+        current_rec = {}
+
+        pop_from_pending = re.db.table(cls.pending_db_table_name).get(ref).delete(return_changes=True).run()
+        if pop_from_pending['deleted'] == 1:
+            current_rec.update(pop_from_pending['changes'][0]['old_val'])
 
         new_rec = super().process_record(xen, ref, record)
         new_rec['result'] = cls.process_result(new_rec['result'])
