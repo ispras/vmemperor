@@ -1,20 +1,14 @@
-import {useMemo, Fragment} from "react";
-import {FormikPropsValues, FormContext, Values} from "./props";
-import {Form, Field} from "formik";
-import {
-  faDatabase,
-  faHdd,
-  faMemory,
-  faMicrochip,
-  faServer,
-  faSignature,
-  faTag
-} from "@fortawesome/free-solid-svg-icons";
+import React, {Fragment, useMemo} from "react";
+import {FormikPropsValues, networkTypeOptions} from "./props";
+import {Field} from "formik";
+import {faDatabase, faHdd, faServer, faSignature, faTag} from "@fortawesome/free-solid-svg-icons";
 import Select from '../Select';
 import {
   DomainType,
   SRContentType,
-  StorageListFragmentFragment, useCurrentUserQuery,
+  StorageListFragmentFragment,
+  TemplateActions,
+  useCurrentUserQuery,
   useISOSCreateVMListQuery,
   useNetworkListQuery,
   usePoolListQuery,
@@ -24,7 +18,6 @@ import {
 import formatBytes from "../../utils/sizeUtils";
 import {useReactSelectFromRecord} from "../../hooks/form";
 import messages from "./messages";
-import React from "react";
 import {FormattedMessage} from "react-intl";
 import Input from '../Input';
 import {faComment} from "@fortawesome/free-solid-svg-icons/faComment";
@@ -32,7 +25,6 @@ import {faUser} from "@fortawesome/free-solid-svg-icons/faUser";
 import {faKey} from "@fortawesome/free-solid-svg-icons/faKey";
 import {Button} from "reactstrap";
 import CheckBoxComponent from "../Checkbox";
-import {networkTypeOptions} from "./props";
 import {faDesktop} from "@fortawesome/free-solid-svg-icons/faDesktop";
 import styled from "styled-components";
 import {Fields as ResourceFields} from '../AbstractVMSettingsComponents/fields';
@@ -46,7 +38,12 @@ const VMForm = (props: FormikPropsValues) => {
   const {data: {pools}} = usePoolListQuery();
   const poolOptions = useReactSelectFromRecord(pools);
 
-  const {data: {templates}} = useTemplateListQuery();
+  const templateList = useTemplateListQuery();
+  const templates = templateList.data.templates.filter(item => {
+    return item.myActions.includes(TemplateActions.create_vm)
+  });
+
+
   const templateOptions = useReactSelectFromRecord(templates);
 
   const {data: srData} = useStorageListQuery();
