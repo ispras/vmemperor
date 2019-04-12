@@ -53,8 +53,21 @@ class Task(ACLXenObject):
 
         if event['class'] in cls.EVENT_CLASSES:
             if event['operation'] == 'del':
-                #CHECK_ER(db.table(cls.db_table_name).get_all(event['ref'], index='ref').delete().run())
-                # Wait for evictions support in rethinkdb
+                # Set finished field if it's not set
+                record = re.db.table(cls.db_table_name).get(event['ref']).run()
+                if not record:
+                    return
+                new_rec = {}
+                if record['status'] == 'pending':
+                    new_rec['status'] = 'success'
+                    new_rec['progress'] = 1
+                if 'finished' not in record:
+                    new_rec['finished'] = re.r.now().run()
+
+
+                if new_rec:
+                    new_rec['ref'] = event['ref']
+                    CHECK_ER(re.db.table(cls.db_table_name).insert(new_rec, conflict='update').run())
                 return
 
             record = event['snapshot']

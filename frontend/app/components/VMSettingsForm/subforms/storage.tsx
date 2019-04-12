@@ -21,6 +21,7 @@ import {
   useVDIDetachMutation,
   VMInfoFragmentFragment, VMVBDFragmentFragment
 } from "../../../generated-models";
+import {useRouter} from "../../../hooks/router";
 
 interface DataType {
   userdevice: number;
@@ -74,6 +75,7 @@ interface Props {
   vm: VMInfoFragmentFragment
 }
 
+
 const Storage: React.FunctionComponent<Props> = ({vm}) => {
   const [vdiAttach, setVdiAttach] = useState(false);
   const [isoAttach, setIsoAttach] = useState(false);
@@ -81,17 +83,17 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
   const tableData: DataType[] = useMemo(() => {
     return vm.VBDs.map(
       ({ref, userdevice, type, currentlyAttached, bootable, VDI,}: VMVBDFragmentFragment): DataType => {
-      return {
-        ref,
-        userdevice,
-        type,
-        currentlyAttached,
-        bootable,
-        nameLabel: VDI ? VDI.nameLabel : "Unknown",
-        virtualSize: VDI ? VDI.virtualSize : null,
-        vdiRef: VDI ? VDI.ref : null,
-      }
-    })
+        return {
+          ref,
+          userdevice,
+          type,
+          currentlyAttached,
+          bootable,
+          nameLabel: VDI ? VDI.nameLabel : "Unknown",
+          virtualSize: VDI ? VDI.virtualSize : null,
+          vdiRef: VDI ? VDI.ref : null,
+        }
+      })
   }, [vm.VBDs]);
   const nonSelectable = useMemo(() =>
       tableData.filter(item => !item.vdiRef).map(item => item.ref),
@@ -113,6 +115,12 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
   const {data: {vdis}} = useStorageAttachVDIListQuery();
   const {data: {vdis: isos}} = useStorageAttachISOListQuery();
 
+  const router = useRouter();
+  const onDoubleClick = useCallback((e: React.MouseEvent, row: DataType) => {
+    if (row.vdiRef && row.vdiRef !== 'OpaqueRef:NULL')
+      router.history.push(`/vdi/${row.vdiRef}`);
+  }, [router]);
+
   return (
     <Fragment>
       <Row>
@@ -129,6 +137,7 @@ const Storage: React.FunctionComponent<Props> = ({vm}) => {
                   tableSelectOne={DiskAttachTableSelectDocument}
                   tableSelectionQuery={DiskAttachTableSelectionDocument}
                   nonSelectable={nonSelectable}
+                  onDoubleClick={onDoubleClick}
                 />
               </CardText>
             </CardBody>

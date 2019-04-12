@@ -7,6 +7,7 @@ from input.vm import AutoInstall, VMInput
 
 from handlers.graphql.types.vm import SetDisksEntry, VMActions, GVM
 from rethinkdb_tools.helper import CHECK_ER
+from xenadapter import SR
 from xenadapter.vif import VIF
 from xenadapter.abstractvm import AbstractVM, set_VCPUs, set_memory
 from xenadapter.helpers import use_logger
@@ -130,11 +131,10 @@ class VM (AbstractVM):
 
 
     @use_logger
-    def create(self, user, insert_log_entry, provision_config : Sequence[SetDisksEntry], net, options : Mapping, template : "Template",  override_pv_args=None, iso=None, install_params: AutoInstall=None):
+    def create(self, user, task : "CustomTask", provision_config : Sequence[SetDisksEntry], net, options : Mapping, template : "Template",  override_pv_args=None, iso=None, install_params: AutoInstall=None):
         '''
         Creates a virtual machine and installs an OS
-
-        :param insert_log_entry: A function of signature (uuid : str, state : str, message : str) -> None to insert log entries into task status
+        :param task: a task which logs VM creation process
         :param provision_config: For help see self.set_disks
         :param net: Network object
         :param iso: ISO Image object. If specified, will be mounted
@@ -143,12 +143,12 @@ class VM (AbstractVM):
         '''
 
         self.user = user
-        self.insert_log_entry = lambda *args, **kwargs: insert_log_entry(self.ref, *args, **kwargs)
+        self.task = task
         self.install = True
         self.remove_tags('vmemperor')
         self.manage_actions(self.Actions.ALL, user=user)
 
-        set_subtype_from_input("platform")(options, self, return_diff=False)
+        set_subtype_from_input("platform", return_diff=False)(options, self)
         set_VCPUs(options, self, return_diff=False)
         set_memory(options, self, return_diff=False)
         if 'name_label' in options:
@@ -161,8 +161,11 @@ class VM (AbstractVM):
             try:
                 iso.attach(self, sync=True)
             except XenAdapterAPIError as e:
-                self.insert_log_entry(self=self, state="failed-iso", message=e.message)
-                raise e
+                capture_exception(e)
+                task.set_status(progress=0.2, state='failure', error_info_add=f"Failed to attach {iso}: {e.message}")
+                return
+            else:
+                task.set_status(progress=0.2)
 
         device = self.install_guest_tools()
 
@@ -170,10 +173,10 @@ class VM (AbstractVM):
             try:
                 net.attach(self, sync=True)
             except XenAdapterAPIError as e:
-                self.insert_log_entry(self=self, state="failed-network", message=e.message)
-                raise e
+                capture_exception(e)
+                task.set_status(progress=0.3, state='failure', error_info_add=f"Failed to attach {net}: {e.message}")
             else:
-                self.log.debug(f"Plugged in network: {net}")
+                task.set_status(progress=0.3)
 
         else:
             if template.get_distro():
@@ -187,16 +190,17 @@ class VM (AbstractVM):
                 set_hvm_after_install = True
                 self.log.debug("fVM mode will automatically be switched to HVM after reboot")
 
+        task.set_status(progress=0.4)
 
-        self.insert_log_entry('installing', f'The OS is installing')
         try:
             self.start(False, True)
         except Exception as e:
-            try:
-                raise e
-            except XenAPI.Failure as f:
-                self.insert_log_entry('failed', f'Failed to start OS installation:  {f.details}')
-                raise XenAdapterAPIError(self.log, 'Failed to start OS installation', f.details)
+            capture_exception(e)
+            task.set_status(progress=0.5,status='failure', error_info_add=f'Failed to start VM: {str(e)}')
+        else:
+            task.set_status(progress=0.5)
+
+
 
         # Wait for installation to finish
         # remove PV_args
@@ -206,8 +210,7 @@ class VM (AbstractVM):
 
         state = self._get_power_state() # It's crucial to get that value not from cache but from VM itself.
         if state != 'Running':
-            self.insert_log_entry('failed',
-                                  f"failed to start VM for installation (low resources?). State: {state}")
+            task.set_status('failure', error_info_add="Failed to start VM ")
             return
 
         cur = re.db.table('vms').get(self.ref).changes().run()
@@ -229,35 +232,11 @@ class VM (AbstractVM):
 
             if change['new_val']['power_state'] == 'Halted':
                 try:
-                    self.log.debug(f"Halted: finalizing installation of {self}")
-                    self.insert_log_entry(self.ref, "installed", "OS successfully installed")
-                except XenAdapterAPIError as e:
-                    self.insert_log_entry(self.ref, "failed-after-install", e.message)
+                    task.set_status(status='success', progress=1)
                 finally:
                     break
 
         del self.install
-
-
-
-    @use_logger
-    def set_ram_size(self,  mbs):
-        try:
-            bs = str(1048576 * int(mbs))
-            #vm_ref = self.api.VM.get_by_uuid(vm_uuid)
-            static_min = self.get_memory_static_min()
-#            if bs <= static_min:
-#                self.set_memory_static_min(bs)
-            self.set_memory_limits(bs, bs, bs, bs)
-        except Exception as e:
-            #self.destroy_vm(vm_uuid, force=True)
-            try:
-                raise e
-            except XenAPI.Failure as f:
-                self.insert_log_entry(state='failed-ram', message= f.details)
-                raise XenAdapterAPIError(self.log, f"Failed to set ram size: {mbs} Mb", f.details)
-
-
 
 
     @use_logger
@@ -267,6 +246,8 @@ class VM (AbstractVM):
         :param provision_config:
         :return:
         '''
+        if not hasattr(self, 'install'):
+            raise AttributeError('self.install')
         from xenadapter.vbd import VBD
         from xenadapter.vdi import VDI
         i = 0
@@ -278,15 +259,9 @@ class VM (AbstractVM):
         try:
             provision.setProvisionSpec(self.xen.session, self.ref, specs)
         except Exception as e:
-            try:
-                raise e
-            except XenAPI.Failure as f:
-                msg = f'Failed to assign provision specification: {f.details}'
-                self.insert_log_entry(state='failed-provision-spec', message=f.details)
-                raise XenAdapterAPIError(self.log, msg)
-            finally:
-                pass
-                #self.destroy_vm(vm_uuid, force=True)
+            capture_exception(e)
+            self.task.set_status(status='failure', error_info_add=f'Failed to assign provision specification: {str(e)}')
+            return False
         else:
             self.log.debug(f"provision spec set {provision_config}")
 
@@ -297,18 +272,18 @@ class VM (AbstractVM):
             try:
                 raise e
             except XenAPI.Failure as f:
-                self.insert_log_entry(state='failed-provision', message=f.details)
                 raise XenAdapterAPIError(self.log, f"Failed to provision: {f.details}")
             finally:
                 pass
                 #self.destroy_vm(vm_uuid, force=True)
         else:
-            self.insert_log_entry(state='provisioned',message=str(specs))
+
 
             for item in self.get_VBDs():
                 vbd = VBD(self.xen, ref=item)
                 vdi = VDI(self.xen, ref=vbd.get_VDI())
-                if vdi.get_content_type() != 'iso':
+                sr = SR(self.xen, ref=vdi.get_SR())
+                if sr.get_content_type() != 'iso':
 
                     vdi.set_name_description(f"Created by VMEmperor for VM {self.ref} (UUID {self.get_uuid()})")
                     # After provision. manage disks actions

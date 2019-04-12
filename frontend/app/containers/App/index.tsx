@@ -1,5 +1,5 @@
 import React from 'react';
-import {Switch, Route} from 'react-router-dom';
+import {Switch, Route, BrowserRouter} from 'react-router-dom';
 
 import HomePage from '../../containers/HomePage/Loadable';
 import NotFoundPage from '../../containers/NotFoundPage/Loadable';
@@ -63,26 +63,28 @@ class App extends React.Component<{}, State> {
 `;
     return (
       <AppWrapper>
-        <Navbar/>
-        <Switch>
-          <Route exact path="/" component={HomePage}/>
-          <Route path="/login" component={LoginPage}/>
-          <PrivateRoute path="/vms" component={VMs}/>
-          <PrivateRoute path="/templates" component={Templates}/>
-          <PrivateRoute path="/template/:ref" component={TemplateSettings}/>
-          <PrivateRoute path="/vm/:ref" component={VMSettings}/>
-          <PrivateRoute path="/create-vm" component={CreateVM}/>
-          <PrivateRoute path="/logout" component={Logout}/>
-          {/*<PrivateRoute path="/desktop/:ref" component={VncView}/>*/}
-          <PrivateRoute path="/networks" component={Networks}/>
-          <PrivateRoute path="/network/:ref" component={NetworkSettings}/>
-          <PrivateRoute path="/isos" component={ISOs}/>
-          <PrivateRoute path="/vdis" component={VDIs}/>
-          <PrivateRoute path="/vdi/:ref" component={VDISettings}/>
-          <PrivateRoute path="/srs" component={SRs}/>
-          <PrivateRoute path="/sr/:ref" component={SRSettings}/>
-          <Route component={NotFoundPage}/>
-        </Switch>
+        <BrowserRouter>
+          <Navbar/>
+          <Switch>
+            <Route exact path="/" component={HomePage}/>
+            <Route path="/login" component={LoginPage}/>
+            <PrivateRoute path="/vms" component={VMs}/>
+            <PrivateRoute path="/templates" component={Templates}/>
+            <PrivateRoute path="/template/:ref" component={TemplateSettings}/>
+            <PrivateRoute path="/vm/:ref" component={VMSettings}/>
+            <PrivateRoute path="/create-vm" component={CreateVM}/>
+            <PrivateRoute path="/logout" component={Logout}/>
+            {/*<PrivateRoute path="/desktop/:ref" component={VncView}/>*/}
+            <PrivateRoute path="/networks" component={Networks}/>
+            <PrivateRoute path="/network/:ref" component={NetworkSettings}/>
+            <PrivateRoute path="/isos" component={ISOs}/>
+            <PrivateRoute path="/vdis" component={VDIs}/>
+            <PrivateRoute path="/vdi/:ref" component={VDISettings}/>
+            <PrivateRoute path="/srs" component={SRs}/>
+            <PrivateRoute path="/sr/:ref" component={SRSettings}/>
+            <Route component={NotFoundPage}/>
+          </Switch>
+        </BrowserRouter>
         <GlobalStyle/>
       </AppWrapper>
     );

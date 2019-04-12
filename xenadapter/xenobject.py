@@ -55,7 +55,7 @@ def set_subtype_from_input(field_name, return_diff=True):
     :return:
     '''
     thunk = set_subtype(field_name)
-    def setter(input, obj):
+    def setter(input : Mapping, obj: XenObject):
         if return_diff:
             old_val = getattr(obj, f'get_{field_name}')()
 

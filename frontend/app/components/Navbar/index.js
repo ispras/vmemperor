@@ -18,7 +18,7 @@ import {
 } from "reactstrap";
 
 import NavLink from "../../components/NavLink";
-import {NavLink as RouterNavLink} from "react-router-dom";
+import {BrowserRouter, NavLink as RouterNavLink} from "react-router-dom";
 import {FormattedMessage} from 'react-intl';
 import messages from "./messages";
 
@@ -56,6 +56,7 @@ class MyNavbar extends React.Component {
           <NavbarBrand tag={RouterNavLink} to={'/'}>
             VMEmperor
           </NavbarBrand>
+
           <NavbarToggler onClick={this.toggle}/>
           <Collapse isOpen={this.state.isOpen} navbar>
             <Nav className="mr-auto" navbar>

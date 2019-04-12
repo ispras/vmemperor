@@ -11,6 +11,7 @@ fragment VMVIFFragment on GVIF {
   ref
   MAC
   currentlyAttached
+  device
 }
 
 fragment VMVBDFragment on GVBD {

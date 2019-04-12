@@ -4,6 +4,7 @@ from typing import Sequence
 import graphene
 
 from connman import ReDBConnection
+from customtask.customtask import CustomTask
 from input.vm import AutoInstall, VMInput
 from utils.check_user_input import check_user_input
 from xenadapter.vdi import VDI
@@ -13,7 +14,6 @@ from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.resolvers import with_connection
 from authentication import with_authentication, return_if_access_is_not_granted
 from handlers.graphql.types.input.createvdi import NewVDI
-from handlers.graphql.types.tasks.createvm import CreateVMTask, CreateVMTaskList
 from xenadapter.sr import SR
 from xenadapter.template import Template
 import tornado.ioloop
@@ -24,15 +24,15 @@ from handlers.graphql.types.vm import SetDisksEntry
 def createvm(ctx : ContextProtocol, task_id : str, user: str,
              vm_options: VMInput,
              template: str, disks : Sequence[NewVDI], network : str, iso : str =None, install_params : AutoInstall =None,
-             Template: Template = None, VDI: VDI = None, Network: Network = None):
+             **kwargs):
 
 
     with ReDBConnection().get_connection():
         xen = XenAdapterPool().get()
-        task_list = CreateVMTaskList()
+        task = CustomTask(task_id, Template, template, "create_vm", ctx.user_authenticator)
         try:
             if not check_user_input(user, ctx.user_authenticator):
-                task_list.upsert_task(user, CreateVMTask(id=task_id, ref=None, state='error', message=f'permission denied'))
+                task.set_status(status='failure', error_info_add=f"Incorrect value of argument: 'user': {user}")
                 return
             def disk_entries():
                 for entry in disks:
@@ -41,25 +41,23 @@ def createvm(ctx : ContextProtocol, task_id : str, user: str,
                         yield SetDisksEntry(SR=sr, size=entry.size)
 
 
-            task_list.upsert_task(user, CreateVMTask(id=task_id, ref=template, state='cloning',
-                                                     message=f'cloning template'))
+
             # TODO: Check quotas here as well as in create vdi method
             provision_config = list(disk_entries())
-
-            vm = Template.clone_as_vm(f"New VM for {user}")
-
-            task_list.upsert_task(user, CreateVMTask(id=task_id, ref=vm.ref, state='cloned', message=f'cloned from {Template}'))
+            tmpl = kwargs['Template']
+            vm = tmpl.clone_as_vm(f"New VM for {user}")
+            task.set_status(progress=0.1, result=vm.ref)
 
             vm.create(
-                insert_log_entry=lambda ref, state, message: task_list.upsert_task(user, CreateVMTask(id=task_id, ref=ref, state=state, message=message)),
+                task=task,
                 provision_config=provision_config,
-                net=Network,
-                template=Template,
-                iso=VDI,
+                net=kwargs.get('Network'),
+                template=tmpl,
+                iso=kwargs.get('VDI'),
                 install_params=install_params,
                 user=user if not user == "root" else None,
                 options=vm_options
-        )
+            )
         finally:
             XenAdapterPool().unget(xen)
 

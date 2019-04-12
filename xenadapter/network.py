@@ -6,7 +6,6 @@ from xenadapter.helpers import use_logger
 
 
 class Network(ACLXenObject):
-    from .vm import VM
     api_class = "network"
     db_table_name = 'nets'
     EVENT_CLASSES = ['network']
@@ -19,7 +18,7 @@ class Network(ACLXenObject):
         super().__init__(xen, ref)
 
     @use_logger
-    def attach(self, vm: VM, sync=False) -> VIF:
+    def attach(self, vm: XenObject, sync=False) -> VIF:
         args = {'VM': vm.ref, 'network': self.ref , 'device': str(len(vm.get_VIFs())),
                 'MAC': '', 'MTU': self.get_MTU() , 'other_config': {},
                 'qos_algorithm_type': '', 'qos_algorithm_params': {}}
@@ -33,7 +32,7 @@ class Network(ACLXenObject):
 
 
     @use_logger
-    def detach(self, vm: VM):
+    def detach(self, vm: XenObject):
         for ref in vm.get_VIFs():
             vif = VIF(self.xen, ref)
             if vif.get_network() == self.ref:

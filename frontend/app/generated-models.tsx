@@ -1232,6 +1232,7 @@ export type TemplateAccessSet = {
 /** An enumeration. */
 export enum TemplateActions {
   rename = "rename",
+  create_vm = "create_vm",
   clone = "clone",
   destroy = "destroy",
   change_install_os_options = "change_install_os_options",
@@ -2574,7 +2575,7 @@ export type VDIListUpdateSubscription = { __typename?: "Subscription" } & {
 
 export type VMVIFFragmentFragment = { __typename?: "GVIF" } & Pick<
   GVIF,
-  "ip" | "ipv6" | "ref" | "MAC" | "currentlyAttached"
+  "ip" | "ipv6" | "ref" | "MAC" | "currentlyAttached" | "device"
 > & {
     network: Maybe<
       { __typename?: "GNetwork" } & Pick<GNetwork, "ref" | "nameLabel">
@@ -4117,6 +4118,7 @@ export const VMVIFFragmentFragmentDoc = gql`
     ref
     MAC
     currentlyAttached
+    device
   }
 `;
 export const VMVBDFragmentFragmentDoc = gql`

@@ -22,10 +22,12 @@ import {
   NetAttachTableSelectionDocument,
   useNetAttachTableSelectionQuery, useNetDetachMutation, VMInfoFragmentFragment, VMVIFFragmentFragment,
 } from "../../../generated-models";
+import {useRouter} from "../../../hooks/router";
 
 
 interface DataType {
   ref: string;
+  device: string;
   nameLabel: string;
   currentlyAttached: boolean;
   ip?: string;
@@ -36,7 +38,7 @@ interface DataType {
 type NetColumnType = ColumnType<DataType>;
 const columns: NetColumnType[] = [
   {
-    dataField: 'ref',
+    dataField: 'device',
     text: '#'
   },
   {
@@ -68,13 +70,14 @@ const Network: React.FunctionComponent<Props> = ({vm}) => {
   const [netAttach, setNetAttach] = useState(false);
 
   const tableData: DataType[] = useMemo(() => {
-    return vm.VIFs.map(({ref, ip, ipv6, network, MAC, currentlyAttached}: VMVIFFragmentFragment): DataType => {
+    return vm.VIFs.map(({ref, ip, ipv6, network, MAC, currentlyAttached, device}: VMVIFFragmentFragment): DataType => {
       return {
         ref,
         ip,
         nameLabel: network ? network.nameLabel : "Unknown network",
         MAC,
         currentlyAttached,
+        device,
         netRef: network ? network.ref : null,
       }
     })
@@ -83,6 +86,12 @@ const Network: React.FunctionComponent<Props> = ({vm}) => {
   const nonSelectable = useMemo(() =>
       tableData.filter(item => !item.netRef).map(item => item.ref),
     [tableData]);
+
+  const router = useRouter();
+  const onDoubleClick = useCallback((e: React.MouseEvent, row: DataType) => {
+    if (row && row.netRef !== 'OpaqueRef:NULL')
+      router.history.push(`/network/${row.netRef}`);
+  }, [router]);
 
   const onDetach = useNetDetachMutation();
   const tableSelection = useNetAttachTableSelectionQuery();
@@ -112,6 +121,7 @@ const Network: React.FunctionComponent<Props> = ({vm}) => {
                   tableSelectOne={NetAttachTableSelectDocument}
                   tableSelectionQuery={NetAttachTableSelectionDocument}
                   nonSelectable={nonSelectable}
+                  onDoubleClick={onDoubleClick}
                 />
               </CardText>
             </CardBody>
