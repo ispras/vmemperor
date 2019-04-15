@@ -30,7 +30,7 @@ class AsyncMutationMethod:
 
 
         with ReDBConnection().get_connection():
-            Task.add_pending_task(taskId, type(object), object.ref, action, True, who)
+            Task.add_pending_task(ctx.xen, taskId, type(object), object.ref, action, True, who)
             if post_mutation_hook:
                 cur = re.db.table('tasks').get_all(taskId).pluck('status', 'result').changes(include_initial=True).run()
                 while True:
@@ -41,7 +41,7 @@ class AsyncMutationMethod:
                     if val and val['status'] == 'success':
                         post_mutation_hook(val['result'], ctx)
                         return
-                    elif not val or  val['status'] not in ('pending', 'cancelling'):
+                    elif not val or val['status'] not in ('pending', 'cancelling'):
                         return
 
 

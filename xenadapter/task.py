@@ -1,7 +1,7 @@
 import threading
 import time
 from collections import Sequence
-from typing import Type, Optional, Dict, List, Callable, Union
+from typing import Type, Optional, Dict, List, Callable, Union, Mapping
 from xml.etree import ElementTree as ET
 from xml.etree.ElementTree import ParseError
 
@@ -9,6 +9,7 @@ from rethinkdb.errors import ReqlNonExistenceError
 from sentry_sdk import capture_message
 
 import constants.re as re
+from customtask.types import get_type_by_name_label
 from handlers.graphql.types.task import GTask, TaskActions
 from rethinkdb_tools.helper import CHECK_ER
 from xenadapter.aclxenobject import ACLXenObject
@@ -42,6 +43,12 @@ class Task(ACLXenObject):
     pending_values_under_lock = set()
     CancelHandlers : Dict[str, Callable[[], None]] = {}
 
+    minor_tasks = ('host.compute_memory_overhead')
+
+    @classmethod
+    def filter_record(cls, xen, record, ref):
+        return record['name_label'] not in cls.minor_tasks
+
     @classmethod
     def process_event(cls, xen, event):
         '''
@@ -63,7 +70,7 @@ class Task(ACLXenObject):
                 if not record:
                     return
 
-                if not record['name_label'].startswith("Async") or record['status'] == 'pending':
+                if not record['name_label'].startswith("Async") and record['status'] == 'pending':
                     re.db.table(Task.db_table_name).get(event['ref']).delete().run()
 
                 return
@@ -100,12 +107,14 @@ class Task(ACLXenObject):
         :return:
         '''
         super().create_db(indexes=indexes)
-        re.db.table_create(cls.pending_db_table_name, durability="soft", primary_key="ref").run()
+        re.db.table_create(cls.pending_db_table_name, durability="soft").run()
         re.db.table(cls.pending_db_table_name).wait().run()
+        re.db.table(cls.pending_db_table_name).index_create('ref').run()
+        re.db.table(cls.pending_db_table_name).index_wait('ref').run()
 
 
     @classmethod
-    def add_pending_task(cls, ref: str, object_type: Type[XenObject], object_ref: Optional[str], action: str, vmemperor: bool, who=None):
+    def add_pending_task(cls, xen, ref: str, object_type: Type[XenObject], object_ref: Optional[str], action: str, vmemperor: bool, who=None):
         '''
         Add a pending task.
 
@@ -121,11 +130,11 @@ class Task(ACLXenObject):
 
         current_vmemperor_status = re.db.table(cls.db_table_name).get(ref).run()
         try:
-            if current_vmemperor_status['vmemperor'] and not vmemperor: # We don't need more than 1 record coming from current_operations. Skipping
+            if 'vmemperor' in current_vmemperor_status and not vmemperor: # We don't need more than 1 record coming from current_operations. Skipping
                 return
 
             pending_vmemperor_status = re.db.table(cls.pending_db_table_name).get(ref).run()
-            if pending_vmemperor_status['vmemperor'] and not vmemperor:
+            if 'vmemperor' in pending_vmemperor_status and not vmemperor:
                 return
         except (KeyError, TypeError): # Either None or doesnt have vmemperor there
             pass
@@ -138,21 +147,16 @@ class Task(ACLXenObject):
             :return:
             '''
             if object_type.db_table_name == 'vifs': # Special case, map it onto VM's VMActions.attach_network
+                vif = object_type(xen=xen, ref=object_ref)
                 from xenadapter import VM
                 object_type = VM
-                object_ref = re.db.table(object_type.db_table_name).get(object_ref).pluck('VM').run()['VM']
+                object_ref = vif.get_VM()
                 action = "attach_network"
 
             userids = get_userids(object_type, object_ref, action)
 
 
             return {user: ['cancel', 'remove'] for user in userids}
-
-        with cls.global_pending_lock:
-            if ref in cls.pending_values_under_lock:
-                return
-            else:
-                cls.pending_values_under_lock.add(ref)
 
 
 
@@ -168,9 +172,7 @@ class Task(ACLXenObject):
         if who:
             doc.update({'who': who})
 
-        CHECK_ER(re.db.table(cls.pending_db_table_name).insert(doc, conflict='update').run())
-        with cls.global_pending_lock:
-            cls.pending_values_under_lock.remove(ref)
+        CHECK_ER(re.db.table(cls.pending_db_table_name).insert(doc).run())
 
 
 
@@ -182,6 +184,22 @@ class Task(ACLXenObject):
         except ParseError:
             return result
 
+    @classmethod
+    def choose_pending_record(cls, record, pending : Mapping) -> dict:
+        def get_type_from_name_label(name_label : str):
+            chunks = name_label.split('.')
+            if len(chunks) < 2:
+                raise ValueError('name_label')
+            if chunks[0] == 'Async':
+                del chunks[0]
+
+            return chunks[0]
+
+        for rec in pending:
+            if rec['object_type'] == get_type_from_name_label(record['name_label']):
+                return rec
+        else:
+            return {}
 
     @classmethod
     def process_record(cls, xen, ref, record):
@@ -196,10 +214,12 @@ class Task(ACLXenObject):
 
 
         current_rec = {}
+        query = re.db.table(cls.pending_db_table_name).get_all(ref, index='ref')
+        pending = query.coerce_to('array').run()
+        if len(pending) > 0:
+            current_rec.update(cls.choose_pending_record(record, pending))
+            query.delete().run()
 
-        pop_from_pending = re.db.table(cls.pending_db_table_name).get(ref).delete(return_changes=True).run()
-        if pop_from_pending['deleted'] == 1:
-            current_rec.update(pop_from_pending['changes'][0]['old_val'])
 
         new_rec = super().process_record(xen, ref, record)
         new_rec['result'] = cls.process_result(new_rec['result'])

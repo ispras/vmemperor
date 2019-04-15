@@ -196,7 +196,7 @@ class XenObject(metaclass=XenObjectMeta):
 
                 if 'current_operations' in record and isinstance(record['current_operations'], Mapping):
                     for ref, type in record['current_operations'].items():
-                        Task.add_pending_task(ref, cls, event['ref'], type, False)
+                        Task.add_pending_task(xen, ref, cls, event['ref'], type, False)
 
 
     @classmethod
