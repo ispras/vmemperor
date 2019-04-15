@@ -5,7 +5,8 @@ import graphene
 
 from connman import ReDBConnection
 from customtask.customtask import CustomTask
-from input.vm import AutoInstall, VMInput
+from handlers.graphql.types.input.newvdi import NewVDI
+from handlers.graphql.types.input.vm import AutoInstall, VMInput
 from utils.check_user_input import check_user_input
 from xenadapter.vdi import VDI
 from xenadapter.network import Network
@@ -13,7 +14,6 @@ from xenadapter.network import Network
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.resolvers import with_connection
 from authentication import with_authentication, return_if_access_is_not_granted
-from handlers.graphql.types.input.createvdi import NewVDI
 from xenadapter.sr import SR
 from xenadapter.template import Template
 import tornado.ioloop

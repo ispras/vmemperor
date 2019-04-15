@@ -3,43 +3,36 @@ import graphene
 from graphene import ObjectType
 
 from handlers.graphql.graphene_with_flags.schema import SchemaWithFlags
+from handlers.graphql.mutations.accessset import SRAccessSet, VDIAccessSet, NetAccessSet, VMAccessSet, TemplateAccessSet
+from handlers.graphql.mutations.attachnet import AttachNetworkMutation
+from handlers.graphql.mutations.attachvdi import AttachVDIMutation
+from handlers.graphql.mutations.createvm import CreateVM
+from handlers.graphql.mutations.network import NetworkMutation
+from handlers.graphql.mutations.vm import VMDestroyMutation, VMSuspendMutation, VMPauseMutation, VMRebootMutation, \
+    VMShutdownMutation, VMStartMutation, VMMutation
 from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.resolvers.vdi import resolve_vdis
-from handlers.graphql.types.input.network import NetworkMutation
-from handlers.graphql.types.input.sr import SRMutation, SRDestroyMutation
-from handlers.graphql.types.input.vdi import VDIMutation, VDIDestroyMutation
+from handlers.graphql.mutations.sr import SRMutation, SRDestroyMutation
+from handlers.graphql.mutations.vdi import VDIMutation, VDIDestroyMutation
 from handlers.graphql.utils.query import resolve_all, resolve_one
 from handlers.graphql.utils.subscription import MakeSubscription, resolve_xen_item_by_key, \
-    MakeSubscriptionWithChangeType, resolve_all_xen_items_changes, resolve_item_by_key, resolve_all_items_changes
+    MakeSubscriptionWithChangeType, resolve_all_xen_items_changes
 from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user, resolve_filter_users, \
     resolve_current_user
-from handlers.graphql.types.input.attachnet import AttachNetworkMutation
-from handlers.graphql.types.input.attachvdi import AttachVDIMutation
-from handlers.graphql.types.input.createvm import CreateVM
-from handlers.graphql.types.input.vm import VMMutation, VMStartMutation, VMShutdownMutation, VMRebootMutation, \
-    VMPauseMutation, VMDestroyMutation, VMSuspendMutation
-from handlers.graphql.types.input.accessset import VMAccessSet, NetAccessSet, VDIAccessSet, SRAccessSet, \
-    TemplateAccessSet
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
 from handlers.graphql.types.user import User, CurrentUserInformation
 from xenadapter.vdi import VDI
 from handlers.graphql.types.vdi import GVDI
-from xenadapter.host import Host
 from handlers.graphql.types.host import GHost
-from xenadapter.pool import Pool
 from handlers.graphql.types.pool import GPool
 from handlers.graphql.types.task import GTask
-from xenadapter.template import Template
 from handlers.graphql.types.template import GTemplate
-from xenadapter.sr import SR
 from handlers.graphql.types.sr import GSR
-from xenadapter.vm import VM
 from handlers.graphql.types.vm import GVM
-from xenadapter.network import Network
 from handlers.graphql.types.network import GNetwork
 
-from handlers.graphql.types.input.template import TemplateMutation, TemplateCloneMutation, TemplateDestroyMutation
+from handlers.graphql.mutations.template import TemplateMutation, TemplateCloneMutation, TemplateDestroyMutation
 from rethinkdb import RethinkDB
 
 r = RethinkDB()
@@ -122,6 +115,7 @@ class Mutation(ObjectType):
     sr = SRMutation.Field(description="Edit SR options")
     sr_access_set = SRAccessSet.Field(description="Set SR access rights")
     sr_delete = SRDestroyMutation.Field(description="Delete a SR")
+
 
 
 

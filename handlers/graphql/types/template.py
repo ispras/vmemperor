@@ -1,4 +1,4 @@
-from enum import auto, Enum
+from enum import auto
 
 import graphene
 from serflag import SerFlag
@@ -10,9 +10,10 @@ from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
 from handlers.graphql.types.access import create_access_type
 from handlers.graphql.types.gxenobjecttype import GXenObjectType, GSubtypeObjectType
-from input.template import GArch, GDistro
+from xentools.os import Arch, Distro
 
-
+GArch = graphene.Enum.from_enum(Arch)
+GDistro = graphene.Enum.from_enum(Distro)
 
 class TemplateActions(SerFlag):
     rename = auto()

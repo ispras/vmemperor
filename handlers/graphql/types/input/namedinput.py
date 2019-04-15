@@ -1,9 +1,6 @@
 import graphene
 
-from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.types.input.basicxeninput import BasicXenInput
-from handlers.graphql.types.objecttype import InputObjectType
-from xenadapter.xenobject import XenObject
 
 
 class NamedInput(BasicXenInput):

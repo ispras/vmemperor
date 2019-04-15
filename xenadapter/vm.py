@@ -3,7 +3,6 @@ from typing import Sequence, Mapping
 from rethinkdb.errors import ReqlTimeoutError, ReqlDriverError
 from sentry_sdk import capture_exception
 import constants.re as re
-from input.vm import AutoInstall, VMInput
 
 from handlers.graphql.types.vm import SetDisksEntry, VMActions, GVM
 from rethinkdb_tools.helper import CHECK_ER
@@ -13,7 +12,7 @@ from xenadapter.abstractvm import AbstractVM, set_VCPUs, set_memory
 from xenadapter.helpers import use_logger
 import XenAPI
 import provision
-from xenadapter.xenobject import set_subtype, set_subtype_from_input
+from xenadapter.xenobject import set_subtype_from_input
 from xenadapter.xenobjectdict import XenObjectDict
 
 from xentools.os import OSChooser
@@ -131,7 +130,7 @@ class VM (AbstractVM):
 
 
     @use_logger
-    def create(self, user, task : "CustomTask", provision_config : Sequence[SetDisksEntry], net, options : Mapping, template : "Template",  override_pv_args=None, iso=None, install_params: AutoInstall=None):
+    def create(self, user, task : "CustomTask", provision_config : Sequence[SetDisksEntry], net, options : Mapping, template : "Template",  override_pv_args=None, iso=None, install_params=None):
         '''
         Creates a virtual machine and installs an OS
         :param task: a task which logs VM creation process
@@ -291,7 +290,7 @@ class VM (AbstractVM):
 
 
     @use_logger
-    def os_detect(self, guest_device, install_params : AutoInstall):
+    def os_detect(self, guest_device, install_params):
         '''
         Detect auto installation OS and set VM's PV_args
         :param guest_device: Guest CD device name as seen by guest
