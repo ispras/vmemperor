@@ -22,7 +22,6 @@ from handlers.graphql.types.input.accessset import VMAccessSet, NetAccessSet, VD
     TemplateAccessSet
 from handlers.graphql.types.playbook import GPlaybook, resolve_playbooks, resolve_playbook
 from handlers.graphql.types.playbooklauncher import PlaybookLaunchMutation
-from handlers.graphql.types.tasks.playbook import PlaybookTask, PlaybookTaskList
 from handlers.graphql.types.user import User, CurrentUserInformation
 from xenadapter.vdi import VDI
 from handlers.graphql.types.vdi import GVDI
@@ -75,10 +74,6 @@ class Query(ObjectType):
 
     tasks = graphene.Field(graphene.List(GTask), required=True, resolver=resolve_all(), description="All Tasks available to user")
     task = graphene.Field(GTask, ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Single Task")
-    playbook_task = graphene.Field(PlaybookTask, id=graphene.NonNull(graphene.ID),
-                                   description="Info about a playbook task", resolver=PlaybookTaskList.resolve_one())
-    playbook_tasks = graphene.List(PlaybookTask, required=True,
-                                    description="All Playbook Tasks", resolver=PlaybookTaskList.resolve_all())
 
     console = graphene.Field(graphene.String, required=False, vm_ref=graphene.NonNull(graphene.ID),
                              description="One-time link to RFB console for a VM", resolver=resolve_console)
@@ -163,10 +158,6 @@ class Subscription(ObjectType):
     task = graphene.Field(MakeSubscription(GTask),  ref=graphene.NonNull(graphene.ID), description="Updates for a particular XenServer Task")
 
 
-    playbook_task = graphene.Field(MakeSubscription(PlaybookTask), id=graphene.NonNull(graphene.ID), description="Updates for a particular Playbook installation Task")
-    playbook_tasks = graphene.Field(MakeSubscriptionWithChangeType(PlaybookTask), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all Playbook Tasks")
-
-
     def resolve_task(*args, **kwargs):
         return resolve_xen_item_by_key()(*args, **kwargs)
 
@@ -211,12 +202,6 @@ class Subscription(ObjectType):
 
     def resolve_sr(*args, **kwargs):
         return resolve_xen_item_by_key()(*args, **kwargs)
-
-    def resolve_playbook_task(*args, **kwargs):
-        return resolve_item_by_key(PlaybookTask, 'tasks_playbooks', key_name='id')(*args, **kwargs)
-
-    def resolve_playbook_tasks(*args, **kwargs):
-        return resolve_all_items_changes(PlaybookTask, 'tasks_playbooks')(*args, **kwargs)
 
 
 

@@ -21,7 +21,6 @@ from connman import ReDBConnection
 from customtask.customtask import CustomTask
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.resolvers import with_connection
-from handlers.graphql.types.tasks.playbook import PlaybookTaskList, PlaybookTask, PlaybookTaskState
 from loggable import Loggable
 from playbookloader import PlaybookLoader
 from xenadapter import VIF

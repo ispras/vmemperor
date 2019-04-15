@@ -9,7 +9,6 @@ from rethinkdb.errors import ReqlNonExistenceError
 from sentry_sdk import capture_message
 
 import constants.re as re
-from customtask.types import get_type_by_name_label
 from handlers.graphql.types.task import GTask, TaskActions
 from rethinkdb_tools.helper import CHECK_ER
 from xenadapter.aclxenobject import ACLXenObject
