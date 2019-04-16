@@ -69,7 +69,7 @@ interface DateRange {
 
 interface MomentState extends DateRange {
   live: boolean;
-};
+}
 
 interface MomentAction {
   type: "setDateRange" | "liveOn" | "liveOff",
@@ -79,9 +79,9 @@ interface MomentAction {
 
 type MomentReducer = Reducer<MomentState, MomentAction>;
 
-type TaskListReducer = Reducer<State, ListAction>;
+type SelectionReducer = Reducer<State, ListAction>;
 
-const initialState: ReducerState<TaskListReducer> = {
+const initialSelectionState: ReducerState<SelectionReducer> = {
   selectedForSetAction: Set.of<string>(),
   selectedForTrash: Set.of<string>(),
 };
@@ -96,7 +96,7 @@ const initialMomentState: ReducerState<MomentReducer> = {
 const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const client = useApolloClient();
   const {data: {tasks}} = useTaskListQuery();
-  const reducer: TaskListReducer = (state, action) => {
+  const selectionReducer: SelectionReducer = (state, action) => {
     const [type, info] = getStateInfoAndTypeFromCache(action, readTask);
     return {
       ...selectedForSetActionReducer(type, info, state),
@@ -155,7 +155,7 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
 
 
   const {data: {selectedItems}} = useTaskTableSelectionQuery();
-  const [state, dispatch] = useReducer<TaskListReducer>(reducer, initialState);
+  const [selectionState, selectionDispatch] = useReducer<SelectionReducer>(selectionReducer, initialSelectionState);
   const [momentState, momentDispatch] = useReducer<MomentReducer>(momentReducer, initialMomentState);
   const subscription = useRef<ZenObservable.Subscription>(null);
 
@@ -247,7 +247,6 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
               client.cache.writeFragment<TaskFragmentFragment>({
                 fragment: TaskFragmentFragmentDoc,
                 id: dataIdFromObject(value),
-                //@ts-ignore
                 data: await getValue(value)
               });
             };
@@ -280,7 +279,7 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
     })
   }, []);
 
-  useTableSelectionInInternalState(dispatch, selectedItems);
+  useTableSelectionInInternalState(selectionDispatch, selectedItems);
   //@ts-ignore
   const columns: TaskColumnType[] = useMemo(() => {
     return [
@@ -339,7 +338,7 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
         tableSelectionQuery={TaskTableSelectionDocument}
         columns={columns}
         onDoubleClick={onDoubleClick}
-        onSelect={(key, isSelect) => dispatch({
+        onSelect={(key, isSelect) => selectionDispatch({
           type: isSelect ? "Add" : "Remove",
           ref: key,
         })}
