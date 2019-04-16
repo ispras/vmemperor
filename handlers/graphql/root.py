@@ -8,13 +8,17 @@ from handlers.graphql.mutations.attachnet import AttachNetworkMutation
 from handlers.graphql.mutations.attachvdi import AttachVDIMutation
 from handlers.graphql.mutations.createvm import CreateVM
 from handlers.graphql.mutations.network import NetworkMutation
+from handlers.graphql.mutations.task import TaskRemoveMutation
 from handlers.graphql.mutations.vm import VMDestroyMutation, VMSuspendMutation, VMPauseMutation, VMRebootMutation, \
     VMShutdownMutation, VMStartMutation, VMMutation
 from handlers.graphql.resolvers.console import resolve_console
+from handlers.graphql.resolvers.task import resolve_tasks
 from handlers.graphql.resolvers.vdi import resolve_vdis
 from handlers.graphql.mutations.sr import SRMutation, SRDestroyMutation
 from handlers.graphql.mutations.vdi import VDIMutation, VDIDestroyMutation
 from handlers.graphql.utils.query import resolve_all, resolve_one
+from handlers.graphql.utils.querybuilder.changefeedbuilder import ChangefeedBuilder
+from handlers.graphql.utils.querybuilder.querybuilder import QueryBuilder
 from handlers.graphql.utils.subscription import MakeSubscription, resolve_xen_item_by_key, \
     MakeSubscriptionWithChangeType, resolve_all_xen_items_changes
 from handlers.graphql.resolvers.user import resolve_users, resolve_groups, resolve_user, resolve_filter_users, \
@@ -65,7 +69,7 @@ class Query(ObjectType):
     playbook = graphene.Field(GPlaybook, id=graphene.ID(), resolver=resolve_playbook,
                               description="Information about Ansible-powered playbook")
 
-    tasks = graphene.Field(graphene.List(GTask), required=True, resolver=resolve_all(), description="All Tasks available to user")
+    tasks = graphene.Field(graphene.List(GTask), required=True, start_date = graphene.DateTime(), end_date = graphene.DateTime(),  resolver=resolve_tasks(), description="All Tasks available to user")
     task = graphene.Field(GTask, ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Single Task")
 
     console = graphene.Field(graphene.String, required=False, vm_ref=graphene.NonNull(graphene.ID),
@@ -116,7 +120,7 @@ class Mutation(ObjectType):
     sr_access_set = SRAccessSet.Field(description="Set SR access rights")
     sr_delete = SRDestroyMutation.Field(description="Delete a SR")
 
-
+    task_delete = TaskRemoveMutation.Field(description="Delete a Task")
 
 
 
@@ -150,6 +154,8 @@ class Subscription(ObjectType):
 
     tasks = graphene.Field(MakeSubscriptionWithChangeType(GTask), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all XenServer tasks")
     task = graphene.Field(MakeSubscription(GTask),  ref=graphene.NonNull(graphene.ID), description="Updates for a particular XenServer Task")
+
+
 
 
     def resolve_task(*args, **kwargs):

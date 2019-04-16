@@ -42,7 +42,7 @@ class Task(ACLXenObject):
     pending_values_under_lock = set()
     CancelHandlers : Dict[str, Callable[[], None]] = {}
 
-    minor_tasks = ('host.compute_memory_overhead')
+    minor_tasks = ('host.compute_memory_overhead', 'SR.scan')
 
     @classmethod
     def filter_record(cls, xen, record, ref):
@@ -75,7 +75,8 @@ class Task(ACLXenObject):
                 return
 
             record = event['snapshot']
-
+            if not cls.filter_record(xen, record, event['ref']):
+                return
             if event['operation'] in ('mod', 'add'):
                 new_rec = cls.process_record(xen, event['ref'], record)
                 if not new_rec:
@@ -237,3 +238,7 @@ class Task(ACLXenObject):
             self.CancelHandlers[self.ref]()
         elif self.ref.startswith("OpaqueRef"):
             self._cancel()
+
+    def remove(self):
+        CHECK_ER(re.db.table(Task.db_table_name).get(self.ref).delete().run())
+
