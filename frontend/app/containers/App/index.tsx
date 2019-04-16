@@ -25,6 +25,7 @@ import VDIs from "../VDIList";
 import VDISettings from "../VDISettings";
 import SRs from "../SRList";
 import SRSettings from "../SRSettings";
+import Tasks from "../TaskList";
 
 
 interface State {
@@ -82,6 +83,7 @@ class App extends React.Component<{}, State> {
             <PrivateRoute path="/vdi/:ref" component={VDISettings}/>
             <PrivateRoute path="/srs" component={SRs}/>
             <PrivateRoute path="/sr/:ref" component={SRSettings}/>
+            <PrivateRoute path="/history" component={Tasks}/>A
             <Route component={NotFoundPage}/>
           </Switch>
         </BrowserRouter>

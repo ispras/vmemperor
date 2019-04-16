@@ -17,7 +17,9 @@ export const useTableSelectionInInternalState = (dispatch: Dispatch<ListAction>,
   }, []);
 };
 
-export const useUpdateInternalStateWithSubscription = (dispatch: Dispatch<ListAction>, subscription: DocumentNode, listQueryDocument: DocumentNode, client: ApolloClient<any>, listFieldName) => {
+
+export const useUpdateInternalStateWithSubscription = (dispatch: Dispatch<ListAction>, subscription: DocumentNode, listQueryDocument: DocumentNode,
+                                                       client: ApolloClient<any>, listFieldName) => {
   useSubscription(subscription,
     {
       onSubscriptionData({client, subscriptionData}) {

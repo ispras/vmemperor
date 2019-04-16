@@ -44,6 +44,7 @@ import {
 } from "../../utils/componentStateReducers";
 import {buttonTitle} from "../../utils/buttonTitle";
 import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
+import {_readVM} from "./tools";
 
 
 type VMColumnType = ColumnType<VMListFragmentFragment>;
@@ -108,9 +109,7 @@ export default function ({history}: RouteComponentProps) {
   } = useVMListQuery();
 
   const client = useApolloClient();
-  const readVM = useCallback((ref) => {
-    return readCacheObject<VMListFragmentFragment>(client, VMListFragmentFragmentDoc, "GVM", ref);
-  }, [client]);
+  const readVM = _readVM(client);
 
   const reducer: VMListReducer = (state, action) => {
 

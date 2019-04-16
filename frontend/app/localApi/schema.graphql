@@ -6,7 +6,8 @@ enum Table {
   VDIs,
   SRs,
   NetworkAttach,
-  DiskAttach
+  DiskAttach,
+  Tasks
 }
 
 type VMSelectedIDLists {
@@ -14,6 +15,9 @@ type VMSelectedIDLists {
   stop: [ID]
   trash: [ID]
 }
+
+
+
 
 extend type Mutation {
   selectedItems(tableId: Table!,items: [ID!]!, isSelect: Boolean!): [ID!]

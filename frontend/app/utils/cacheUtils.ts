@@ -22,10 +22,9 @@ export interface CacheWatcher<T> {
   result: T;
 }
 
-interface ValueChange {
+interface ValueChange<ValueType extends Value> {
   changeType: Change,
-  value?: Value,
-  deleted?: Value,
+  value?: ValueType,
 }
 
 interface Value {
@@ -33,53 +32,53 @@ interface Value {
 }
 
 
-export function handleRemoveOfValueByRef<QueryType>(client: DataProxy,
-                                                    listQueryDocument: DocumentNode,
-                                                    listFieldName: string,
-                                                    value: Value) {
-  const query = client.readQuery<QueryType>({
+export function handleRemoveOfValueByRef(client: DataProxy,
+                                         listQueryDocument: DocumentNode,
+                                         listFieldName: string,
+                                         value: Value) {
+  const query = client.readQuery({
     query: listQueryDocument
   });
   const newQuery: typeof query = {
     ...query,
     [listFieldName]: query[listFieldName].filter(item => item.ref !== value.ref)
   };
-  client.writeQuery<QueryType>({
+  client.writeQuery({
     query: listQueryDocument,
     data: newQuery
   });
 }
 
-
-export function handleAddOfValue<QueryType>(client: DataProxy,
-                                            listQueryDocument: DocumentNode,
-                                            listFieldName: string,
-                                            value: Value) {
-  console.log("Removal of value: ", value.ref);
-  const query = client.readQuery<QueryType>({
+export function handleAddOfValue<QueryType extends Value>(client: DataProxy,
+                                                          listQueryDocument: DocumentNode,
+                                                          listFieldName: string,
+                                                          value: QueryType) {
+  const query = client.readQuery({
     query: listQueryDocument
   });
   const newQuery: typeof query = {
     ...query,
     [listFieldName]: [...query[listFieldName], value],
   };
-  client.writeQuery<QueryType>({
+  client.writeQuery({
     query: listQueryDocument,
     data: newQuery
   });
 }
 
-export function handleAddRemove(client: DataProxy,
-                                listQueryDocument: DocumentNode,
-                                listFieldName: string,
-                                change: ValueChange) {
+export function handleAddRemove<QueryType extends Value>(client: DataProxy,
+                                                         listQueryDocument: DocumentNode,
+                                                         listFieldName: string,
+                                                         change: ValueChange<QueryType>) {
+
   switch (change.changeType) {
     case Change.Add:
-      handleAddOfValue(client, listQueryDocument, listFieldName, change.value);
+      const value = change.value;
+      handleAddOfValue(client, listQueryDocument, listFieldName, value);
       break;
     case Change.Remove:
       console.log("Remove value: ", change);
-      handleRemoveOfValueByRef(client, listQueryDocument, listFieldName, change.value ? change.value : change.deleted);
+      handleRemoveOfValueByRef(client, listQueryDocument, listFieldName, change.value);
       break;
     default:
       break;

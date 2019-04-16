@@ -13,9 +13,11 @@ fragment TaskFragment on GTask {
   objectRef
   objectType
   errorInfo
+  isOwner
+  myActions
 }
 
-subscription Tasks{
+subscription TaskListUpdate{
   tasks {
     value{
       ...TaskFragment
@@ -25,8 +27,8 @@ subscription Tasks{
   }
 }
 
-query TaskList {
-  tasks {
+query TaskList($startDate: DateTime, $endDate: DateTime) {
+  tasks(startDate: $startDate, endDate: $endDate) {
     ...TaskFragment
   }
 }
@@ -40,5 +42,20 @@ query TaskInfo ($ref: ID!) {
 subscription TaskInfoUpdate($ref: ID!) {
   task(ref: $ref) {
     ...TaskFragment
+  }
+}
+
+mutation TaskDelete ($ref: ID!) {
+  taskDelete(ref: $ref) {
+    granted
+    reason
+    taskId
+  }
+}
+
+query VMForTaskList($vmRef: ID!) {
+  vm(ref: $vmRef) {
+    ref
+    nameLabel
   }
 }

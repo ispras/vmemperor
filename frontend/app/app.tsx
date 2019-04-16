@@ -234,6 +234,12 @@ const initializeCache = () => {
       data: {selectedItems: []}
     });
 
+  client.cache.writeQuery<SelectedItemsQueryQuery, SelectedItemsQueryQueryVariables>(
+    {
+      query: SelectedItemsQueryDocument,
+      variables: {tableId: Table.Tasks},
+      data: {selectedItems: []}
+    });
 
 };
 

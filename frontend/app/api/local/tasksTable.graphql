@@ -1,0 +1,11 @@
+query TaskTableSelection {
+  selectedItems(tableId: Tasks ) @client
+}
+
+mutation TaskTableSelect ($item: ID!, $isSelect: Boolean! ){
+  selectedItems(tableId: Tasks, items: [$item], isSelect: $isSelect) @client
+}
+
+mutation TaskTableSelectAll ($items: [ID!]!, $isSelect: Boolean! ){
+  selectedItems(tableId: Tasks, items: $items, isSelect: $isSelect) @client
+}

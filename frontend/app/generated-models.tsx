@@ -622,6 +622,8 @@ export type Mutation = {
   srAccessSet?: Maybe<SRAccessSet>;
   /** Delete a SR */
   srDelete?: Maybe<SRDestroyMutation>;
+  /** Delete a Task */
+  taskDelete?: Maybe<TaskRemoveMutation>;
   selectedItems?: Maybe<Array<Scalars["ID"]>>;
 };
 
@@ -758,6 +760,10 @@ export type MutationsrDeleteArgs = {
   ref: Scalars["ID"];
 };
 
+export type MutationtaskDeleteArgs = {
+  ref: Scalars["ID"];
+};
+
 export type MutationselectedItemsArgs = {
   tableId: Table;
   items: Array<Scalars["ID"]>;
@@ -846,34 +852,6 @@ export type PlaybookRequirements = {
   osVersion: Array<Maybe<OSVersion>>;
 };
 
-export type PlaybookTask = {
-  /** Playbook task ID */
-  id: Scalars["ID"];
-  /** Playbook ID */
-  playbookId: Scalars["ID"];
-  /** Playbook running state */
-  state: PlaybookTaskState;
-  /** Human-readable message: error description or return code */
-  message: Scalars["String"];
-};
-
-export type PlaybookTaskOrDeleted = PlaybookTask | Deleted;
-
-export type PlaybookTasksSubscription = {
-  /** Change type */
-  changeType: Change;
-  value: PlaybookTaskOrDeleted;
-};
-
-export enum PlaybookTaskState {
-  Preparing = "Preparing",
-  ConfigurationWarning = "ConfigurationWarning",
-  Error = "Error",
-  Running = "Running",
-  Finished = "Finished",
-  Unknown = "Unknown"
-}
-
 export enum PowerState {
   Halted = "Halted",
   Paused = "Paused",
@@ -920,10 +898,6 @@ export type Query = {
   tasks: Array<Maybe<GTask>>;
   /** Single Task */
   task?: Maybe<GTask>;
-  /** Info about a playbook task */
-  playbookTask?: Maybe<PlaybookTask>;
-  /** All Playbook Tasks */
-  playbookTasks: Array<Maybe<PlaybookTask>>;
   /** One-time link to RFB console for a VM */
   console?: Maybe<Scalars["String"]>;
   /** All registered users (excluding root) */
@@ -975,12 +949,13 @@ export type QueryplaybookArgs = {
   id?: Maybe<Scalars["ID"]>;
 };
 
-export type QuerytaskArgs = {
-  ref: Scalars["ID"];
+export type QuerytasksArgs = {
+  startDate?: Maybe<Scalars["DateTime"]>;
+  endDate?: Maybe<Scalars["DateTime"]>;
 };
 
-export type QueryplaybookTaskArgs = {
-  id: Scalars["ID"];
+export type QuerytaskArgs = {
+  ref: Scalars["ID"];
 };
 
 export type QueryconsoleArgs = {
@@ -1100,10 +1075,6 @@ export type Subscription = {
   tasks: GTasksSubscription;
   /** Updates for a particular XenServer Task */
   task?: Maybe<GTask>;
-  /** Updates for a particular Playbook installation Task */
-  playbookTask?: Maybe<PlaybookTask>;
-  /** Updates for all Playbook Tasks */
-  playbookTasks: PlaybookTasksSubscription;
 };
 
 /** All subscriptions must return  Observable */
@@ -1187,16 +1158,6 @@ export type SubscriptiontaskArgs = {
   ref: Scalars["ID"];
 };
 
-/** All subscriptions must return  Observable */
-export type SubscriptionplaybookTaskArgs = {
-  id: Scalars["ID"];
-};
-
-/** All subscriptions must return  Observable */
-export type SubscriptionplaybookTasksArgs = {
-  withInitials: Scalars["Boolean"];
-};
-
 export enum Table {
   VMS = "VMS",
   Templates = "Templates",
@@ -1205,7 +1166,8 @@ export enum Table {
   VDIs = "VDIs",
   SRs = "SRs",
   NetworkAttach = "NetworkAttach",
-  DiskAttach = "DiskAttach"
+  DiskAttach = "DiskAttach",
+  Tasks = "Tasks"
 }
 
 /** An enumeration. */
@@ -1215,6 +1177,14 @@ export enum TaskActions {
   NONE = "NONE",
   ALL = "ALL"
 }
+
+export type TaskRemoveMutation = {
+  /** always null, provided for compatibility */
+  taskId?: Maybe<Scalars["ID"]>;
+  /** Shows if access to task remove is granted */
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
+};
 
 /** An enumeration. */
 export enum TaskStatus {
@@ -1989,6 +1959,33 @@ export type SRTableSelectAllMutation = { __typename?: "Mutation" } & Pick<
   "selectedItems"
 >;
 
+export type TaskTableSelectionQueryVariables = {};
+
+export type TaskTableSelectionQuery = { __typename?: "Query" } & Pick<
+  Query,
+  "selectedItems"
+>;
+
+export type TaskTableSelectMutationVariables = {
+  item: Scalars["ID"];
+  isSelect: Scalars["Boolean"];
+};
+
+export type TaskTableSelectMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
+  "selectedItems"
+>;
+
+export type TaskTableSelectAllMutationVariables = {
+  items: Array<Scalars["ID"]>;
+  isSelect: Scalars["Boolean"];
+};
+
+export type TaskTableSelectAllMutation = { __typename?: "Mutation" } & Pick<
+  Mutation,
+  "selectedItems"
+>;
+
 export type TemplateTableSelectionQueryVariables = {};
 
 export type TemplateTableSelectionQuery = { __typename?: "Query" } & Pick<
@@ -2196,32 +2193,6 @@ export type PlaybookListQuery = { __typename?: "Query" } & {
   >;
 };
 
-export type PlaybookTaskUpdateSubscriptionVariables = {
-  id: Scalars["ID"];
-};
-
-export type PlaybookTaskUpdateSubscription = { __typename?: "Subscription" } & {
-  playbookTask: Maybe<
-    { __typename?: "PlaybookTask" } & Pick<
-      PlaybookTask,
-      "id" | "state" | "message"
-    >
-  >;
-};
-
-export type PlaybookTaskQueryVariables = {
-  id: Scalars["ID"];
-};
-
-export type PlaybookTaskQuery = { __typename?: "Query" } & {
-  playbookTask: Maybe<
-    { __typename?: "PlaybookTask" } & Pick<
-      PlaybookTask,
-      "id" | "state" | "message"
-    >
-  >;
-};
-
 export type PoolListFragmentFragment = { __typename?: "GPool" } & Pick<
   GPool,
   "nameLabel" | "nameDescription" | "ref" | "uuid"
@@ -2372,18 +2343,23 @@ export type TaskFragmentFragment = { __typename?: "GTask" } & Pick<
   | "objectRef"
   | "objectType"
   | "errorInfo"
+  | "isOwner"
+  | "myActions"
 >;
 
-export type TasksSubscriptionVariables = {};
+export type TaskListUpdateSubscriptionVariables = {};
 
-export type TasksSubscription = { __typename?: "Subscription" } & {
+export type TaskListUpdateSubscription = { __typename?: "Subscription" } & {
   tasks: { __typename?: "GTasksSubscription" } & Pick<
     GTasksSubscription,
     "changeType"
   > & { value: TaskFragmentFragment | DeletedFragmentFragment };
 };
 
-export type TaskListQueryVariables = {};
+export type TaskListQueryVariables = {
+  startDate?: Maybe<Scalars["DateTime"]>;
+  endDate?: Maybe<Scalars["DateTime"]>;
+};
 
 export type TaskListQuery = { __typename?: "Query" } & {
   tasks: Array<Maybe<{ __typename?: "GTask" } & TaskFragmentFragment>>;
@@ -2403,6 +2379,27 @@ export type TaskInfoUpdateSubscriptionVariables = {
 
 export type TaskInfoUpdateSubscription = { __typename?: "Subscription" } & {
   task: Maybe<{ __typename?: "GTask" } & TaskFragmentFragment>;
+};
+
+export type TaskDeleteMutationVariables = {
+  ref: Scalars["ID"];
+};
+
+export type TaskDeleteMutation = { __typename?: "Mutation" } & {
+  taskDelete: Maybe<
+    { __typename?: "TaskRemoveMutation" } & Pick<
+      TaskRemoveMutation,
+      "granted" | "reason" | "taskId"
+    >
+  >;
+};
+
+export type VMForTaskListQueryVariables = {
+  vmRef: Scalars["ID"];
+};
+
+export type VMForTaskListQuery = { __typename?: "Query" } & {
+  vm: Maybe<{ __typename?: "GVM" } & Pick<GVM, "ref" | "nameLabel">>;
 };
 
 export type TemplateSettingsFragmentFragment = {
@@ -3358,6 +3355,12 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
     Context,
     MutationsrDeleteArgs
   >;
+  taskDelete?: Resolver<
+    Maybe<TaskRemoveMutation>,
+    ParentType,
+    Context,
+    MutationtaskDeleteArgs
+  >;
   selectedItems?: Resolver<
     Maybe<Array<Scalars["ID"]>>,
     ParentType,
@@ -3412,28 +3415,6 @@ export type PlaybookRequirementsResolvers<
   osVersion?: Resolver<Array<Maybe<OSVersion>>, ParentType, Context>;
 };
 
-export type PlaybookTaskResolvers<Context = any, ParentType = PlaybookTask> = {
-  id?: Resolver<Scalars["ID"], ParentType, Context>;
-  playbookId?: Resolver<Scalars["ID"], ParentType, Context>;
-  state?: Resolver<PlaybookTaskState, ParentType, Context>;
-  message?: Resolver<Scalars["String"], ParentType, Context>;
-};
-
-export type PlaybookTaskOrDeletedResolvers<
-  Context = any,
-  ParentType = PlaybookTaskOrDeleted
-> = {
-  __resolveType: TypeResolveFn<"PlaybookTask" | "Deleted", ParentType, Context>;
-};
-
-export type PlaybookTasksSubscriptionResolvers<
-  Context = any,
-  ParentType = PlaybookTasksSubscription
-> = {
-  changeType?: Resolver<Change, ParentType, Context>;
-  value?: Resolver<PlaybookTaskOrDeleted, ParentType, Context>;
-};
-
 export type PvDriversVersionResolvers<
   Context = any,
   ParentType = PvDriversVersion
@@ -3461,15 +3442,8 @@ export type QueryResolvers<Context = any, ParentType = Query> = {
   vdi?: Resolver<Maybe<GVDI>, ParentType, Context, QueryvdiArgs>;
   playbooks?: Resolver<Array<Maybe<GPlaybook>>, ParentType, Context>;
   playbook?: Resolver<Maybe<GPlaybook>, ParentType, Context, QueryplaybookArgs>;
-  tasks?: Resolver<Array<Maybe<GTask>>, ParentType, Context>;
+  tasks?: Resolver<Array<Maybe<GTask>>, ParentType, Context, QuerytasksArgs>;
   task?: Resolver<Maybe<GTask>, ParentType, Context, QuerytaskArgs>;
-  playbookTask?: Resolver<
-    Maybe<PlaybookTask>,
-    ParentType,
-    Context,
-    QueryplaybookTaskArgs
-  >;
-  playbookTasks?: Resolver<Array<Maybe<PlaybookTask>>, ParentType, Context>;
   console?: Resolver<
     Maybe<Scalars["String"]>,
     ParentType,
@@ -3630,18 +3604,15 @@ export type SubscriptionResolvers<Context = any, ParentType = Subscription> = {
     Context,
     SubscriptiontaskArgs
   >;
-  playbookTask?: SubscriptionResolver<
-    Maybe<PlaybookTask>,
-    ParentType,
-    Context,
-    SubscriptionplaybookTaskArgs
-  >;
-  playbookTasks?: SubscriptionResolver<
-    PlaybookTasksSubscription,
-    ParentType,
-    Context,
-    SubscriptionplaybookTasksArgs
-  >;
+};
+
+export type TaskRemoveMutationResolvers<
+  Context = any,
+  ParentType = TaskRemoveMutation
+> = {
+  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
+  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
 };
 
 export type TemplateAccessSetResolvers<
@@ -3826,9 +3797,6 @@ export type Resolvers<Context = any> = {
   Platform?: PlatformResolvers<Context>;
   PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers<Context>;
   PlaybookRequirements?: PlaybookRequirementsResolvers<Context>;
-  PlaybookTask?: PlaybookTaskResolvers<Context>;
-  PlaybookTaskOrDeleted?: PlaybookTaskOrDeletedResolvers;
-  PlaybookTasksSubscription?: PlaybookTasksSubscriptionResolvers<Context>;
   PvDriversVersion?: PvDriversVersionResolvers<Context>;
   Query?: QueryResolvers<Context>;
   SoftwareVersion?: SoftwareVersionResolvers<Context>;
@@ -3836,6 +3804,7 @@ export type Resolvers<Context = any> = {
   SRDestroyMutation?: SRDestroyMutationResolvers<Context>;
   SRMutation?: SRMutationResolvers<Context>;
   Subscription?: SubscriptionResolvers<Context>;
+  TaskRemoveMutation?: TaskRemoveMutationResolvers<Context>;
   TemplateAccessSet?: TemplateAccessSetResolvers<Context>;
   TemplateCloneMutation?: TemplateCloneMutationResolvers<Context>;
   TemplateDestroyMutation?: TemplateDestroyMutationResolvers<Context>;
@@ -4000,6 +3969,8 @@ export const TaskFragmentFragmentDoc = gql`
     objectRef
     objectType
     errorInfo
+    isOwner
+    myActions
   }
 `;
 export const AbstractVMFragmentFragmentDoc = gql`
@@ -5053,6 +5024,56 @@ export function useSRTableSelectAllMutation(
     SRTableSelectAllMutationVariables
   >(SRTableSelectAllDocument, baseOptions);
 }
+export const TaskTableSelectionDocument = gql`
+  query TaskTableSelection {
+    selectedItems(tableId: Tasks) @client
+  }
+`;
+
+export function useTaskTableSelectionQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<
+    TaskTableSelectionQueryVariables
+  >
+) {
+  return ReactApolloHooks.useQuery<
+    TaskTableSelectionQuery,
+    TaskTableSelectionQueryVariables
+  >(TaskTableSelectionDocument, baseOptions);
+}
+export const TaskTableSelectDocument = gql`
+  mutation TaskTableSelect($item: ID!, $isSelect: Boolean!) {
+    selectedItems(tableId: Tasks, items: [$item], isSelect: $isSelect) @client
+  }
+`;
+
+export function useTaskTableSelectMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    TaskTableSelectMutation,
+    TaskTableSelectMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    TaskTableSelectMutation,
+    TaskTableSelectMutationVariables
+  >(TaskTableSelectDocument, baseOptions);
+}
+export const TaskTableSelectAllDocument = gql`
+  mutation TaskTableSelectAll($items: [ID!]!, $isSelect: Boolean!) {
+    selectedItems(tableId: Tasks, items: $items, isSelect: $isSelect) @client
+  }
+`;
+
+export function useTaskTableSelectAllMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    TaskTableSelectAllMutation,
+    TaskTableSelectAllMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    TaskTableSelectAllMutation,
+    TaskTableSelectAllMutationVariables
+  >(TaskTableSelectAllDocument, baseOptions);
+}
 export const TemplateTableSelectionDocument = gql`
   query TemplateTableSelection {
     selectedItems(tableId: Templates) @client
@@ -5390,45 +5411,6 @@ export function usePlaybookListQuery(
     PlaybookListQueryVariables
   >(PlaybookListDocument, baseOptions);
 }
-export const PlaybookTaskUpdateDocument = gql`
-  subscription PlaybookTaskUpdate($id: ID!) {
-    playbookTask(id: $id) {
-      id
-      state
-      message
-    }
-  }
-`;
-
-export function usePlaybookTaskUpdateSubscription(
-  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
-    PlaybookTaskUpdateSubscription,
-    PlaybookTaskUpdateSubscriptionVariables
-  >
-) {
-  return ReactApolloHooks.useSubscription<
-    PlaybookTaskUpdateSubscription,
-    PlaybookTaskUpdateSubscriptionVariables
-  >(PlaybookTaskUpdateDocument, baseOptions);
-}
-export const PlaybookTaskDocument = gql`
-  query PlaybookTask($id: ID!) {
-    playbookTask(id: $id) {
-      id
-      state
-      message
-    }
-  }
-`;
-
-export function usePlaybookTaskQuery(
-  baseOptions?: ReactApolloHooks.QueryHookOptions<PlaybookTaskQueryVariables>
-) {
-  return ReactApolloHooks.useQuery<
-    PlaybookTaskQuery,
-    PlaybookTaskQueryVariables
-  >(PlaybookTaskDocument, baseOptions);
-}
 export const PoolListDocument = gql`
   query PoolList {
     pools {
@@ -5647,8 +5629,8 @@ export function useSuspendVMMutation(
     SuspendVMMutationVariables
   >(SuspendVMDocument, baseOptions);
 }
-export const TasksDocument = gql`
-  subscription Tasks {
+export const TaskListUpdateDocument = gql`
+  subscription TaskListUpdate {
     tasks {
       value {
         ...TaskFragment
@@ -5661,20 +5643,20 @@ export const TasksDocument = gql`
   ${DeletedFragmentFragmentDoc}
 `;
 
-export function useTasksSubscription(
+export function useTaskListUpdateSubscription(
   baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
-    TasksSubscription,
-    TasksSubscriptionVariables
+    TaskListUpdateSubscription,
+    TaskListUpdateSubscriptionVariables
   >
 ) {
   return ReactApolloHooks.useSubscription<
-    TasksSubscription,
-    TasksSubscriptionVariables
-  >(TasksDocument, baseOptions);
+    TaskListUpdateSubscription,
+    TaskListUpdateSubscriptionVariables
+  >(TaskListUpdateDocument, baseOptions);
 }
 export const TaskListDocument = gql`
-  query TaskList {
-    tasks {
+  query TaskList($startDate: DateTime, $endDate: DateTime) {
+    tasks(startDate: $startDate, endDate: $endDate) {
       ...TaskFragment
     }
   }
@@ -5725,6 +5707,44 @@ export function useTaskInfoUpdateSubscription(
     TaskInfoUpdateSubscription,
     TaskInfoUpdateSubscriptionVariables
   >(TaskInfoUpdateDocument, baseOptions);
+}
+export const TaskDeleteDocument = gql`
+  mutation TaskDelete($ref: ID!) {
+    taskDelete(ref: $ref) {
+      granted
+      reason
+      taskId
+    }
+  }
+`;
+
+export function useTaskDeleteMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    TaskDeleteMutation,
+    TaskDeleteMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    TaskDeleteMutation,
+    TaskDeleteMutationVariables
+  >(TaskDeleteDocument, baseOptions);
+}
+export const VMForTaskListDocument = gql`
+  query VMForTaskList($vmRef: ID!) {
+    vm(ref: $vmRef) {
+      ref
+      nameLabel
+    }
+  }
+`;
+
+export function useVMForTaskListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<VMForTaskListQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<
+    VMForTaskListQuery,
+    VMForTaskListQueryVariables
+  >(VMForTaskListDocument, baseOptions);
 }
 export const TemplateInfoDocument = gql`
   query TemplateInfo($ref: ID!) {

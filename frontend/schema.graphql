@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Thu Apr 11 16:58:20 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig". Do not edit manually.
 
 schema {
   query: Query
@@ -65,8 +65,6 @@ union GTemplateOrDeleted = Deleted | GTemplate
 union GVDIOrDeleted = Deleted | GVDI
 
 union GVMOrDeleted = Deleted | GVM
-
-union PlaybookTaskOrDeleted = Deleted | PlaybookTask
 
 type AttachNetworkMutation {
   granted: Boolean!
@@ -539,6 +537,8 @@ type Mutation {
   srAccessSet(actions: [SRActions!]!, ref: ID!, revoke: Boolean!, user: String!): SRAccessSet
   "Delete a SR"
   srDelete(ref: ID!): SRDestroyMutation
+  "Delete a Task"
+  taskDelete(ref: ID!): TaskRemoveMutation
   "Edit template options"
   template(
     #Object ID
@@ -647,23 +647,6 @@ type PlaybookRequirements {
   osVersion: [OSVersion]!
 }
 
-type PlaybookTask {
-  "Playbook task ID"
-  id: ID!
-  "Human-readable message: error description or return code"
-  message: String!
-  "Playbook ID"
-  playbookId: ID!
-  "Playbook running state"
-  state: PlaybookTaskState!
-}
-
-type PlaybookTasksSubscription {
-  "Change type"
-  changeType: Change!
-  value: PlaybookTaskOrDeleted!
-}
-
 "Drivers version. We don't want any fancy resolver except for the thing that we know that it's a dict in VM document"
 type PvDriversVersion {
   build: Int
@@ -688,10 +671,6 @@ type Query {
   networks: [GNetwork]!
   "Information about Ansible-powered playbook"
   playbook(id: ID): GPlaybook
-  "Info about a playbook task"
-  playbookTask(id: ID!): PlaybookTask
-  "All Playbook Tasks"
-  playbookTasks: [PlaybookTask]!
   "List of Ansible-powered playbooks"
   playbooks: [GPlaybook]!
   pool(ref: ID!): GPool
@@ -703,7 +682,7 @@ type Query {
   "Single Task"
   task(ref: ID!): GTask
   "All Tasks available to user"
-  tasks: [GTask]!
+  tasks(endDate: DateTime, startDate: DateTime): [GTask]!
   template(ref: ID!): GTemplate
   "All Templates available to user"
   templates: [GTemplate]!
@@ -770,10 +749,6 @@ type Subscription {
   network(ref: ID!): GNetwork
   "Updates for all Networks"
   networks(withInitials: Boolean): GNetworksSubscription!
-  "Updates for a particular Playbook installation Task"
-  playbookTask(id: ID!): PlaybookTask
-  "Updates for all Playbook Tasks"
-  playbookTasks(withInitials: Boolean): PlaybookTasksSubscription!
   "Updates for a particular Pool"
   pool(ref: ID!): GPool
   "Updates for all pools available in VMEmperor"
@@ -802,6 +777,14 @@ type Subscription {
   vm(ref: ID!): GVM
   "Updates for all VMs"
   vms(withInitials: Boolean): GVMsSubscription!
+}
+
+type TaskRemoveMutation {
+  "Shows if access to task remove is granted"
+  granted: Boolean!
+  reason: String
+  "always null, provided for compatibility"
+  taskId: ID
 }
 
 type TemplateAccessSet {
@@ -972,15 +955,6 @@ enum NetworkActions {
   rename
 }
 
-enum PlaybookTaskState {
-  ConfigurationWarning
-  Error
-  Finished
-  Preparing
-  Running
-  Unknown
-}
-
 enum PowerState {
   Halted
   Paused
@@ -1037,6 +1011,7 @@ enum TemplateActions {
   changing_VCPUs
   changing_memory_limits
   clone
+  create_vm
   destroy
   rename
 }

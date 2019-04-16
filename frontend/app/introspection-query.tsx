@@ -180,18 +180,6 @@ const result: IntrospectionResultData = {
             name: "Deleted"
           }
         ]
-      },
-      {
-        kind: "UNION",
-        name: "PlaybookTaskOrDeleted",
-        possibleTypes: [
-          {
-            name: "PlaybookTask"
-          },
-          {
-            name: "Deleted"
-          }
-        ]
       }
     ]
   }
