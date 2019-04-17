@@ -15,20 +15,28 @@ from xenadapter import  * #  for metaclass initialization
 r = rethinkdb.RethinkDB()
 
 threads : List[Thread] = []
+table_list = []
 def create_dbs():
-
+    global table_list
     re.db = r.db(opts.database)
     with ReDBConnection().get_connection():
         logging.debug(f"Creating database {opts.database}")
 
-        if opts.database in r.db_list().run():
-            r.db_drop(opts.database).run()
-        r.db_create(opts.database).run()
+        if opts.database not in r.db_list().run():
+            r.db_create(opts.database).run()
+        else:
+            table_list = re.db.table_list().run()
+            for table in table_list:
+                if table == Task.db_table_name or table == Task.pending_db_table_name:
+                    continue
+                re.db.table_drop(table).run()
 
 
     def create_table(cl : "XenObject"):
         with ReDBConnection().get_connection():
             cl.create_db()
+
+
 
     def create_user_table(cl: "XenObject"):
         with ReDBConnection().get_connection():

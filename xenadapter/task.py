@@ -106,11 +106,15 @@ class Task(ACLXenObject):
         :param indexes:
         :return:
         '''
-        super().create_db(indexes=indexes)
-        re.db.table_create(cls.pending_db_table_name, durability="soft").run()
-        re.db.table(cls.pending_db_table_name).wait().run()
-        re.db.table(cls.pending_db_table_name).index_create('ref').run()
-        re.db.table(cls.pending_db_table_name).index_wait('ref').run()
+        table_list = re.db.table_list().run()
+        if cls.db_table_name not in table_list:
+            super().create_db(indexes=indexes)
+
+        if cls.pending_db_table_name not in table_list:
+            re.db.table_create(cls.pending_db_table_name, durability="soft").run()
+            re.db.table(cls.pending_db_table_name).wait().run()
+            re.db.table(cls.pending_db_table_name).index_create('ref').run()
+            re.db.table(cls.pending_db_table_name).index_wait('ref').run()
 
 
     @classmethod
