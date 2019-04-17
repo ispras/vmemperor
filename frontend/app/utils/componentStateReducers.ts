@@ -3,7 +3,7 @@ import {DocumentNode} from "graphql";
 import {dataIdFromObject} from "./cacheUtils";
 import ApolloClient from "apollo-client";
 
-export function readCacheObject<FragmentType, TCacheShape = any>(client: ApolloClient<TCacheShape>, FragmentDoc: DocumentNode, __typename: string, ref: string, fragmentName: string = null) {
+export function readCacheObject<FragmentType, TCacheShape = any>(client: ApolloClient<TCacheShape>, FragmentDoc: DocumentNode, __typename: string, ref: string, fragmentName: string = undefined) {
   return client.cache.readFragment<FragmentType>({
     fragment: FragmentDoc,
     id: dataIdFromObject({

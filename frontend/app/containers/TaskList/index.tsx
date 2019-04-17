@@ -113,7 +113,7 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
           return {
             ...state,
             startDate: action.startDate,
-            endDate: moment(),
+            endDate: null,
           };
         else {
           return {
@@ -126,12 +126,13 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
         return {
           ...state,
           live: true,
-          endDate: moment(),
+          endDate: null,
         };
       case "liveOff":
         return {
           ...state,
           live: false,
+          endDate: moment(),
         }
     }
   };
@@ -151,7 +152,7 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
 
 
   const readTask = useCallback((ref) => {
-    return readCacheObject<TaskFragmentFragment>(client, TaskFragmentFragmentDoc, "GTask", ref);
+    return readCacheObject<TaskFragmentFragment>(client, TaskFragmentFragmentDoc, "GTask", ref, "TaskFragment");
   }, [client]);
 
 
@@ -173,12 +174,14 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
       });
     };
     console.log("Loading task data", momentState);
+    const startDate = momentState.startDate ? momentState.startDate.format() : null;
+    const endDate = momentState.endDate ? momentState.endDate.format() : null;
     const {data} = await client.query<TaskListQuery, TaskListQueryVariables>({
       query: TaskListDocument,
       fetchPolicy: 'network-only',
       variables: {
-        startDate: momentState.startDate.format(),
-        endDate: momentState.endDate.format(),
+        startDate,
+        endDate
       }
     });
     await onLoad(data.tasks);

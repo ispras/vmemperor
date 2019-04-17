@@ -117,7 +117,10 @@ class ChangefeedBuilder:
         while True:
             try:
                 async with ReDBConnection().get_async_connection() as conn:
-                    value = await self.builder.query.run(conn)
+                    try:
+                        value = await self.builder.query.run(conn)
+                    except ReqlNonExistenceError:
+                        value = None
                     if not value:
                         item  = {
                             "type": "remove",
