@@ -35,8 +35,6 @@ def resolve_user(field_name = "user_id"):
         from handlers.graphql.types.user import User
         if 'id' in kwargs:
             id = kwargs['ref']
-            if not id:
-                return None
         else:
             if field_name:
                 try:
@@ -46,6 +44,8 @@ def resolve_user(field_name = "user_id"):
             else:
                 id = root
 
+        if not id:
+            return None
         tables = {
             "users/" : "users",
             "groups/" : "groups"

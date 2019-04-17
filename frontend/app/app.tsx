@@ -41,7 +41,7 @@ import {translationMessages} from './i18n';
 // Import CSS reset and Global Styles
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './global-styles';
-import 'bootstrap/dist/css/bootstrap.css';
+import "react-bootstrap-table-next/dist/react-bootstrap-table2.min.css"
 //Import application-level sagas (login flow)
 import appSaga from './containers/App/saga'
 //import toastr

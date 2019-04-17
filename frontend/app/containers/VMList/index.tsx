@@ -45,6 +45,7 @@ import {
 import {buttonTitle} from "../../utils/buttonTitle";
 import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
 import {_readVM} from "./tools";
+import {uptimeFormatter, VIFsFormatter} from "./formatters";
 
 
 type VMColumnType = ColumnType<VMListFragmentFragment>;
@@ -63,7 +64,20 @@ const columns: VMColumnType[] = [
     text: 'Status',
     headerFormatter: plainFormatter,
     headerClasses: 'align-self-baseline'
-
+  },
+  {
+    dataField: 'VIFs',
+    text: 'IPs',
+    headerFormatter: plainFormatter,
+    headerClasses: 'align-self-baseline',
+    formatter: VIFsFormatter,
+  },
+  {
+    dataField: 'startTime',
+    text: 'Uptime',
+    headerFormatter: plainFormatter,
+    headerClasses: 'align-self-baseline',
+    formatter: uptimeFormatter,
   }
 ];
 
@@ -276,17 +290,6 @@ export default function ({history}: RouteComponentProps) {
 
 
   const DeleteVM = useDeleteVMMutation();
-  const onDeleteVM = async () => {
-    for (const id of selectedForTrash.toArray()) {
-      await DeleteVM(
-        {
-          variables: {
-            ref: id
-          }
-        });
-    }
-  };
-
 
   return (
     <Fragment>

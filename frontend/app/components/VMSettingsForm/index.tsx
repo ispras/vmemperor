@@ -39,7 +39,6 @@ enum Tab {
   Network = 'network',
 }
 
-type VM = Omit<VMInfoFragmentFragment, "__typename">;
 
 const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery>> = ({object: {vm}}) => {
   const defaultTab = Tab.Overview;
@@ -57,7 +56,7 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
     setOverrideTab(null);
   }, [vncActivated]);
 
-  const changeVNCIfNotRunning = useEffect(() => {
+  useEffect(() => {
     if (vm.powerState !== PowerState.Running) {
       if (activeTab === Tab.VNC) {
         setOverrideTab(defaultTab);

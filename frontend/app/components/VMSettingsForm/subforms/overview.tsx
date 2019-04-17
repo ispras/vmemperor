@@ -5,6 +5,7 @@ import {VM_STATE_RUNNING} from "../../../containers/App/constants";
 import {FormattedMessage} from 'react-intl';
 import messages from '../messages';
 import Playbooks from "../../../containers/Playbooks";
+import moment from 'moment';
 import {
   PowerState,
   ShutdownForce,
@@ -23,15 +24,13 @@ interface Props {
 }
 
 const Overview = ({vm}: Props) => {
-
-  const current_date = new Date();
-  const start_date = new Date(vm.startTime);
+  const startMoment = moment(vm.startTime);
 
   let uptime_text: string;
 
   switch (vm.powerState) {
     case VM_STATE_RUNNING:
-      uptime_text = "I'm up since " + start_date.toLocaleString() + ".";
+      uptime_text = `I'm up since ${startMoment.format("L LTS")} (${startMoment.fromNow(true)})`
       break;
     default:
       uptime_text = "I'm " + vm.powerState.toLowerCase() + ".";
@@ -66,7 +65,7 @@ const Overview = ({vm}: Props) => {
           <FullHeightCard>
             <CardBody>
               <CardTitle>Power status</CardTitle>
-              <CardText>{uptime_text} (X days Y hours Z minutes W seconds)
+              <CardText>{uptime_text}
                 <br/>
               </CardText>
             </CardBody>
@@ -116,7 +115,7 @@ const Overview = ({vm}: Props) => {
               <Fragment>
                 {
                   vm.VIFs.map((value, index) => {
-                    const ip = value.ip;
+                    const ip = value.ipv4;
                     const ipv6 = value.ipv6;
                     return (<Card key={index}>
                       <CardBody>

@@ -2345,7 +2345,7 @@ export type TaskFragmentFragment = { __typename?: "GTask" } & Pick<
   | "errorInfo"
   | "isOwner"
   | "myActions"
->;
+> & { who: Maybe<{ __typename?: "User" } & UserFragmentFragment> };
 
 export type TaskListUpdateSubscriptionVariables = {};
 
@@ -2400,6 +2400,26 @@ export type VMForTaskListQueryVariables = {
 
 export type VMForTaskListQuery = { __typename?: "Query" } & {
   vm: Maybe<{ __typename?: "GVM" } & Pick<GVM, "ref" | "nameLabel">>;
+};
+
+export type TemplateForTaskListQueryVariables = {
+  templateRef: Scalars["ID"];
+};
+
+export type TemplateForTaskListQuery = { __typename?: "Query" } & {
+  template: Maybe<
+    { __typename?: "GTemplate" } & Pick<GTemplate, "ref" | "nameLabel">
+  >;
+};
+
+export type PlaybookNameForTaskListQueryVariables = {
+  playbookId: Scalars["ID"];
+};
+
+export type PlaybookNameForTaskListQuery = { __typename?: "Query" } & {
+  playbook: Maybe<
+    { __typename?: "GPlaybook" } & Pick<GPlaybook, "id" | "name">
+  >;
 };
 
 export type TemplateSettingsFragmentFragment = {
@@ -2572,7 +2592,7 @@ export type VDIListUpdateSubscription = { __typename?: "Subscription" } & {
 
 export type VMVIFFragmentFragment = { __typename?: "GVIF" } & Pick<
   GVIF,
-  "ip" | "ipv6" | "ref" | "MAC" | "currentlyAttached" | "device"
+  "ipv4" | "ipv6" | "ref" | "MAC" | "currentlyAttached" | "device"
 > & {
     network: Maybe<
       { __typename?: "GNetwork" } & Pick<GNetwork, "ref" | "nameLabel">
@@ -2626,10 +2646,19 @@ export type VMInfoUpdateSubscription = { __typename?: "Subscription" } & {
   vm: Maybe<{ __typename?: "GVM" } & VMInfoFragmentFragment>;
 };
 
+export type VMListVIFFragmentFragment = { __typename?: "GVIF" } & Pick<
+  GVIF,
+  "ref" | "ipv4" | "ipv6"
+> & {
+    network: Maybe<
+      { __typename?: "GNetwork" } & Pick<GNetwork, "ref" | "nameLabel">
+    >;
+  };
+
 export type VMListFragmentFragment = { __typename?: "GVM" } & Pick<
   GVM,
-  "ref" | "nameLabel" | "powerState" | "myActions" | "isOwner"
->;
+  "ref" | "nameLabel" | "powerState" | "myActions" | "isOwner" | "startTime"
+> & { VIFs: Array<Maybe<{ __typename?: "GVIF" } & VMListVIFFragmentFragment>> };
 
 export type VMListQueryVariables = {};
 
@@ -3955,6 +3984,13 @@ export const StorageListFragmentFragmentDoc = gql`
     }
   }
 `;
+export const UserFragmentFragmentDoc = gql`
+  fragment UserFragment on User {
+    username
+    id
+    name
+  }
+`;
 export const TaskFragmentFragmentDoc = gql`
   fragment TaskFragment on GTask {
     ref
@@ -3971,7 +4007,11 @@ export const TaskFragmentFragmentDoc = gql`
     errorInfo
     isOwner
     myActions
+    who {
+      ...UserFragment
+    }
   }
+  ${UserFragmentFragmentDoc}
 `;
 export const AbstractVMFragmentFragmentDoc = gql`
   fragment AbstractVMFragment on GAbstractVM {
@@ -4040,13 +4080,6 @@ export const TemplateListFragmentFragmentDoc = gql`
     domainType
   }
 `;
-export const UserFragmentFragmentDoc = gql`
-  fragment UserFragment on User {
-    username
-    id
-    name
-  }
-`;
 export const VDIInfoFragmentFragmentDoc = gql`
   fragment VDIInfoFragment on GVDI {
     ...ACLXenObjectFragment
@@ -4084,7 +4117,7 @@ export const VMVIFFragmentFragmentDoc = gql`
       ref
       nameLabel
     }
-    ip
+    ipv4
     ipv6
     ref
     MAC
@@ -4145,6 +4178,17 @@ export const VMInfoFragmentFragmentDoc = gql`
   ${VMVBDFragmentFragmentDoc}
   ${VMAccessFragmentFragmentDoc}
 `;
+export const VMListVIFFragmentFragmentDoc = gql`
+  fragment VMListVIFFragment on GVIF {
+    network {
+      ref
+      nameLabel
+    }
+    ref
+    ipv4
+    ipv6
+  }
+`;
 export const VMListFragmentFragmentDoc = gql`
   fragment VMListFragment on GVM {
     ref
@@ -4152,7 +4196,12 @@ export const VMListFragmentFragmentDoc = gql`
     powerState
     myActions
     isOwner
+    startTime
+    VIFs {
+      ...VMListVIFFragment
+    }
   }
+  ${VMListVIFFragmentFragmentDoc}
 `;
 export const XenObjectFragmentFragmentDoc = gql`
   fragment XenObjectFragment on GXenObject {
@@ -5745,6 +5794,44 @@ export function useVMForTaskListQuery(
     VMForTaskListQuery,
     VMForTaskListQueryVariables
   >(VMForTaskListDocument, baseOptions);
+}
+export const TemplateForTaskListDocument = gql`
+  query TemplateForTaskList($templateRef: ID!) {
+    template(ref: $templateRef) {
+      ref
+      nameLabel
+    }
+  }
+`;
+
+export function useTemplateForTaskListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<
+    TemplateForTaskListQueryVariables
+  >
+) {
+  return ReactApolloHooks.useQuery<
+    TemplateForTaskListQuery,
+    TemplateForTaskListQueryVariables
+  >(TemplateForTaskListDocument, baseOptions);
+}
+export const PlaybookNameForTaskListDocument = gql`
+  query PlaybookNameForTaskList($playbookId: ID!) {
+    playbook(id: $playbookId) {
+      id
+      name
+    }
+  }
+`;
+
+export function usePlaybookNameForTaskListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<
+    PlaybookNameForTaskListQueryVariables
+  >
+) {
+  return ReactApolloHooks.useQuery<
+    PlaybookNameForTaskListQuery,
+    PlaybookNameForTaskListQueryVariables
+  >(PlaybookNameForTaskListDocument, baseOptions);
 }
 export const TemplateInfoDocument = gql`
   query TemplateInfo($ref: ID!) {

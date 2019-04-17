@@ -143,7 +143,10 @@ def launch_playbook(ctx: ContextProtocol,  task : CustomTask, playbook_id, vms: 
                     task.set_cancel_handler(cancel)
                     task.set_status(progress=0.2)
                     p.wait()
-                    task.set_status(status='success' if p.returncode == 0 else 'failure', result=p.returncode, progress=1)
+                    task.set_status(status='success' if p.returncode == 0 else 'failure',
+                                    result=p.returncode,
+                                    error_info_add=None if p.returncode == 0 else f"ansible-playbook exited with code {p.returncode}",
+                                    progress=1)
 
                     logging.info(f'Finished with return code {p.returncode}. Logs are available in {log_path}')
         except Exception as e:
@@ -186,7 +189,7 @@ class PlaybookLaunchMutation(graphene.Mutation):
         if not data:
             raise ValueError(f"No such playbook: {id}")
         task_id = str(uuid.uuid4())
-        task = CustomTask(id=task_id, object_type=VM, object_ref=vms, action=VM.Actions.launch_playbook.serialize()[0], user_authenticator=ctx.user_authenticator)
+        task = CustomTask(id=task_id, object_type=VM, object_ref=';'.join(vms), action=VM.Actions.launch_playbook.serialize()[0], user_authenticator=ctx.user_authenticator)
         tornado.ioloop.IOLoop.current().run_in_executor(ctx.executor,
                                                         lambda: launch_playbook(ctx, task, id, vms, variables))
 

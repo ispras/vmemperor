@@ -1,4 +1,5 @@
 # import DeletedFragment from "deleted.graphql"
+# import UserFragment from "user.graphql"
 
 fragment TaskFragment on GTask {
   ref
@@ -15,6 +16,9 @@ fragment TaskFragment on GTask {
   errorInfo
   isOwner
   myActions
+  who {
+    ...UserFragment
+  }
 }
 
 subscription TaskListUpdate{
@@ -57,5 +61,19 @@ query VMForTaskList($vmRef: ID!) {
   vm(ref: $vmRef) {
     ref
     nameLabel
+  }
+}
+
+query TemplateForTaskList($templateRef: ID!) {
+  template(ref: $templateRef) {
+    ref
+    nameLabel
+  }
+}
+
+query PlaybookNameForTaskList($playbookId: ID!) {
+  playbook (id: $playbookId) {
+    id
+    name
   }
 }

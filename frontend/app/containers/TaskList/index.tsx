@@ -4,8 +4,8 @@
  */
 
 import StatefulTable, {ColumnType} from "../StatefulTable";
-
-import {nameFormatter} from "../../utils/formatters";
+import _getValue, {DataType} from './getValue';
+import {nameFormatter, plainFormatter} from "../../utils/formatters";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter';
 import {RouteComponentProps} from "react-router";
 import {
@@ -52,9 +52,9 @@ import DateRangePicker from 'react-bootstrap-daterangepicker';
 import 'bootstrap-daterangepicker/daterangepicker.css';
 import moment from "moment";
 import * as daterangepicker from "daterangepicker";
+import {rowClasses} from "./rowClasses";
+import {statusFormatter, timeFormatter, userFormatter} from "./formatters";
 
-export interface DataType extends TaskFragmentFragment {
-}
 
 export type TaskColumnType = ColumnType<DataType>;
 
@@ -95,6 +95,7 @@ const initialMomentState: ReducerState<MomentReducer> = {
 
 const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const client = useApolloClient();
+  const getValue = _getValue(client);
   const {data: {tasks}} = useTaskListQuery();
   const selectionReducer: SelectionReducer = (state, action) => {
     const [type, info] = getStateInfoAndTypeFromCache(action, readTask);
@@ -159,57 +160,12 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const [momentState, momentDispatch] = useReducer<MomentReducer>(momentReducer, initialMomentState);
   const subscription = useRef<ZenObservable.Subscription>(null);
 
-  const getNameLabel = useCallback(async (value: TaskFragmentFragment) => {
-    const nameParts = value.nameLabel.split('.');
-    if (nameParts.length > 1 && value.objectRef) {
-      let cl = null;
-      let method = null;
-      if (nameParts[0] == 'Async') {
-        cl = nameParts[1];
-        method = nameParts[2];
-      } else {
-        cl = nameParts[0];
-        method = nameParts[1];
-      }
-      switch (cl) {
-        case "VM":
-          const {data: {vm: {nameLabel: vmNameLabel}}} = await client.query<VMForTaskListQuery, VMForTaskListQueryVariables>({
-              query: VMForTaskListDocument,
-              variables: {
-                vmRef: value.objectRef
-              }
-            }
-          );
-          switch (method) {
-            case "start":
-              return `Started VM ${vmNameLabel}`;
-            case "shutdown":
-              return `Shut down VM ${vmNameLabel}`;
-            case "hard_shutdown":
-              return `Forcibly shut down VM ${vmNameLabel}`;
-            case "clean_shutdown":
-              return `Gracefully shut down VM ${vmNameLabel}`;
-            default:
-              break;
-          }
-          break;
-        default:
-          break;
 
-      }
-    }
-    return value.nameLabel;
-  }, [client]);
-  const getValue: (value: TaskFragmentFragment) => Promise<TaskFragmentFragment> = async value => ({
-      ...value,
-      nameLabel: await getNameLabel(value)
-    }
-  );
   const loadTasks = async () => {
     const onLoad = async (data: TaskFragmentFragment[]) => {
-      const asyncMap: Promise<TaskFragmentFragment>[] = data.map(getValue);
+      const asyncMap: Promise<DataType>[] = data.map(getValue);
       const newTasks = await Promise.all(asyncMap);
-      client.writeQuery<TaskListQuery, TaskListQueryVariables>({
+      client.writeQuery({ //Omit type check since our DataType allows React.Node s
         query: TaskListDocument,
         data: {
           tasks: newTasks
@@ -219,6 +175,7 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
     console.log("Loading task data", momentState);
     const {data} = await client.query<TaskListQuery, TaskListQueryVariables>({
       query: TaskListDocument,
+      fetchPolicy: 'network-only',
       variables: {
         startDate: momentState.startDate.format(),
         endDate: momentState.endDate.format(),
@@ -244,10 +201,11 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
         switch (changeType) {
           case Change.Change:
             const func = async () => {
-              client.cache.writeFragment<TaskFragmentFragment>({
+              client.cache.writeFragment<DataType>({
                 fragment: TaskFragmentFragmentDoc,
                 id: dataIdFromObject(value),
-                data: await getValue(value)
+                data: await getValue(value),
+                fragmentName: "TaskFragment"
               });
             };
             func();
@@ -289,7 +247,36 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
         filter: textFilter(),
         headerFormatter: nameFormatter,
         headerClasses: 'align-self-baseline',
-      }];
+      },
+      {
+        dataField: "created",
+        headerFormatter: plainFormatter,
+        formatter: timeFormatter,
+        text: "Started on",
+        sort: true,
+      },
+      {
+        dataField: "finished",
+        headerFormatter: plainFormatter,
+        formatter: timeFormatter,
+        text: "Finished on",
+        sort: true,
+      },
+      {
+        dataField: "status",
+        headerFormatter: plainFormatter,
+        formatter: statusFormatter,
+        text: "Status",
+        sort: true
+      },
+      {
+        dataField: "who",
+        headerFormatter: plainFormatter,
+        formatter: userFormatter,
+        text: "Performer",
+        sort: true
+      }
+    ];
   }, []);
 
 
@@ -346,7 +333,17 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
           striped: true,
           hover: true,
           filter: filterFactory(),
-        }}
+          defaultSorted: [{
+            dataField: "created",
+            order: "desc",
+          },
+            {
+              dataField: "finished",
+              order: "desc",
+            }],
+          rowClasses
+        }
+        }
       />
     </Fragment>
   )

@@ -6,7 +6,7 @@ fragment VMVIFFragment on GVIF {
     ref
     nameLabel
   }
-  ip
+  ipv4
   ipv6
   ref
   MAC

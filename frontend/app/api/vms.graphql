@@ -1,10 +1,23 @@
 # import DeletedFragment from "deleted.graphql"
+fragment VMListVIFFragment on GVIF {
+  network {
+    ref
+    nameLabel
+  }
+  ref
+  ipv4
+  ipv6
+}
 fragment VMListFragment on GVM {
   ref
   nameLabel
   powerState
   myActions
   isOwner
+  startTime
+  VIFs {
+    ...VMListVIFFragment
+  }
 }
 
 
