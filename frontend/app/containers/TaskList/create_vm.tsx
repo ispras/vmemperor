@@ -1,49 +1,17 @@
 import {RouteComponentProps} from "react-router";
-import React, {Fragment, ReactNode, useEffect, useState} from "react";
-import {ListGroup, ListGroupItem, ListGroupItemProps, Progress} from "reactstrap";
+import React, {Fragment, ReactNode} from "react";
+import {ListGroup, ListGroupItem, Progress} from "reactstrap";
 import {TaskStatus, useTaskInfoQuery, useTaskInfoUpdateSubscription} from "../../generated-models";
-import {useApolloClient} from "react-apollo-hooks";
 import ListGroupItemHeading from "reactstrap/lib/ListGroupItemHeading";
 import ApolloClient from "apollo-client";
 import {getTemplateNameLabel, getVMNameLabel} from "./getValue";
 import moment from 'moment';
+import {MaybeUnknownItem} from "./unknownitem";
 
 interface Args {
   id: string;
 }
 
-interface MaybeUnknownItemProps {
-  itemPath: string;
-  itemRef: string;
-  children: ReactNode;
-  history: RouteComponentProps['history'];
-  getNameLabel: (client: ApolloClient<any>, ref: string) => Promise<string>;
-}
-
-const MaybeUnknownItem: React.FunctionComponent<MaybeUnknownItemProps> =
-  ({itemPath, itemRef, children, history, getNameLabel}) => {
-    const client = useApolloClient();
-    const onButtonClick = () => {
-      history.push(`/${itemPath}/${itemRef}`);
-    };
-    const props: Partial<ListGroupItemProps> = itemRef ? {
-      tag: "button",
-      action: true,
-      onClick: () => onButtonClick(),
-    } : {};
-    const [nameLabel, setNameLabel] = useState(itemRef);
-    useEffect(() => {
-      const func = async () => {
-        const _nameLabel = await getNameLabel(client, itemRef);
-        setNameLabel(_nameLabel);
-      };
-      func();
-    }, [itemRef]);
-    return <ListGroupItem {...props}>
-      {children}
-      {nameLabel}
-    </ListGroupItem>
-  };
 
 export const CreateVMTask = (props: RouteComponentProps<Args>) => {
     const {data: {task}} = useTaskInfoQuery({

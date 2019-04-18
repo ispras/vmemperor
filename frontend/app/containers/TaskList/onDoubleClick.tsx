@@ -7,6 +7,9 @@ export const onDoubleClick = (history: RouteComponentProps['history']) => (row: 
   switch (row.objectType) {
     case "VM":
       switch (row.action) {
+        case "launch_playbook":
+          history.push(`/launch_playbook/${row.ref}`);
+          break;
         default:
           history.push(`/vm/${row.objectRef}`);
       }

@@ -27,6 +27,7 @@ import SRs from "../SRList";
 import SRSettings from "../SRSettings";
 import Tasks from "../TaskList";
 import {CreateVMTask} from "../TaskList/create_vm";
+import {PlaybookTask} from "../TaskList/playbook";
 
 
 interface State {
@@ -86,6 +87,7 @@ class App extends React.Component<{}, State> {
             <PrivateRoute path="/sr/:ref" component={SRSettings}/>
             <PrivateRoute path="/history" component={Tasks}/>
             <PrivateRoute path="/create_vm/:id" component={CreateVMTask}/>
+            <PrivateRoute path="/launch_playbook/:id" component={PlaybookTask}/>
             <Route component={NotFoundPage}/>
           </Switch>
         </BrowserRouter>

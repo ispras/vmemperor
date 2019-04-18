@@ -1,16 +1,19 @@
 import {RouteComponentProps} from "react-router";
 import React, {Fragment, useEffect, useMemo, useState} from "react";
-import {Row, Col, ButtonGroup, Button, Label} from "reactstrap";
+import {Row, Col, ButtonGroup, Button, Label, ListGroup, ListGroupItem, ListGroupItemHeading} from "reactstrap";
 import {
   PlaybookNameForTaskListDocument,
   PlaybookNameForTaskListQuery, PlaybookNameForTaskListQueryVariables,
-  useTaskInfoQuery,
+  useTaskInfoQuery, useTaskInfoUpdateSubscription,
   VMForTaskListDocument,
   VMForTaskListQuery,
   VMForTaskListQueryVariables
 } from "../../generated-models";
 import {useApolloClient} from "react-apollo-hooks";
 import PlaybookWatcher from "../../components/PlaybookWatcher";
+import {MaybeUnknownItem} from "./unknownitem";
+import {getVMNameLabel} from "./getValue";
+import moment = require("moment");
 
 interface Args {
   id: string;
@@ -22,30 +25,15 @@ export const PlaybookTask = (props: RouteComponentProps<Args>) => {
       ref: props.match.params.id
     }
   });
-  const [vms, setVms] = useState<VMForTaskListQuery[]>([]);
+  document.title = "View playbook task";
+  useTaskInfoUpdateSubscription();
+  const [vms, setVms] = useState<string[]>([]);
   const [variables, setVariables] = useState<string>("");
   const [playbook, setPlaybook] = useState<PlaybookNameForTaskListQuery>(null);
   const client = useApolloClient();
-  const onVmButtonClick = (ref: string) => {
-    props.history.push(`/vms/${ref}`);
-  };
   useEffect(() => { //Loading VM data
-    const func = async () => {
-      const vmRefs = task.objectRef.split(";");
-      const asyncMap = vmRefs.map(async (item) => {
-        const {data} = await client.query<VMForTaskListQuery, VMForTaskListQueryVariables>({
-          query: VMForTaskListDocument,
-          variables: {
-            vmRef: item,
-          }
-        });
-        return data;
-      });
-      const _vms = (await Promise.all(asyncMap)).filter(item => !!item);
-      setVms(_vms);
-    };
-    func();
-  }, []);
+    setVms(task.objectRef.split(';'));
+  }, [task.objectRef]);
 
   useEffect(() => { //Loading playbook data
 
@@ -83,33 +71,27 @@ export const PlaybookTask = (props: RouteComponentProps<Args>) => {
   if (!playbook)
     return null;
   return <Fragment>
-    <Label><h3>{playbook.playbook.name}</h3></Label>
-    <Row>
-      <Col>
-        VMs
-      </Col>
-      <Col>
-        <ButtonGroup>
-          {vms.map(({vm}) => {
-            if (!vm) {
-              return null;
-            }
-            return (
-              <Button onClick={() => onVmButtonClick(vm.ref)} id={`cmd-playbook-vm-${vm.ref}`}>
-                {vm.nameLabel}
-              </Button>)
-          })}
-        </ButtonGroup>
-      </Col>
-    </Row>
-    <Row>
-      <Col>
-        Variables
-      </Col>
-      <Row>
-        <code>{variables}</code>
-      </Row>
-    </Row>
-    <PlaybookWatcher taskId={props.match.params.id}/>
+    <Label>
+      <h3>{playbook.playbook.name}</h3>
+      <h5>at {moment(task.created).format("L LTS")} - {task.finished ? moment(task.finished).format("L LTS") : "not finished"}</h5>
+    </Label>
+    <div><h4>VMs</h4></div>
+    <ListGroup>
+      {vms.map(vmRef => (<MaybeUnknownItem
+          itemRef={vmRef}
+          itemPath="vm"
+          getNameLabel={getVMNameLabel}
+          history={props.history}
+          key={vmRef}
+        />
+      ))}
+    </ListGroup>
+
+    <h4>Variables</h4>
+    <code> {JSON.stringify(variables, null, '\t')}</code>
+    <h4> State </h4>
+    <PlaybookWatcher
+      taskId={props.match.params.id}
+    />
   </Fragment>
 };
