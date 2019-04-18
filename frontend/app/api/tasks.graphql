@@ -19,6 +19,7 @@ fragment TaskFragment on GTask {
   who {
     ...UserFragment
   }
+  action
 }
 
 subscription TaskListUpdate{

@@ -26,7 +26,7 @@ export const statusFormatter = (cell: TaskStatus, row: TaskFragmentFragment) => 
       <Progress value={percent} color={progressColor()}>
         {cell === TaskStatus.Pending && percent + " %" || cell}
       </Progress>
-      {row.errorInfo.length > 0 && <code>{row.errorInfo.join('')}</code>}
+      {row.errorInfo.length > 0 && <code>{row.errorInfo.join('\n')}</code>}
     </Fragment>
   )
 };

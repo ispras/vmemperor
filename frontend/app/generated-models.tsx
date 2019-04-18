@@ -345,6 +345,8 @@ export type GTask = GAclXenObject & {
   objectRef?: Maybe<Scalars["ID"]>;
   /** Object type */
   objectType?: Maybe<Scalars["String"]>;
+  /** Action kind, if detected. Must be of object_type's action enum (See also: myActions on type corresponding to object_type) */
+  action?: Maybe<Scalars["String"]>;
 };
 
 export type GTaskAccessEntry = GAccessEntry & {
@@ -2345,6 +2347,7 @@ export type TaskFragmentFragment = { __typename?: "GTask" } & Pick<
   | "errorInfo"
   | "isOwner"
   | "myActions"
+  | "action"
 > & { who: Maybe<{ __typename?: "User" } & UserFragmentFragment> };
 
 export type TaskListUpdateSubscriptionVariables = {};
@@ -3047,6 +3050,7 @@ export type GTaskResolvers<Context = any, ParentType = GTask> = {
   status?: Resolver<TaskStatus, ParentType, Context>;
   objectRef?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
   objectType?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  action?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
 };
 
 export type GTaskAccessEntryResolvers<
@@ -4010,6 +4014,7 @@ export const TaskFragmentFragmentDoc = gql`
     who {
       ...UserFragment
     }
+    action
   }
   ${UserFragmentFragmentDoc}
 `;

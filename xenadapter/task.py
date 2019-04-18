@@ -69,8 +69,14 @@ class Task(ACLXenObject):
                 if not record:
                     return
 
-                if not record['name_label'].startswith("Async") and record['status'] == 'pending':
-                    re.db.table(Task.db_table_name).get(event['ref']).delete().run()
+                if record['status'] == 'pending':
+                    if 'action' not in record or record['action'] is None: # This task is not interestring
+                        re.db.table(Task.db_table_name).get(event['ref']).delete().run()
+                    else:
+                        re.db.table(Task.db_table_name).get(event['ref']).update({
+                            "status": "success",
+                            "progress": 1,
+                        }).run()
 
                 return
 

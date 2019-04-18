@@ -30,7 +30,7 @@ import {useApolloClient} from "react-apollo-hooks";
 import {Button, ButtonGroup, ButtonToolbar} from "reactstrap";
 import {
   Change,
-  TaskActions,
+  TaskActions, TaskDeleteDocument,
   TaskFragmentFragment,
   TaskFragmentFragmentDoc,
   TaskListDocument,
@@ -54,6 +54,8 @@ import moment from "moment";
 import * as daterangepicker from "daterangepicker";
 import {rowClasses} from "./rowClasses";
 import {statusFormatter, timeFormatter, userFormatter} from "./formatters";
+import {onDoubleClick} from "./onDoubleClick";
+import RecycleBinButton from "../../components/RecycleBinButton";
 
 
 export type TaskColumnType = ColumnType<DataType>;
@@ -283,21 +285,16 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   }, []);
 
 
-  const onDoubleClick = useCallback((e: React.MouseEvent, row: TaskFragmentFragment, index) => {
-    e.preventDefault();
-    /*history.push(`/vdi/${row.ref}`); */
-  }, [history]);
+  const _doubleClick = useMemo(() => onDoubleClick(history), [history]);
+  const doubleClick = (e, row: TaskFragmentFragment) => {
+    _doubleClick(row);
+  };
 
 
   return (
     <Fragment>
       <ButtonToolbar>
         <ButtonGroup size="lg">
-          {/*<RecycleBinButton
-              destroyMutationName="taskRemove"
-              state={state}
-              destroyMutationDocument={TaskDeleteDocument}
-              readCacheFunction={readTask}/>*/}
           <Button active={momentState.live} onClick={() => onLiveButtonClick()}>
             {
               momentState.live ? "Show past events" : "Show live events"
@@ -319,6 +316,15 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
             </Button>
           </DateRangePicker>
         </ButtonGroup>
+        <ButtonGroup className="ml-auto">
+          <RecycleBinButton
+            destroyMutationName="taskRemove"
+            state={selectionState}
+            destroyMutationDocument={TaskDeleteDocument}
+            readCacheFunction={readTask}
+            afterDelete={loadTasks}
+          />
+        </ButtonGroup>
       </ButtonToolbar>
       <StatefulTable
         keyField="ref"
@@ -327,7 +333,7 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
         tableSelectMany={TaskTableSelectAllDocument}
         tableSelectionQuery={TaskTableSelectionDocument}
         columns={columns}
-        onDoubleClick={onDoubleClick}
+        onDoubleClick={doubleClick}
         onSelect={(key, isSelect) => selectionDispatch({
           type: isSelect ? "Add" : "Remove",
           ref: key,

@@ -285,6 +285,8 @@ type GSRsSubscription {
 
 type GTask implements GAclXenObject {
   access: [GTaskAccessEntry]!
+  "Action kind, if detected. Must be of object_type's action enum (See also: myActions on type corresponding to object_type)"
+  action: String
   "Task creation time"
   created: DateTime!
   "Error strings, if failed"

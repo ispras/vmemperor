@@ -47,3 +47,4 @@ class GTask(GXenObjectType):
     status = graphene.Field(GTaskStatus, required=True,  description="Task status")
     object_ref = graphene.Field(graphene.ID, description="An object this task is running on")
     object_type = graphene.Field(graphene.String, description="Object type")
+    action = graphene.Field(graphene.String, description="Action kind, if detected. Must be of object_type's action enum (See also: myActions on type corresponding to object_type)")

@@ -1,8 +1,8 @@
 /**
-*
-* RecycleBinButton
-*
-*/
+ *
+ * RecycleBinButton
+ *
+ */
 
 import React, {useCallback} from 'react';
 // import styled from 'styled-components';
@@ -24,10 +24,11 @@ interface Props extends Pick<ButtonProps, Exclude<keyof ButtonProps, "icon" | "c
   state: SelectedForTrashState;
   destroyMutationDocument: DocumentNode;
   readCacheFunction: TReadCacheFunctionForButtonTitle;
+  afterDelete?: () => any;
 }
 
 
-const RecycleBinButton = ({destroyMutationDocument, state, destroyMutationName, readCacheFunction, ...props}: Props) => {
+const RecycleBinButton = ({destroyMutationDocument, state, destroyMutationName, readCacheFunction, afterDelete, ...props}: Props) => {
   const deleteMutation = useMutation<any, DestroyVariables>(destroyMutationDocument);
   const onDelete = useCallback(async () => {
     for (const id of state.selectedForTrash.toArray()) {
@@ -37,6 +38,8 @@ const RecycleBinButton = ({destroyMutationDocument, state, destroyMutationName, 
         }
       })
     }
+    if (afterDelete)
+      afterDelete();
   }, [state.selectedForTrash]);
   return (
     <AwesomeButton color="danger"

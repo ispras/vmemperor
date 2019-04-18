@@ -15,33 +15,46 @@ export interface DataType extends Omit<TaskFragmentFragment, "nameLabel" | "crea
   nameLabel: React.ReactNode | TaskFragmentFragment['nameLabel']
 }
 
+export const getVMNameLabel = async (client: ApolloClient<any>, ref: string): Promise<string> => {
+  if (!ref) {
+    return "Unknown VM";
+  }
+  try {
+    const {data: {vm: {nameLabel}}} = await client.query<VMForTaskListQuery, VMForTaskListQueryVariables>({
+        query: VMForTaskListDocument,
+        variables: {
+          vmRef: ref
+        }
+      }
+    );
+    return nameLabel;
+  } catch (e) {
+    return `Deleted VM ${ref}`
+  }
+};
 
 const getNameLabelForVM = async (client: ApolloClient<any>, method: string, value: TaskFragmentFragment) => {
   if (method == "launch_playbook") {
     const refs = value.objectRef.split(";");
     const asyncMapNameLabels = refs.map(async (item) => {
-      const {data: {vm: {nameLabel: vmNameLabel}}} = await client.query<VMForTaskListQuery, VMForTaskListQueryVariables>({
-        query: VMForTaskListDocument,
-        variables: {
-          vmRef: item
-        }
-      });
-      return vmNameLabel;
+      return await getVMNameLabel(client, item);
     });
     const nameLabels = await Promise.all(asyncMapNameLabels);
     const playbookInfo = JSON.parse(value.nameDescription);
     const playbookName = async (playbookInfo) => {
       if (playbookInfo.playbookId) {
-        const {data: {playbook: {name}}} = await client.query<PlaybookNameForTaskListQuery, PlaybookNameForTaskListQueryVariables>({
-          query: PlaybookNameForTaskListDocument,
-          variables: {
-            playbookId: playbookInfo.playbookId
-          }
-        });
-        if (name)
+        try {
+          const {data: {playbook: {name}}} = await client.query<PlaybookNameForTaskListQuery, PlaybookNameForTaskListQueryVariables>({
+            query: PlaybookNameForTaskListDocument,
+            variables: {
+              playbookId: playbookInfo.playbookId
+            }
+          });
           return name;
-        else
-          return playbookInfo.playbookId;
+        } catch (e) {
+          return `Deleted playbook ${playbookInfo.playbookId}`
+        }
+
       }
       return "Unknown";
     };
@@ -53,13 +66,8 @@ const getNameLabelForVM = async (client: ApolloClient<any>, method: string, valu
         <span><b>{nameLabel}</b>,</span>)}</span>))}
     </Label>)
   } else {
-    const {data: {vm: {nameLabel: vmNameLabel}}} = await client.query<VMForTaskListQuery, VMForTaskListQueryVariables>({
-        query: VMForTaskListDocument,
-        variables: {
-          vmRef: value.objectRef
-        }
-      }
-    );
+
+    const vmNameLabel = await getVMNameLabel(client, value.objectRef);
     switch (method) {
       case "start":
         return <Label>Started VM <b>{vmNameLabel}</b></Label>;
@@ -76,51 +84,62 @@ const getNameLabelForVM = async (client: ApolloClient<any>, method: string, valu
   return value.nameLabel;
 };
 
+export const getTemplateNameLabel = async (client: ApolloClient<any>, ref: string) => {
+  if (!ref)
+    return `Unknown template`;
+  try {
+    const {data: {template: {nameLabel}}} = await client.query<TemplateForTaskListQuery, TemplateForTaskListQueryVariables>({
+      query: TemplateForTaskListDocument,
+      variables: {
+        templateRef: ref,
+      }
+    });
+    return nameLabel;
+  } catch (e) {
+    return `Deleted template ${ref}`
+  }
+};
+const getNameLabelForTemplate = async (client: ApolloClient<any>, method: string, value: TaskFragmentFragment) => {
+  const templateNameLabel = await getTemplateNameLabel(client, value.objectRef);
+  switch (method) {
+    case "create_vm":
+      if (value.result) {
+        const vmNameLabel = await getVMNameLabel(client, value.result);
+
+        return <Label>Created VM <b>{vmNameLabel}</b> from template <i><b>{templateNameLabel}</b></i></Label>;
+      }
+      return <Label>Creating VM from template <i><b>{templateNameLabel}</b></i></Label>;
+    default:
+      break;
+  }
+
+  return value.nameLabel;
+};
+
 const getNameLabel = (client: ApolloClient<any>) => async (value: TaskFragmentFragment) => {
-  const nameParts = value.nameLabel.split('.');
-  if (nameParts.length > 1 && value.objectRef) {
-    let cl = null;
-    let method = null;
-    if (nameParts[0] == 'Async') {
-      cl = nameParts[1];
-      method = nameParts[2];
-    } else {
-      cl = nameParts[0];
-      method = nameParts[1];
-    }
-    switch (cl) {
-      case "VM":
-        return await getNameLabelForVM(client, method, value);
-      case "Template":
-        const {data: {template: {nameLabel: templateNameLabel}}} = await client.query<TemplateForTaskListQuery, TemplateForTaskListQueryVariables>({
-          query: TemplateForTaskListDocument,
-          variables: {
-            templateRef: value.objectRef
-          }
-        });
-        switch (method) {
-          case "create_vm":
-            if (value.result) {
-              const {data: {vm: {nameLabel: vmNameLabel}}} = await client.query<VMForTaskListQuery, VMForTaskListQueryVariables>({
-                query: VMForTaskListDocument,
-                variables: {
-                  vmRef: value.result
-                }
-              });
-
-              return <Label>Created VM <b>{vmNameLabel}</b> from template <i><b>{templateNameLabel}</b></i></Label>;
-            }
-            return <Label>Creating VM from template <i><b>{templateNameLabel}</b></i></Label>;
-          default:
-            break;
-        }
-        break;
-      default:
-        break;
-
+  let cl = value.objectType;
+  let method = value.action;
+  if (!value.objectType) {
+    const nameParts = value.nameLabel.split('.');
+    if (nameParts.length > 1 && value.objectRef) {
+      if (nameParts[0] == 'Async') {
+        cl = nameParts[1];
+        method = nameParts[2];
+      } else {
+        cl = nameParts[0];
+        method = nameParts[1];
+      }
     }
   }
-  return value.nameLabel;
+
+  switch (cl) {
+    case "VM":
+      return await getNameLabelForVM(client, method, value);
+    case "Template":
+      return await getNameLabelForTemplate(client, method, value);
+    default:
+      return value.nameLabel;
+  }
 };
 
 const getValue: (client: ApolloClient<any>) => (value: TaskFragmentFragment) => Promise<DataType>
