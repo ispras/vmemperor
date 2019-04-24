@@ -10,4 +10,4 @@ def resolve_quotas(root, info, **args):
     if ctx.user_authenticator.is_admin():
         return re.db.table(Pool.quotas_table_name).coerce_to('array').run()
     else:
-        return re.db.table(Pool.quotas_table_name).get_all(*user_entities()).coerce_to('array').run()
+        return re.db.table(Pool.quotas_table_name).get_all(*user_entities(ctx.user_authenticator)).coerce_to('array').run()
