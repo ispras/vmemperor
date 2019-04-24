@@ -33,6 +33,9 @@ const result: IntrospectionResultData = {
             name: "GTemplate"
           },
           {
+            name: "GPool"
+          },
+          {
             name: "GTask"
           }
         ]
@@ -57,6 +60,9 @@ const result: IntrospectionResultData = {
             name: "GTemplateAccessEntry"
           },
           {
+            name: "GPoolAccessEntry"
+          },
+          {
             name: "GTaskAccessEntry"
           }
         ]
@@ -79,9 +85,6 @@ const result: IntrospectionResultData = {
         possibleTypes: [
           {
             name: "GHost"
-          },
-          {
-            name: "GPool"
           }
         ]
       },

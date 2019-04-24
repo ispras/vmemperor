@@ -4,7 +4,7 @@ import {FormGroup} from "../MarginFormGroup";
 import {Col, Input, Row} from "reactstrap";
 import React from "react";
 import Label from "reactstrap/lib/Label";
-import {ChangeInputEvent, getInput} from "../AbstractSettingsForm/inputUtils";
+import {ChangeInputEvent, FormInput} from "../AbstractSettingsForm/inputUtils";
 
 interface Props extends FieldProps<any> {
   namePrefix?: string
@@ -38,7 +38,12 @@ export const CPUInputComponent: React.FunctionComponent<Props> = ({form, namePre
           <Label for={VCPUsStartup}>
             VCPUs at startup
           </Label>
-          {getInput(form, VCPUsStartup, "number", handleChangeVCPUsStartup)}
+          <FormInput
+            form={form}
+            name={VCPUsStartup}
+            type="number"
+            onChange={handleChangeVCPUsStartup}
+          />
         </FormGroup>
       </Col>
       <Col md={4}>
@@ -46,7 +51,11 @@ export const CPUInputComponent: React.FunctionComponent<Props> = ({form, namePre
           <Label for={VCPUsMax}>
             Max VCPUs
           </Label>
-          {getInput(form, VCPUsMax, "number", handleChangeVCPUsMax)}
+          <FormInput
+            form={form}
+            name={VCPUsMax}
+            type="number"
+            onChange={handleChangeVCPUsMax}/>
         </FormGroup>
       </Col>
       <Col md={4}>
@@ -54,7 +63,11 @@ export const CPUInputComponent: React.FunctionComponent<Props> = ({form, namePre
           <Label for={coresPerSocket}>
             Cores per socket
           </Label>
-          {getInput(form, coresPerSocket, "number")}
+          <FormInput
+            form={form}
+            name={coresPerSocket}
+            type="number"
+          />
         </FormGroup>
       </Col>
     </Row>

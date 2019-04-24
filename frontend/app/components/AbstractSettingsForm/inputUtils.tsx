@@ -1,14 +1,22 @@
 import {FormikProps} from "formik";
 import * as React from "react";
-import {Fragment} from "react";
-import {Input} from "reactstrap";
+import {Fragment, ReactNode} from "react";
+import {Input, InputProps} from "reactstrap";
 import {getFeedback, getInvalid} from "../Input/utils";
 import {InputType} from "reactstrap/lib/Input";
 import dlv from 'dlv';
+import {Omit} from "./utils";
 
 export type ChangeInputEvent = React.ChangeEvent<HTMLInputElement>;
 
-export function getInput<T>(form: FormikProps<T>, name: string, type: InputType, onChange: (e: ChangeInputEvent) => void = null, value: any = null) {
+interface Props<FormValues> extends Omit<InputProps, "onBlur" | "onChange" | "value" | "invalid" | "form"> {
+  form: FormikProps<FormValues>;
+  onChange?: (e: ChangeInputEvent) => void;
+  value?: InputProps['value'];
+}
+
+export function FormInput<T>({form, onChange, value, ...props}: Props<T>) {
+  const {name} = props;
   if (!value) {
     value = dlv(form.values, name);
   }
@@ -17,12 +25,11 @@ export function getInput<T>(form: FormikProps<T>, name: string, type: InputType,
   return (
     <Fragment>
       <Input
-        name={name}
-        type={type}
         onBlur={form.handleBlur(name)}
         onChange={onChange}
         value={value}
         invalid={getInvalid(form, name)}
+        {...props}
       />
       {getFeedback(form, name)}
     </Fragment>

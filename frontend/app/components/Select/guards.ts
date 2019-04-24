@@ -1,10 +1,10 @@
 import {OptionsType} from "react-select/lib/types";
 
-export interface Option {
-  value: string;
+export interface Option<T = any> {
+  value: T;
   label: string;
 }
 
-export function isOption(option): option is Option {
-  return (<Option>option).value !== undefined && (<Option>option).label !== undefined;
+export function isOption<T = string>(option): option is Option<T> {
+  return (<Option<T>>option).value !== undefined && (<Option<T>>option).label !== undefined;
 }

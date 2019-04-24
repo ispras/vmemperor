@@ -249,7 +249,7 @@ export type GPlaybook = {
   variables?: Maybe<Scalars["JSONString"]>;
 };
 
-export type GPool = GXenObject & {
+export type GPool = GAclXenObject & {
   /** a human-readable name */
   nameLabel: Scalars["String"];
   /** a human-readable description */
@@ -258,10 +258,18 @@ export type GPool = GXenObject & {
   ref: Scalars["ID"];
   /** Unique constant identifier/object reference (used in XenCenter) */
   uuid: Scalars["ID"];
+  access: Array<Maybe<GPoolAccessEntry>>;
+  isOwner: Scalars["Boolean"];
+  myActions: Array<Maybe<PoolActions>>;
   /** Pool master */
   master?: Maybe<GHost>;
   /** Default SR */
   defaultSr?: Maybe<GSR>;
+};
+
+export type GPoolAccessEntry = GAccessEntry & {
+  userId: User;
+  actions: Array<PoolActions>;
 };
 
 export type GPoolOrDeleted = GPool | Deleted;
@@ -626,6 +634,8 @@ export type Mutation = {
   srDelete?: Maybe<SRDestroyMutation>;
   /** Delete a Task */
   taskDelete?: Maybe<TaskRemoveMutation>;
+  /** Adjust quota */
+  quotaSet?: Maybe<QuotaMutation>;
   selectedItems?: Maybe<Array<Scalars["ID"]>>;
 };
 
@@ -766,6 +776,11 @@ export type MutationtaskDeleteArgs = {
   ref: Scalars["ID"];
 };
 
+export type MutationquotaSetArgs = {
+  quota: QuotaInput;
+  userId: Scalars["String"];
+};
+
 export type MutationselectedItemsArgs = {
   tableId: Table;
   items: Array<Scalars["ID"]>;
@@ -854,6 +869,13 @@ export type PlaybookRequirements = {
   osVersion: Array<Maybe<OSVersion>>;
 };
 
+/** An enumeration. */
+export enum PoolActions {
+  create_vm = "create_vm",
+  NONE = "NONE",
+  ALL = "ALL"
+}
+
 export enum PowerState {
   Halted = "Halted",
   Paused = "Paused",
@@ -911,6 +933,7 @@ export type Query = {
   /** current user or group information */
   currentUser?: Maybe<CurrentUserInformation>;
   findUser: Array<Maybe<User>>;
+  quotas: Array<Maybe<Quota>>;
   selectedItems: Array<Scalars["ID"]>;
   vmSelectedReadyFor: VMSelectedIDLists;
 };
@@ -974,6 +997,25 @@ export type QueryfindUserArgs = {
 
 export type QueryselectedItemsArgs = {
   tableId: Table;
+};
+
+export type Quota = {
+  memory?: Maybe<Scalars["Float"]>;
+  vdiSize?: Maybe<Scalars["Float"]>;
+  vcpuCount?: Maybe<Scalars["Int"]>;
+  vmCount?: Maybe<Scalars["Int"]>;
+  user: User;
+};
+
+export type QuotaInput = {
+  memory?: Maybe<Scalars["Float"]>;
+  vdiSize?: Maybe<Scalars["Float"]>;
+  vcpuCount?: Maybe<Scalars["Int"]>;
+  vmCount?: Maybe<Scalars["Int"]>;
+};
+
+export type QuotaMutation = {
+  success: Scalars["Boolean"];
 };
 
 export enum ShutdownForce {
@@ -2841,6 +2883,7 @@ export type GAccessEntryResolvers<Context = any, ParentType = GAccessEntry> = {
     | "GVDIAccessEntry"
     | "GSRAccessEntry"
     | "GTemplateAccessEntry"
+    | "GPoolAccessEntry"
     | "GTaskAccessEntry",
     ParentType,
     Context
@@ -2853,7 +2896,7 @@ export type GAclXenObjectResolvers<
   ParentType = GAclXenObject
 > = {
   __resolveType: TypeResolveFn<
-    "GVM" | "GNetwork" | "GVDI" | "GSR" | "GTemplate" | "GTask",
+    "GVM" | "GNetwork" | "GVDI" | "GSR" | "GTemplate" | "GPool" | "GTask",
     ParentType,
     Context
   >;
@@ -2970,8 +3013,19 @@ export type GPoolResolvers<Context = any, ParentType = GPool> = {
   nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
   uuid?: Resolver<Scalars["ID"], ParentType, Context>;
+  access?: Resolver<Array<Maybe<GPoolAccessEntry>>, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  myActions?: Resolver<Array<Maybe<PoolActions>>, ParentType, Context>;
   master?: Resolver<Maybe<GHost>, ParentType, Context>;
   defaultSr?: Resolver<Maybe<GSR>, ParentType, Context>;
+};
+
+export type GPoolAccessEntryResolvers<
+  Context = any,
+  ParentType = GPoolAccessEntry
+> = {
+  userId?: Resolver<User, ParentType, Context>;
+  actions?: Resolver<Array<PoolActions>, ParentType, Context>;
 };
 
 export type GPoolOrDeletedResolvers<
@@ -3236,7 +3290,7 @@ export type GVMsSubscriptionResolvers<
 };
 
 export type GXenObjectResolvers<Context = any, ParentType = GXenObject> = {
-  __resolveType: TypeResolveFn<"GHost" | "GPool", ParentType, Context>;
+  __resolveType: TypeResolveFn<"GHost", ParentType, Context>;
   nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
   nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
   ref?: Resolver<Scalars["ID"], ParentType, Context>;
@@ -3394,6 +3448,12 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
     Context,
     MutationtaskDeleteArgs
   >;
+  quotaSet?: Resolver<
+    Maybe<QuotaMutation>,
+    ParentType,
+    Context,
+    MutationquotaSetArgs
+  >;
   selectedItems?: Resolver<
     Maybe<Array<Scalars["ID"]>>,
     ParentType,
@@ -3493,6 +3553,7 @@ export type QueryResolvers<Context = any, ParentType = Query> = {
     Context,
     QueryfindUserArgs
   >;
+  quotas?: Resolver<Array<Maybe<Quota>>, ParentType, Context>;
   selectedItems?: Resolver<
     Array<Scalars["ID"]>,
     ParentType,
@@ -3500,6 +3561,21 @@ export type QueryResolvers<Context = any, ParentType = Query> = {
     QueryselectedItemsArgs
   >;
   vmSelectedReadyFor?: Resolver<VMSelectedIDLists, ParentType, Context>;
+};
+
+export type QuotaResolvers<Context = any, ParentType = Quota> = {
+  memory?: Resolver<Maybe<Scalars["Float"]>, ParentType, Context>;
+  vdiSize?: Resolver<Maybe<Scalars["Float"]>, ParentType, Context>;
+  vcpuCount?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
+  vmCount?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
+  user?: Resolver<User, ParentType, Context>;
+};
+
+export type QuotaMutationResolvers<
+  Context = any,
+  ParentType = QuotaMutation
+> = {
+  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
 };
 
 export type SoftwareVersionResolvers<
@@ -3796,6 +3872,7 @@ export type Resolvers<Context = any> = {
   GPBD?: GPBDResolvers<Context>;
   GPlaybook?: GPlaybookResolvers<Context>;
   GPool?: GPoolResolvers<Context>;
+  GPoolAccessEntry?: GPoolAccessEntryResolvers<Context>;
   GPoolOrDeleted?: GPoolOrDeletedResolvers;
   GPoolsSubscription?: GPoolsSubscriptionResolvers<Context>;
   GSR?: GSRResolvers<Context>;
@@ -3832,6 +3909,8 @@ export type Resolvers<Context = any> = {
   PlaybookRequirements?: PlaybookRequirementsResolvers<Context>;
   PvDriversVersion?: PvDriversVersionResolvers<Context>;
   Query?: QueryResolvers<Context>;
+  Quota?: QuotaResolvers<Context>;
+  QuotaMutation?: QuotaMutationResolvers<Context>;
   SoftwareVersion?: SoftwareVersionResolvers<Context>;
   SRAccessSet?: SRAccessSetResolvers<Context>;
   SRDestroyMutation?: SRDestroyMutationResolvers<Context>;

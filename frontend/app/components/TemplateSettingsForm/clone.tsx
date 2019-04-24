@@ -4,7 +4,7 @@ import {Button, FormGroup, UncontrolledAlert} from "reactstrap";
 import Label from "reactstrap/lib/Label";
 import {Formik} from "formik";
 import * as Yup from 'yup';
-import {getInput} from "../AbstractSettingsForm/inputUtils";
+import {FormInput} from "../AbstractSettingsForm/inputUtils";
 import {TemplateActions, TemplateInfoFragmentFragment, useTemplateCloneMutation} from "../../generated-models";
 import {useState} from "react";
 
@@ -26,7 +26,11 @@ export function TemplateClone({template}: Props) {
           <Form onSubmit={props.handleSubmit} inline={true}>
             <FormGroup>
               <Label for="newName">New template name</Label>
-              {getInput(props, "nameLabel", "text", null)}
+              <FormInput
+                form={props}
+                name="nameLabel"
+                type="text"
+              />
             </FormGroup>
             <Button type="submit" color="primary"
                     disabled={!props.isValid && template.myActions.includes(TemplateActions.clone)}>

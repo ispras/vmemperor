@@ -18,7 +18,7 @@ export const SelectUsersForGrant: React.FunctionComponent<Props> = ({onGrantRequ
   }, [setUsers]);
   return (
     <Fragment>
-      <SelectUsers onChange={onChange}/>
+      <SelectUsers onChange={onChange as any} isMulti={true}/>
       <Button color="primary" onClick={() => onGrantRequested(users)}>Grant actions</Button>
     </Fragment>
   )

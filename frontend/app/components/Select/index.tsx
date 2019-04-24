@@ -11,6 +11,7 @@ import {isOption, Option} from './guards';
 
 export interface SelectFieldProps<Values> extends _ReactSelectProps<Option>, FieldProps<Values> {
   afterChange?: (newValue: string) => void;
+  tag?: React.ComponentType<_ReactSelectProps<Option>>;
 }
 
 /* See bug https://github.com/JedWatson/react-select/issues/1453
@@ -29,7 +30,9 @@ function SelectField<Values>
    field,
    form,
    placeholder,
-   afterChange
+   afterChange,
+   tag,
+   ...props
  }: SelectFieldProps<Values>) {
   const value = useMemo(() => {
     if (!options)
@@ -45,10 +48,14 @@ function SelectField<Values>
     if (afterChange)
       afterChange(option.value);
   };
+  const SelectComponent: React.ComponentType<_ReactSelectProps<Option>>
+    = tag ? tag : Select;
+
   return (
     <FormGroup style={{paddingRight: "20px", paddingLeft: "20px"}}>
       <div style={{margin: '1rem 0'}}>
-        <Select
+        <SelectComponent
+          {...props}
           options={options}
           name={field.name}
           value={value}

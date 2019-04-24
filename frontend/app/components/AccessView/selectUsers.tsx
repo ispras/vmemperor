@@ -8,13 +8,15 @@ import {
 } from "../../generated-models";
 import {useApolloClient} from "react-apollo-hooks";
 import {QueryOptions} from "apollo-client";
+import {Props as _ReactSelectProps} from 'react-select/lib/Select';
+import {Option} from '../../components/Select/guards';
+import {ValueType} from "react-select/lib/types";
 
-interface Props {
-  onChange : (input : Array<User>) => any;
+interface Props extends _ReactSelectProps<Option<User>> {
+  onChange: (value: ValueType<Option<User>>) => void;
 }
 
-const SelectUsers : React.FunctionComponent<Props> =  ({onChange}) => {
-
+const SelectUsers: React.FunctionComponent<Props> = ({onChange, ...props}) => {
 
 
   const client = useApolloClient();
@@ -35,18 +37,18 @@ const SelectUsers : React.FunctionComponent<Props> =  ({onChange}) => {
   };
 
 
-  const getOptionValue = (option : User) => option.id;
+  const getOptionValue = (option: User) => option.id;
 
   return (
     <Fragment>
       <AsyncSelect
         getOptionValue={getOptionValue}
-        getOptionLabel={(option : User) => `${option.name} (${option.username})`}
+        getOptionLabel={(option: User) => `${option.name} (${option.username})`}
         loadOptions={loadUsers}
         minInput={2}
         onChange={onChange}
-        isMulti={true}
-        />
+        isMulti={isMulti}
+      />
     </Fragment>
   )
 };
