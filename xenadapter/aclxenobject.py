@@ -1,16 +1,58 @@
 import json
+from functools import wraps
 from json import JSONDecodeError
 from typing import Dict, Optional, List
 
 from rethinkdb.errors import ReqlNonExistenceError
 from serflag import SerFlag
-
+from dictdiffer import diff
 from authentication import BasicAuthenticator
 from constants import re as re, auth as auth
 from exc import XenAdapterArgumentError
+from frozendict import FrozenDictEncoder, frozendict
 from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
 from xenadapter.helpers import use_logger
 from xenadapter.xenobject import XenObject
+
+def make_change_to_settings(subfield):
+    '''
+    Reads an other_config['vmemperor'] using frozendict as object hook.
+    If method returns true, other_config['vmemperor'][subfield][auth.name] will be updated with self._settings
+    :param subfield: other_config['vmemperor'][subfield][auth.name] will be put into self._settings. Then method will be called.
+
+
+    '''
+    def decorator(method):
+        @wraps(method)
+
+        def  wrapper(self, *args, **kwargs):
+            other_config = self.get_other_config()
+
+
+            try:
+                emperor = json.loads(other_config['vmemperor'])
+            except (JSONDecodeError, KeyError) as e:
+                self.log.warning(f"Unable to extract settings: {e}")
+                emperor = {}
+
+            self._settings = emperor.setdefault(subfield, {}).setdefault(auth.name, {})
+
+
+            ret = method(self, *args, **kwargs)
+            if ret:
+                emperor[subfield][auth.name] = self._settings
+                other_config['vmemperor'] = json.dumps(emperor)
+                self.set_other_config(other_config)
+
+            del self._settings
+        return wrapper
+    return decorator
+
+
+
+
+
+
 
 
 class ACLXenObject(XenObject):
@@ -94,22 +136,36 @@ class ACLXenObject(XenObject):
         return False
 
     @classmethod
+    def compare_settings(cls, subfield, new_rec, return_diff = False):
+        '''
+        Compare other_config settings cache for subfield in DB and in new_rec provided.
+        If returns false, cache is not up to date and settings need to be recalculated
+        :return:
+        '''
+        ref = new_rec['ref']
+        try:
+            old_settings = re.db.table(cls.db_table_name).get(ref).pluck('_settings_').run()['_settings_'][subfield][auth.name]
+        except (ReqlNonExistenceError, KeyError):
+            old_settings = {}
+
+        new_settings = new_rec.get('_settings_', {}).get(subfield, {}).get(auth.name, {})
+        if return_diff:
+            return list(diff(old_settings, new_settings, dot_notation=False))
+        else:
+            return old_settings == new_settings
+
+
+
+    @classmethod
     def get_access_data(cls, record,  new_rec, ref) -> Dict[str, List[str]]:
         '''
-        Obtain access data from other_config
+        Obtain access data from other_config using _settings_ cache
         :param record: Original object record (is not used in default implementation)
         :param new_rec: New object record (with _settings_ parsed)
         :param ref: Object ref
         :return: None if access data wasnt changed since last call
         '''
 
-        try:
-            old_settings = re.db.table(cls.db_table_name).get(ref).pluck('_settings_').run()
-        except ReqlNonExistenceError:
-            old_settings = {}
-
-        if old_settings.get('_settings_', {}) == new_rec['_settings_']:
-            return None
 
         def read_other_config_access_rights(access_settings) -> Dict[str, List[str]]:
             if auth.name in access_settings:
@@ -119,18 +175,15 @@ class ACLXenObject(XenObject):
 
             return {}
 
-        if 'access' in new_rec['_settings_']:
-            return read_other_config_access_rights(new_rec['_settings_']['access'])
-        else:
-            return {}
+        if not cls.compare_settings('access', new_rec):
+            try:
+                return read_other_config_access_rights(new_rec['_settings_']['access'])
+            except KeyError:
+                return {}
 
-    def get_other_config(self):
-        ret = self._get_other_config()
-        if isinstance(ret, dict):
-            return ret
-        else:
-            return {}
+        # if we're here, None means we don't need to update access data
 
+    @make_change_to_settings('access')
     def manage_actions(self, action : SerFlag, revoke=False, clear=False, user : str = None):
         '''
         Changes action list for a Xen object
@@ -140,33 +193,19 @@ class ACLXenObject(XenObject):
         :param group:
         '''
         if user is None:  # It's root so do nothing
-            return
+            return False
 
         if not isinstance(action, self.Actions):
             raise TypeError(f"Unsupported type for 'action': {type(action)}. Expected: {self.Actions}")
 
-
-        from json import JSONDecodeError
         if not (user.startswith('users/') or user.startswith('groups/') or user == 'any'):
             raise XenAdapterArgumentError(self.log, f'Specify user OR group for {self.__class__.__name__}::manage_actions. Specified: {user}')
 
-
-        other_config = self.get_other_config()
-
-        if 'vmemperor' not in other_config:
-            emperor = {'access': {auth.name : {}}}
-        else:
-
-            try:
-                emperor = json.loads(other_config['vmemperor'])
-            except JSONDecodeError:
-                emperor = {'access': {auth.name: {}}}
-
-        if auth.name in emperor['access'] and not clear:
-            previous_actions = deserialize_auth_dict(self, emperor['access'][auth.name])
+        if not clear:
+            previous_actions = deserialize_auth_dict(self, self._settings)
         else:
             previous_actions = {}
-            emperor['access'][auth.name] = {}
+            self._settings = {}
 
         user_actions: SerFlag = previous_actions.get(user, self.Actions.NONE)
 
@@ -175,13 +214,13 @@ class ACLXenObject(XenObject):
         else:
             user_actions = user_actions | action
         if user_actions:
-            emperor['access'][auth.name][user] = user_actions.serialize()
+            self._settings[user] = user_actions.serialize()
         else:
-            if user in emperor['access'][auth.name]:
-                del emperor['access'][auth.name][user]
+            if user in self._settings:
+                del self._settings[user]
 
-        if not emperor['access'][auth.name]:
-            del emperor['access'][auth.name]
+        return True
+
 
         other_config['vmemperor'] = json.dumps(emperor)
         self.set_other_config(other_config)

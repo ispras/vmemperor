@@ -8,10 +8,12 @@ from handlers.graphql.mutations.attachnet import AttachNetworkMutation
 from handlers.graphql.mutations.attachvdi import AttachVDIMutation
 from handlers.graphql.mutations.createvm import CreateVM
 from handlers.graphql.mutations.network import NetworkMutation
+from handlers.graphql.mutations.quota import QuotaMutation
 from handlers.graphql.mutations.task import TaskRemoveMutation
 from handlers.graphql.mutations.vm import VMDestroyMutation, VMSuspendMutation, VMPauseMutation, VMRebootMutation, \
     VMShutdownMutation, VMStartMutation, VMMutation
 from handlers.graphql.resolvers.console import resolve_console
+from handlers.graphql.resolvers.quota import resolve_quotas
 from handlers.graphql.resolvers.task import resolve_tasks
 from handlers.graphql.resolvers.vdi import resolve_vdis
 from handlers.graphql.mutations.sr import SRMutation, SRDestroyMutation
@@ -29,7 +31,7 @@ from handlers.graphql.types.user import User, CurrentUserInformation
 from xenadapter.vdi import VDI
 from handlers.graphql.types.vdi import GVDI
 from handlers.graphql.types.host import GHost
-from handlers.graphql.types.pool import GPool
+from handlers.graphql.types.pool import GPool, Quota
 from handlers.graphql.types.task import GTask
 from handlers.graphql.types.template import GTemplate
 from handlers.graphql.types.sr import GSR
@@ -84,6 +86,9 @@ class Query(ObjectType):
 
     find_user = graphene.Field(graphene.List(User), query=graphene.NonNull(graphene.String), required=True, resolver=resolve_filter_users)
 
+    quotas = graphene.Field(graphene.List(Quota), required=True, resolver=resolve_quotas)
+
+
 
 
 
@@ -122,6 +127,7 @@ class Mutation(ObjectType):
 
     task_delete = TaskRemoveMutation.Field(description="Delete a Task")
 
+    quota_set = QuotaMutation.Field(description="Adjust quota")
 
 
 

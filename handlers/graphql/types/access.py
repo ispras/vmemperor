@@ -10,7 +10,11 @@ from handlers.graphql.types.objecttype import ObjectType
 
 
 def create_access_mutation_type(name, actions_type, xenobject_type):
+    """
+    Returns a type for access mutation (i.e. change access of a particular XenObject
 
+    It has one output field: "success" which is rendered false if user does not exist OR access is denied
+    """
 
     class Arguments:
         ref = graphene.ID(required=True)

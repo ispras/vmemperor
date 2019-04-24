@@ -7,7 +7,7 @@ from connman import ReDBConnection
 from customtask.customtask import CustomTask
 from handlers.graphql.types.input.newvdi import NewVDI
 from handlers.graphql.types.input.vm import AutoInstall, VMInput
-from utils.check_user_input import check_user_input
+from utils.user import check_user_input
 from xenadapter.vdi import VDI
 from xenadapter.network import Network
 

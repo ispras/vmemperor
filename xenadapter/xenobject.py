@@ -256,6 +256,13 @@ class XenObject(metaclass=XenObjectMeta):
         '''
         return True
 
+    def get_other_config(self):
+        ret = self._get_other_config()
+        if isinstance(ret, dict):
+            return ret
+        else:
+            return {}
+
 
     def set_other_config(self, config):
         config = {k : str(v) for k,v in config.items()}

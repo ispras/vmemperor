@@ -5,12 +5,8 @@ from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.utils.query import resolve_table
 from handlers.graphql.resolvers import with_connection
 import constants.re as re
+from utils.user import ANY_USER, get_user_object
 
-ANY_USER = {
-                    "id": "any",
-                    "username": "any",
-                    "name": "Any user in the system"
-                }
 
 def resolve_users(*args, **kwargs):
     from handlers.graphql.types.user import User
@@ -24,6 +20,7 @@ def userType():
     from handlers.graphql.types.user import User
     return User
 
+
 def resolve_user(field_name = "user_id"):
     '''
     Resolve user OR group (user ids start with users/, group ids start with groups/)
@@ -32,7 +29,6 @@ def resolve_user(field_name = "user_id"):
     @with_connection
     @with_default_authentication
     def resolver(root, info, **kwargs):
-        from handlers.graphql.types.user import User
         if 'id' in kwargs:
             id = kwargs['ref']
         else:
@@ -46,30 +42,8 @@ def resolve_user(field_name = "user_id"):
 
         if not id:
             return None
-        tables = {
-            "users/" : "users",
-            "groups/" : "groups"
-        }
+        return get_user_object(id)
 
-        # remember that for loop variables are of function scope
-        for item, value in tables.items():
-            if id.startswith(item):
-                db_id = id.replace(item, "")
-                table_name = value
-                break
-        else:
-            if id == "any":
-                return ANY_USER
-            return None
-
-
-        record = re.db.table(table_name).get(db_id).run()
-
-        if not record or not len(record):
-            return None
-
-        record["id"] = id
-        return record
 
     return resolver
 

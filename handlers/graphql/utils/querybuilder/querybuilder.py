@@ -8,14 +8,9 @@ from rethinkdb.errors import ReqlNonExistenceError
 
 from authentication import BasicAuthenticator
 from handlers.graphql.utils.querybuilder.get_fields import get_fields
+from utils.user import user_entities
+import constants.re as re
 from xenadapter.aclxenobject import ACLXenObject
-import  constants.re as re # used by eval
-
-def user_entities(authenticator: BasicAuthenticator):
-    yield f'users/{authenticator.get_id()}'
-    yield 'any'
-    for group in authenticator.get_user_groups():
-        yield f'groups/{group}'
 
 class QueryBuilder:
     '''
