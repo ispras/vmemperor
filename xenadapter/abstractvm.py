@@ -74,19 +74,19 @@ def set_memory(input: Mapping, vm: AbstractVM, return_diff=True):
         old_val = get_memory_dict()
 
     try:
-        smin = str(int(input.get('memory_static_min')))
+        smin = int(input.get('memory_static_min'))
     except TypeError:
         smin = None
     try:
-        smax = str(int(input.get('memory_static_max')))
+        smax = int(input.get('memory_static_max'))
     except TypeError:
         smax = None
     try:
-        dmin = str(int(input.get('memory_dynamic_min')))
+        dmin = int(input.get('memory_dynamic_min'))
     except TypeError:
         dmin = None
     try:
-        dmax = str(int(input.get('memory_dynamic_max')))
+        dmax = int(input.get('memory_dynamic_max'))
     except TypeError:
         dmax = None
 

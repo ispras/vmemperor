@@ -17,6 +17,7 @@ import {InputProps} from "reactstrap";
 import {FormGroup} from "../MarginFormGroup";
 import {getFeedback, getInvalid} from "./utils";
 import {Omit} from "../AbstractSettingsForm/utils";
+import {InputBase, InputBaseProps} from "./inputBase";
 
 interface InputComponentProps {
   addonIcon?: Icon,
@@ -26,12 +27,21 @@ interface InputComponentProps {
   children?: ReactNode;
 }
 
-type Props<T> = FieldProps<T> & Omit<InputProps, 'form'> & InputComponentProps;
+type Props<T> = InputBaseProps<T> & InputComponentProps;
 
+/**
+ * This component represents a whole row with input component (FormGroup). If you have a customized FormGroup, use InputBase
+ * @param field
+ * @param form
+ * @param addonIcon
+ * @param addonText
+ * @param children
+ * @param appendAddonIcon
+ * @param appendAddonText
+ * @constructor
+ */
 function InputComponent<T>(
   {
-    field: {...fields},
-    form,
     addonIcon,
     addonText,
     children,
@@ -43,7 +53,7 @@ function InputComponent<T>(
   return (
     <FormGroup>
       {children && (
-        <Label for={fields.name}>
+        <Label for={props.field.name}>
           {children}
         </Label>
       )
@@ -65,11 +75,7 @@ function InputComponent<T>(
           </InputGroupAddon>
         )
         }
-        <Input {...props} {...fields}
-               invalid={getInvalid(form, fields.name)}
-        />
-        {getFeedback(form, fields.name)}
-
+        <InputBase {...props}/>
         {appendAddonIcon && (
           <InputGroupAddon style={{"line-height": "1!important"}} addonType="append">
             <InputGroupText>

@@ -3,7 +3,7 @@
  *
  * This contains all the text for the Navbar component.
  */
-import { defineMessages } from 'react-intl';
+import {defineMessages} from 'react-intl';
 
 export default defineMessages({
   vms: {
@@ -42,7 +42,10 @@ export default defineMessages({
     id: "app.components.navbar.logout",
     defaultMessage: "Logout",
   },
-
+  quota: {
+    id: "app.components.navbar.quota",
+    defaultMessage: "Quotas"
+  }
 
 
 });

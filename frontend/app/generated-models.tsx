@@ -934,6 +934,7 @@ export type Query = {
   currentUser?: Maybe<CurrentUserInformation>;
   findUser: Array<Maybe<User>>;
   quotas: Array<Maybe<Quota>>;
+  quota: Quota;
   selectedItems: Array<Scalars["ID"]>;
   vmSelectedReadyFor: VMSelectedIDLists;
 };
@@ -993,6 +994,10 @@ export type QueryuserArgs = {
 
 export type QueryfindUserArgs = {
   query: Scalars["String"];
+};
+
+export type QueryquotaArgs = {
+  user: Scalars["String"];
 };
 
 export type QueryselectedItemsArgs = {
@@ -2257,6 +2262,28 @@ export type PoolListUpdateSubscription = { __typename?: "Subscription" } & {
   > & { value: PoolListFragmentFragment | DeletedFragmentFragment };
 };
 
+export type QuotaSetMutationVariables = {
+  userId: Scalars["String"];
+  quota: QuotaInput;
+};
+
+export type QuotaSetMutation = { __typename?: "Mutation" } & {
+  quotaSet: Maybe<
+    { __typename?: "QuotaMutation" } & Pick<QuotaMutation, "success">
+  >;
+};
+
+export type QuotaGetQueryVariables = {
+  userId: Scalars["String"];
+};
+
+export type QuotaGetQuery = { __typename?: "Query" } & {
+  quota: { __typename?: "Quota" } & Pick<
+    Quota,
+    "vdiSize" | "vcpuCount" | "vmCount" | "memory"
+  > & { user: { __typename?: "User" } & UserFragmentFragment };
+};
+
 export type RebootVmMutationVariables = {
   ref: Scalars["ID"];
   force?: Maybe<ShutdownForce>;
@@ -2559,6 +2586,14 @@ export type UserFragmentFragment = { __typename?: "User" } & Pick<
   User,
   "username" | "id" | "name"
 >;
+
+export type UserGetQueryVariables = {
+  userId: Scalars["ID"];
+};
+
+export type UserGetQuery = { __typename?: "Query" } & {
+  user: Maybe<{ __typename?: "User" } & UserFragmentFragment>;
+};
 
 export type VDIInfoFragmentFragment = { __typename?: "GVDI" } & Pick<
   GVDI,
@@ -3554,6 +3589,7 @@ export type QueryResolvers<Context = any, ParentType = Query> = {
     QueryfindUserArgs
   >;
   quotas?: Resolver<Array<Maybe<Quota>>, ParentType, Context>;
+  quota?: Resolver<Quota, ParentType, Context, QueryquotaArgs>;
   selectedItems?: Resolver<
     Array<Scalars["ID"]>,
     ParentType,
@@ -5586,6 +5622,48 @@ export function usePoolListUpdateSubscription(
     PoolListUpdateSubscriptionVariables
   >(PoolListUpdateDocument, baseOptions);
 }
+export const QuotaSetDocument = gql`
+  mutation QuotaSet($userId: String!, $quota: QuotaInput!) {
+    quotaSet(userId: $userId, quota: $quota) {
+      success
+    }
+  }
+`;
+
+export function useQuotaSetMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    QuotaSetMutation,
+    QuotaSetMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    QuotaSetMutation,
+    QuotaSetMutationVariables
+  >(QuotaSetDocument, baseOptions);
+}
+export const QuotaGetDocument = gql`
+  query QuotaGet($userId: String!) {
+    quota(user: $userId) {
+      user {
+        ...UserFragment
+      }
+      vdiSize
+      vcpuCount
+      vmCount
+      memory
+    }
+  }
+  ${UserFragmentFragmentDoc}
+`;
+
+export function useQuotaGetQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<QuotaGetQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<QuotaGetQuery, QuotaGetQueryVariables>(
+    QuotaGetDocument,
+    baseOptions
+  );
+}
 export const RebootVmDocument = gql`
   mutation RebootVm($ref: ID!, $force: ShutdownForce) {
     vmReboot(ref: $ref, force: $force) {
@@ -5995,6 +6073,23 @@ export function useTemplateListUpdateSubscription(
     TemplateListUpdateSubscription,
     TemplateListUpdateSubscriptionVariables
   >(TemplateListUpdateDocument, baseOptions);
+}
+export const UserGetDocument = gql`
+  query UserGet($userId: ID!) {
+    user(id: $userId) {
+      ...UserFragment
+    }
+  }
+  ${UserFragmentFragmentDoc}
+`;
+
+export function useUserGetQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<UserGetQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<UserGetQuery, UserGetQueryVariables>(
+    UserGetDocument,
+    baseOptions
+  );
 }
 export const VDIInfoDocument = gql`
   query VDIInfo($ref: ID!) {

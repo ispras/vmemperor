@@ -1,16 +1,21 @@
-import {FieldProps} from "formik";
+import {connect, Field, FieldProps, FormikProps} from "formik";
 import {ResourceFormValues} from "./schema";
 import {FormGroup} from "../MarginFormGroup";
 import {Col, Input, Row} from "reactstrap";
 import React from "react";
 import Label from "reactstrap/lib/Label";
 import {ChangeInputEvent, FormInput} from "../AbstractSettingsForm/inputUtils";
+import {InputBase} from "../Input/inputBase";
 
-interface Props extends FieldProps<any> {
+interface OuterProps {
   namePrefix?: string
 }
 
-export const CPUInputComponent: React.FunctionComponent<Props> = ({form, namePrefix = ""}) => {
+interface Props extends OuterProps {
+  formik: FormikProps<any>;
+}
+
+const CPUInputComponent: React.FunctionComponent<Props> = ({formik: form, namePrefix = ""}) => {
   const VCPUsStartup = namePrefix + "VCPUsAtStartup";
   const VCPUsMax = namePrefix + "VCPUsMax";
   const coresPerSocket = namePrefix + "platform.coresPerSocket";
@@ -38,8 +43,8 @@ export const CPUInputComponent: React.FunctionComponent<Props> = ({form, namePre
           <Label for={VCPUsStartup}>
             VCPUs at startup
           </Label>
-          <FormInput
-            form={form}
+          <Field
+            component={InputBase}
             name={VCPUsStartup}
             type="number"
             onChange={handleChangeVCPUsStartup}
@@ -51,8 +56,8 @@ export const CPUInputComponent: React.FunctionComponent<Props> = ({form, namePre
           <Label for={VCPUsMax}>
             Max VCPUs
           </Label>
-          <FormInput
-            form={form}
+          <Field
+            component={InputBase}
             name={VCPUsMax}
             type="number"
             onChange={handleChangeVCPUsMax}/>
@@ -63,7 +68,8 @@ export const CPUInputComponent: React.FunctionComponent<Props> = ({form, namePre
           <Label for={coresPerSocket}>
             Cores per socket
           </Label>
-          <FormInput
+          <Field
+            component={InputBase}
             form={form}
             name={coresPerSocket}
             type="number"
@@ -74,3 +80,5 @@ export const CPUInputComponent: React.FunctionComponent<Props> = ({form, namePre
   )
 
 };
+
+export default connect<OuterProps>(CPUInputComponent);

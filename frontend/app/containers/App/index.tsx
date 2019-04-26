@@ -28,6 +28,7 @@ import SRSettings from "../SRSettings";
 import Tasks from "../TaskList";
 import {CreateVMTask} from "../TaskList/create_vm";
 import {PlaybookTask} from "../TaskList/playbook";
+import {QuotaAdminController} from "../QuotaAdminController";
 
 
 interface State {
@@ -88,6 +89,7 @@ class App extends React.Component<{}, State> {
             <PrivateRoute path="/history" component={Tasks}/>
             <PrivateRoute path="/create_vm/:id" component={CreateVMTask}/>
             <PrivateRoute path="/launch_playbook/:id" component={PlaybookTask}/>
+            <PrivateRoute path="/quota/:userType?/:user?" component={QuotaAdminController}/>
             <Route component={NotFoundPage}/>
           </Switch>
         </BrowserRouter>

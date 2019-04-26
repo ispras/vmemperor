@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig". Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Thu Apr 25 21:09:56 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -222,11 +222,14 @@ type GPlaybook {
   variables: JSONString
 }
 
-type GPool implements GXenObject {
+type GPool implements GAclXenObject {
+  access: [GPoolAccessEntry]!
   "Default SR"
   defaultSr: GSR
+  isOwner: Boolean!
   "Pool master"
   master: GHost
+  myActions: [PoolActions]!
   "a human-readable description"
   nameDescription: String!
   "a human-readable name"
@@ -235,6 +238,11 @@ type GPool implements GXenObject {
   ref: ID!
   "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
+}
+
+type GPoolAccessEntry implements GAccessEntry {
+  actions: [PoolActions!]!
+  userId: User!
 }
 
 type GPoolsSubscription {
@@ -528,6 +536,8 @@ type Mutation {
     #VM UUIDs to run Playbook on. Ignored if this is a Playbook with provided Inventory
     vms: [ID]
   ): PlaybookLaunchMutation
+  "Adjust quota"
+  quotaSet(quota: QuotaInput!, userId: String!): QuotaMutation
   "Edit SR options"
   sr(
     #Object ID
@@ -677,6 +687,8 @@ type Query {
   playbooks: [GPlaybook]!
   pool(ref: ID!): GPool
   pools: [GPool]!
+  quota(user: String!): Quota!
+  quotas: [Quota]!
   "Information about a single storage repository"
   sr(ref: ID!): GSR
   "All Storage repositories available to user"
@@ -702,6 +714,18 @@ type Query {
   vm(ref: ID!): GVM
   "All VMs available to user"
   vms: [GVM]!
+}
+
+type Quota {
+  memory: Float
+  user: User!
+  vcpuCount: Int
+  vdiSize: Float
+  vmCount: Int
+}
+
+type QuotaMutation {
+  success: Boolean!
 }
 
 type SRAccessSet {
@@ -957,6 +981,13 @@ enum NetworkActions {
   rename
 }
 
+"An enumeration."
+enum PoolActions {
+  ALL
+  NONE
+  create_vm
+}
+
 enum PowerState {
   Halted
   Paused
@@ -1137,6 +1168,13 @@ input PlatformInput {
   pae: Boolean
   timeoffset: Int
   videoram: Int
+}
+
+input QuotaInput {
+  memory: Float
+  vcpuCount: Int
+  vdiSize: Float
+  vmCount: Int
 }
 
 input SRInput {

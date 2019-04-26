@@ -3,3 +3,9 @@ fragment UserFragment on User {
   id
   name
 }
+
+query UserGet($userId: ID!) {
+  user (id: $userId){
+    ...UserFragment
+  }
+}

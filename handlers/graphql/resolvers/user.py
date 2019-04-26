@@ -30,7 +30,7 @@ def resolve_user(field_name = "user_id"):
     @with_default_authentication
     def resolver(root, info, **kwargs):
         if 'id' in kwargs:
-            id = kwargs['ref']
+            id = kwargs['id']
         else:
             if field_name:
                 try:

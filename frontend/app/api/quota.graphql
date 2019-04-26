@@ -1,0 +1,19 @@
+#import UserFragment from "./user.graphql"
+
+mutation QuotaSet($userId:String!, $quota: QuotaInput!) {
+  quotaSet (userId: $userId, quota: $quota) {
+    success
+  }
+}
+
+query QuotaGet($userId: String!) {
+  quota (user: $userId) {
+    user {
+      ...UserFragment
+    }
+    vdiSize
+    vcpuCount
+    vmCount
+    memory
+  }
+}

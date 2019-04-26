@@ -33,6 +33,7 @@ class MyNavbar extends React.Component {
         {to: "/vms", text: {...messages.vms}},
         {to: "/templates", text: {...messages.templates}},
         {to: "/create-vm", text: {...messages.createvm}},
+        {to: "/quota", text: {...messages.quota}},
         {to: "/history", text: {...messages.history}},
         {to: "/networks", text: {...messages.networks}},
         {to: "/vdis", text: {...messages.vdis}},

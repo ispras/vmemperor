@@ -75,6 +75,9 @@ const VMForm = (props: FormikPropsValues) => {
 
   }, [props.values.template]);
   const {data: {currentUser}} = useCurrentUserQuery();
+  const hideTemplateElementsStyle = useMemo(() => {
+    return props.values.template ? {} : {display: 'none'}
+  }, [props.values.template]);
   return (
     <form
       className="form-horizontal"
@@ -207,14 +210,16 @@ const VMForm = (props: FormikPropsValues) => {
               />
             )
             }
-            <H4><FormattedMessage {...messages.resources} /></H4>
-            <ResourceFields namePrefix="vmOptions."/>
-            <Field name="hddSizeGB"
-                   component={Input}
-                   type="number"
-                   addonIcon={faHdd}
-                   appendAddonText={"GB"}
-            />
+            <div style={hideTemplateElementsStyle}>
+              <H4><FormattedMessage {...messages.resources} /></H4>
+              <ResourceFields namePrefix="vmOptions."/>
+              <Field name="hddSizeGB"
+                     component={Input}
+                     type="number"
+                     addonIcon={faHdd}
+                     appendAddonText={"GB"}
+              />
+            </div>
           </Fragment>
         </Fragment>
       )}

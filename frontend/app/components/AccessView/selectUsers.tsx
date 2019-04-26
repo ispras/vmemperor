@@ -9,15 +9,15 @@ import {
 import {useApolloClient} from "react-apollo-hooks";
 import {QueryOptions} from "apollo-client";
 import {Props as _ReactSelectProps} from 'react-select/lib/Select';
-import {Option} from '../../components/Select/guards';
-import {ValueType} from "react-select/lib/types";
 
-interface Props extends _ReactSelectProps<Option<User>> {
-  onChange: (value: ValueType<Option<User>>) => void;
-}
+import {Omit} from "../AbstractSettingsForm/utils";
+import {AsyncProps} from "react-select/lib/Async";
 
-const SelectUsers: React.FunctionComponent<Props> = ({onChange, ...props}) => {
 
+export type SelectUsersProps = Omit<AsyncProps<User> & _ReactSelectProps<User>, "getOptionValue" | "getOptionLabel" | "loadOptions" | "minInput">;
+
+
+const SelectUsers: React.FunctionComponent<SelectUsersProps> = (props) => {
 
   const client = useApolloClient();
   const loadUsers = async (filterQuery) => {
@@ -46,8 +46,7 @@ const SelectUsers: React.FunctionComponent<Props> = ({onChange, ...props}) => {
         getOptionLabel={(option: User) => `${option.name} (${option.username})`}
         loadOptions={loadUsers}
         minInput={2}
-        onChange={onChange}
-        isMulti={isMulti}
+        {...props}
       />
     </Fragment>
   )

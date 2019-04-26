@@ -13,7 +13,7 @@ from handlers.graphql.mutations.task import TaskRemoveMutation
 from handlers.graphql.mutations.vm import VMDestroyMutation, VMSuspendMutation, VMPauseMutation, VMRebootMutation, \
     VMShutdownMutation, VMStartMutation, VMMutation
 from handlers.graphql.resolvers.console import resolve_console
-from handlers.graphql.resolvers.quota import resolve_quotas
+from handlers.graphql.resolvers.quota import resolve_quotas, resolve_quota
 from handlers.graphql.resolvers.task import resolve_tasks
 from handlers.graphql.resolvers.vdi import resolve_vdis
 from handlers.graphql.mutations.sr import SRMutation, SRDestroyMutation
@@ -87,6 +87,8 @@ class Query(ObjectType):
     find_user = graphene.Field(graphene.List(User), query=graphene.NonNull(graphene.String), required=True, resolver=resolve_filter_users)
 
     quotas = graphene.Field(graphene.List(Quota), required=True, resolver=resolve_quotas)
+    quota = graphene.Field(Quota, required=True, resolver=resolve_quota, user=graphene.NonNull(graphene.String))
+
 
 
 

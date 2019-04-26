@@ -1,12 +1,10 @@
 import {FieldProps} from 'formik'
-import React, {useCallback, useMemo} from 'react'
+import React, {useMemo} from 'react'
 import Select from 'react-select'
 import {Props as _ReactSelectProps} from 'react-select/lib/Select';
-import {FormFeedback, InputGroup, InputGroupAddon} from "reactstrap";
 import FormGroup from "reactstrap/lib/FormGroup";
-import styled from "styled-components";
-import {OptionsType} from "react-select/lib/types";
-import {isOption, Option} from './guards';
+import {Option} from './guards';
+import {SelectErrorFeedback, SelectSubtextDiv} from "./feedback";
 
 
 export interface SelectFieldProps<Values> extends _ReactSelectProps<Option>, FieldProps<Values> {
@@ -16,12 +14,6 @@ export interface SelectFieldProps<Values> extends _ReactSelectProps<Option>, Fie
 
 /* See bug https://github.com/JedWatson/react-select/issues/1453
  and https://github.com/JedWatson/react-select/issues/2930 */
-
-
-const ErrorDiv = styled.div`
-padding-top: 3px;
-font-size: small;
-`;
 
 
 function SelectField<Values>
@@ -63,13 +55,7 @@ function SelectField<Values>
           placeholder={placeholder}
           onBlur={field.onBlur}
         />
-
-        {form.errors[field.name] && form.touched[field.name] && (
-          <ErrorDiv className="text-danger">
-            {form.errors[field.name]}
-          </ErrorDiv>
-        )
-        }
+        <SelectErrorFeedback field={field} form={form}/>
       </div>
     </FormGroup>);
 

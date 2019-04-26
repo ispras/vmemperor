@@ -4,7 +4,7 @@ import Input from '../Input';
 import {faMemory, faMicrochip} from "@fortawesome/free-solid-svg-icons";
 import {Field} from "formik";
 import {FormGroup, Label} from "reactstrap";
-import {CPUInputComponent} from "./cpuinput";
+import CPUInputComponent from "./cpuinput";
 import RAMInputComponent from "./raminput";
 
 interface Props {
@@ -14,8 +14,7 @@ interface Props {
 export const Fields: React.FunctionComponent<Props> = ({namePrefix}) => {
   return (
     <Fragment>
-      <Field
-        component={CPUInputComponent}
+      <CPUInputComponent
         namePrefix={namePrefix}
       />
       <RAMInputComponent
