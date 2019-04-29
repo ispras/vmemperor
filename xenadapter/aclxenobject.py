@@ -11,6 +11,7 @@ from constants import re as re, auth as auth
 from exc import XenAdapterArgumentError
 from frozendict import FrozenDictEncoder, frozendict
 from handlers.graphql.utils.deserialize_auth_dict import deserialize_auth_dict
+from utils.user import get_user_object
 from xenadapter.helpers import use_logger
 from xenadapter.xenobject import XenObject
 
@@ -47,13 +48,6 @@ def make_change_to_settings(subfield):
             del self._settings
         return wrapper
     return decorator
-
-
-
-
-
-
-
 
 class ACLXenObject(XenObject):
     '''
@@ -198,8 +192,8 @@ class ACLXenObject(XenObject):
         if not isinstance(action, self.Actions):
             raise TypeError(f"Unsupported type for 'action': {type(action)}. Expected: {self.Actions}")
 
-        if not (user.startswith('users/') or user.startswith('groups/') or user == 'any'):
-            raise XenAdapterArgumentError(self.log, f'Specify user OR group for {self.__class__.__name__}::manage_actions. Specified: {user}')
+        if not get_user_object(user):
+            raise XenAdapterArgumentError(self.log, f'Incorrect user name: {user}')
 
         if not clear:
             previous_actions = deserialize_auth_dict(self, self._settings)

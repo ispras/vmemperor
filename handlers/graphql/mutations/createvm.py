@@ -21,7 +21,7 @@ from xentools.xenadapterpool import XenAdapterPool
 from handlers.graphql.types.vm import SetDisksEntry
 
 
-def createvm(ctx : ContextProtocol, task_id : str, user: str,
+def createvm(ctx : ContextProtocol, task_id : str,
              vm_options: VMInput,
              template: str, disks : Sequence[NewVDI], network : str, iso : str =None, install_params : AutoInstall =None,
              **kwargs):
@@ -30,9 +30,13 @@ def createvm(ctx : ContextProtocol, task_id : str, user: str,
     with ReDBConnection().get_connection():
         xen = XenAdapterPool().get()
         task = CustomTask(task_id, Template, template, "create_vm", ctx.user_authenticator)
+        if not vm_options.main_owner and not ctx.user_authenticator.is_admin():
+            vm_options.main_owner = 'users/' + ctx.user_authenticator.get_id()
+        user = vm_options.main_owner
+
         try:
             if not check_user_input(user, ctx.user_authenticator):
-                task.set_status(status='failure', error_info_add=f"Incorrect value of argument: 'user': {user}")
+                task.set_status(status='failure', error_info_add=f"Incorrect value of argument: 'vmOptions.mainOwner': {user}")
                 return
             def disk_entries():
                 for entry in disks:
@@ -55,7 +59,6 @@ def createvm(ctx : ContextProtocol, task_id : str, user: str,
                 template=tmpl,
                 iso=kwargs.get('VDI'),
                 install_params=install_params,
-                user=user if not user == "root" else None,
                 options=vm_options
             )
         finally:
@@ -74,7 +77,6 @@ class CreateVM(graphene.Mutation):
         network = graphene.Argument(graphene.ID, description="Network ID to connect to")
         iso = graphene.Argument(graphene.ID, description="ISO image mounted if conf parameter is null")
         install_params = graphene.Argument(AutoInstall, description="Automatic installation parameters, the installation is done via internet. Only available when template.os_kind is not empty")
-        user = graphene.Argument(graphene.String, description="User or group we should create VM as")
 
 
     @staticmethod
@@ -90,16 +92,6 @@ class CreateVM(graphene.Mutation):
         ctx :ContextProtocol = info.context
         if 'VDI' in kwargs and kwargs['VDI'].type != 'iso':
             raise TypeError("VDI argument is not ISO image")
-        user = kwargs.get('user')
-        if user and not user == 'root' and not user == 'any' and not user.startswith('users/') and not user.startswith('groups/'):
-            return CreateVM(granted=False, reason="Incorrect 'user' field value")
-        if not user:
-            if ctx.user_authenticator.is_admin():
-                user = ctx.user_authenticator.get_id()
-            else:
-                user = 'users/' + ctx.user_authenticator.get_id()
-
-            kwargs['user'] = user
 
         tornado.ioloop.IOLoop.current().run_in_executor(ctx.executor,
         lambda: createvm(ctx, task_id, *args, **kwargs))

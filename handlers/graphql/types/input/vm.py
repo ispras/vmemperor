@@ -1,6 +1,7 @@
 import graphene
 
 from handlers.graphql.types.input.abstractvm import AbstractVMInput
+from handlers.graphql.types.input.quotaobject import QuotaObjectInput
 
 
 class NetworkConfiguration(graphene.InputObjectType):
@@ -20,5 +21,5 @@ class AutoInstall(graphene.InputObjectType):
     static_ip_config = graphene.InputField(NetworkConfiguration, description="Static IP configuration, if needed")
 
 
-class VMInput(AbstractVMInput):
+class VMInput(QuotaObjectInput, AbstractVMInput):
     pass

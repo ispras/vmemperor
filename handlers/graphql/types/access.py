@@ -4,8 +4,8 @@ from graphene.types.resolver import dict_resolver
 from authentication import with_default_authentication
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils import access
-from handlers.graphql.types.accessentry import GAccessEntry
-from handlers.graphql.types.objecttype import ObjectType
+from handlers.graphql.interfaces.accessentry import GAccessEntry
+from handlers.graphql.types.base.objecttype import ObjectType
 
 
 

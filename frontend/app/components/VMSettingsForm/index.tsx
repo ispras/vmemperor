@@ -14,7 +14,7 @@ import Storage from "./subforms/storage";
 import AccessView from '../../components/AccessView';
 import XenObjectHeader from "../XenObjectHeader";
 import {ResourcesFormContainer} from "../ApplyResetForm";
-import schema from "../AbstractVMSettingsComponents/schema";
+import schema from "./schema";
 import {SettingsComponentProps} from "../../containers/Settings";
 import {defaults} from "../AbstractVMSettingsComponents/defaults";
 import {Omit} from "../AbstractSettingsForm/utils";
@@ -28,6 +28,7 @@ import {
 import {TabWidget, TabWidgetProps} from "../TabWidget";
 import {Fields} from "../AbstractVMSettingsComponents/fields";
 import {Mode} from "../AbstractVMSettingsComponents/mode";
+import {MainOwnerForm} from "../MainOwnerForm";
 
 
 enum Tab {
@@ -100,6 +101,7 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
                 mutationName="vm"
                 defaultValues={defaults}
               >
+                <MainOwnerForm object={vm}/>
                 <Mode PVBootloader={vm.PVBootloader}/>
                 <Fields/>
               </ResourcesFormContainer>

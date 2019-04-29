@@ -81,6 +81,18 @@ const result: IntrospectionResultData = {
       },
       {
         kind: "INTERFACE",
+        name: "GQuotaObject",
+        possibleTypes: [
+          {
+            name: "GVM"
+          },
+          {
+            name: "GVDI"
+          }
+        ]
+      },
+      {
+        kind: "INTERFACE",
         name: "GXenObject",
         possibleTypes: [
           {

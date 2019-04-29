@@ -19,7 +19,6 @@ interface ACLXenObject<T> {
   myActions: Array<T>;
   access: Array<AccessEntry<T>>;
   ref: string;
-
 }
 
 interface Props<T> {

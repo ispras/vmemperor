@@ -6,7 +6,7 @@ from graphql import ResolveInfo
 from authentication import with_default_authentication
 from constants import re as re
 from handlers.graphql.graphql_handler import ContextProtocol
-from handlers.graphql.types.objecttype import ObjectType
+from handlers.graphql.types.base.objecttype import ObjectType
 from handlers.graphql.utils.paging import do_paging
 from handlers.graphql.utils.string import underscore
 from handlers.graphql.utils.querybuilder.querybuilder import QueryBuilder

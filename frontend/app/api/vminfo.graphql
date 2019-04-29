@@ -1,5 +1,6 @@
 # import AbstractVMFragment from "abstractVmFragment.graphql"
 # import ACLXenObjectFragment from "xenObjectFragment.graphql"
+# import UserFragment from "user.graphql"
 
 fragment VMVIFFragment on GVIF {
   network {
@@ -38,11 +39,18 @@ fragment VMAccessFragment on GVMAccessEntry {
   }
   actions
 }
+fragment VMSettingsFragment on GVM  {
+  ...AbstractVMFragment
+  mainOwner {
+    ...UserFragment
+  }
+}
+
 
 fragment VMInfoFragment on GVM {
   PVBootloader
   ...ACLXenObjectFragment
-  ...AbstractVMFragment
+  ...VMSettingsFragment
   VIFs {
     ...VMVIFFragment
   }

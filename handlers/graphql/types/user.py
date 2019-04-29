@@ -1,6 +1,6 @@
 import graphene
 
-from handlers.graphql.types.objecttype import ObjectType
+from handlers.graphql.types.base.objecttype import ObjectType
 
 
 

@@ -1,5 +1,4 @@
 import collections
-import threading
 from collections import Mapping
 
 from serflag import SerFlag
@@ -14,9 +13,7 @@ from exc import *
 from authentication import BasicAuthenticator
 from handlers.graphql.mutation_utils.cleanup import cleanup_defaults
 
-from handlers.graphql.types.gxenobjecttype import GXenObjectType
-from handlers.graphql.types.objecttype import InputObjectType
-from rethinkdb_tools.helper import CHECK_ER
+from handlers.graphql.types.base.gxenobjecttype import GXenObjectType
 from xenadapter.xenobjectmeta import XenObjectMeta
 from xentools.dict_deep_convert import dict_deep_convert
 from xentools.xenadapter import XenAdapter

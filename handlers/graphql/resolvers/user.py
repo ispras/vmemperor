@@ -21,7 +21,7 @@ def userType():
     return User
 
 
-def resolve_user(field_name = "user_id"):
+def resolve_user(field_name="user_id"):
     '''
     Resolve user OR group (user ids start with users/, group ids start with groups/)
     '''

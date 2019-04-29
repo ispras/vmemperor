@@ -1,9 +1,9 @@
 import graphene
 
-from authentication import with_authentication, with_default_authentication
+from authentication import with_default_authentication
 from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils.cleanup import cleanup_defaults
-from handlers.graphql.types.objecttype import InputObjectType
+from handlers.graphql.types.base.objecttype import InputObjectType
 from utils.user import get_user_object
 from xenadapter import Pool
 

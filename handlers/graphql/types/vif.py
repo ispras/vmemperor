@@ -2,9 +2,8 @@ import graphene
 
 from handlers.graphql.resolvers.network import networkType
 from handlers.graphql.resolvers.vm import vmType
-from handlers.graphql.types.gxenobjecttype import GXenObjectType
+from handlers.graphql.types.base.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.query import resolve_one
-from xenadapter.xenobject import XenObject
 
 
 class GVIF(GXenObjectType):

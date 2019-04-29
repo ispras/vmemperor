@@ -280,6 +280,11 @@ export type GPoolsSubscription = {
   value: GPoolOrDeleted;
 };
 
+export type GQuotaObject = {
+  /** The user against whom the quotas for this object are calculated */
+  mainOwner?: Maybe<User>;
+};
+
 export type GSR = GAclXenObject & {
   /** a human-readable name */
   nameLabel: Scalars["String"];
@@ -429,24 +434,27 @@ export type GVBD = {
   userdevice: Scalars["Int"];
 };
 
-export type GVDI = GAclXenObject & {
-  /** a human-readable name */
-  nameLabel: Scalars["String"];
-  /** a human-readable description */
-  nameDescription: Scalars["String"];
-  /** Unique constant identifier/object reference (primary) */
-  ref: Scalars["ID"];
-  /** Unique constant identifier/object reference (used in XenCenter) */
-  uuid: Scalars["ID"];
-  access: Array<Maybe<GVDIAccessEntry>>;
-  isOwner: Scalars["Boolean"];
-  myActions: Array<Maybe<VDIActions>>;
-  SR?: Maybe<GSR>;
-  virtualSize: Scalars["Float"];
-  VBDs: Array<Maybe<GVBD>>;
-  contentType: SRContentType;
-  type: VDIType;
-};
+export type GVDI = GAclXenObject &
+  GQuotaObject & {
+    /** a human-readable name */
+    nameLabel: Scalars["String"];
+    /** a human-readable description */
+    nameDescription: Scalars["String"];
+    /** Unique constant identifier/object reference (primary) */
+    ref: Scalars["ID"];
+    /** Unique constant identifier/object reference (used in XenCenter) */
+    uuid: Scalars["ID"];
+    access: Array<Maybe<GVDIAccessEntry>>;
+    isOwner: Scalars["Boolean"];
+    /** The user against whom the quotas for this object are calculated */
+    mainOwner?: Maybe<User>;
+    myActions: Array<Maybe<VDIActions>>;
+    SR?: Maybe<GSR>;
+    virtualSize: Scalars["Float"];
+    VBDs: Array<Maybe<GVBD>>;
+    contentType: SRContentType;
+    type: VDIType;
+  };
 
 export type GVDIAccessEntry = GAccessEntry & {
   userId: User;
@@ -477,7 +485,8 @@ export type GVIF = {
 };
 
 export type GVM = GAclXenObject &
-  GAbstractVM & {
+  GAbstractVM &
+  GQuotaObject & {
     /** a human-readable name */
     nameLabel: Scalars["String"];
     /** a human-readable description */
@@ -501,6 +510,8 @@ export type GVM = GAclXenObject &
     memoryDynamicMin: Scalars["Float"];
     memoryDynamicMax: Scalars["Float"];
     PVBootloader: Scalars["String"];
+    /** The user against whom the quotas for this object are calculated */
+    mainOwner?: Maybe<User>;
     myActions: Array<Maybe<VMActions>>;
     /** True if PV drivers are up to date, reported if Guest Additions are installed */
     PVDriversUpToDate?: Maybe<Scalars["Boolean"]>;
@@ -645,7 +656,6 @@ export type MutationcreateVmArgs = {
   iso?: Maybe<Scalars["ID"]>;
   network?: Maybe<Scalars["ID"]>;
   template: Scalars["ID"];
-  user?: Maybe<Scalars["String"]>;
   vmOptions: VMInput;
 };
 
@@ -1435,6 +1445,8 @@ export type VMInput = {
   memoryStaticMin?: Maybe<Scalars["Float"]>;
   /** Static memory max in bytes */
   memoryStaticMax?: Maybe<Scalars["Float"]>;
+  /** A user against whom the quotes are calculated */
+  mainOwner?: Maybe<Scalars["ID"]>;
 };
 
 export type VMMutation = {
@@ -1651,7 +1663,6 @@ export type createVmMutationVariables = {
   iso?: Maybe<Scalars["ID"]>;
   template: Scalars["ID"];
   network?: Maybe<Scalars["ID"]>;
-  user?: Maybe<Scalars["String"]>;
 };
 
 export type createVmMutation = { __typename?: "Mutation" } & {
@@ -2698,6 +2709,10 @@ export type VMAccessFragmentFragment = { __typename?: "GVMAccessEntry" } & Pick<
     userId: { __typename?: "User" } & Pick<User, "id" | "name" | "username">;
   };
 
+export type VMSettingsFragmentFragment = { __typename?: "GVM" } & {
+  mainOwner: Maybe<{ __typename?: "User" } & UserFragmentFragment>;
+} & AbstractVMFragmentFragment;
+
 export type VMInfoFragmentFragment = { __typename?: "GVM" } & Pick<
   GVM,
   "PVBootloader" | "powerState" | "startTime" | "myActions"
@@ -2708,7 +2723,7 @@ export type VMInfoFragmentFragment = { __typename?: "GVM" } & Pick<
     access: Array<
       Maybe<{ __typename?: "GVMAccessEntry" } & VMAccessFragmentFragment>
     >;
-  } & (ACLXenObjectFragmentFragment & AbstractVMFragmentFragment);
+  } & (ACLXenObjectFragmentFragment & VMSettingsFragmentFragment);
 
 export type VMInfoQueryVariables = {
   ref: Scalars["ID"];
@@ -3078,6 +3093,11 @@ export type GPoolsSubscriptionResolvers<
   value?: Resolver<GPoolOrDeleted, ParentType, Context>;
 };
 
+export type GQuotaObjectResolvers<Context = any, ParentType = GQuotaObject> = {
+  __resolveType: TypeResolveFn<"GVM" | "GVDI", ParentType, Context>;
+  mainOwner?: Resolver<Maybe<User>, ParentType, Context>;
+};
+
 export type GSRResolvers<Context = any, ParentType = GSR> = {
   nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
   nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
@@ -3231,6 +3251,7 @@ export type GVDIResolvers<Context = any, ParentType = GVDI> = {
   uuid?: Resolver<Scalars["ID"], ParentType, Context>;
   access?: Resolver<Array<Maybe<GVDIAccessEntry>>, ParentType, Context>;
   isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  mainOwner?: Resolver<Maybe<User>, ParentType, Context>;
   myActions?: Resolver<Array<Maybe<VDIActions>>, ParentType, Context>;
   SR?: Resolver<Maybe<GSR>, ParentType, Context>;
   virtualSize?: Resolver<Scalars["Float"], ParentType, Context>;
@@ -3293,6 +3314,7 @@ export type GVMResolvers<Context = any, ParentType = GVM> = {
   memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
   memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
   PVBootloader?: Resolver<Scalars["String"], ParentType, Context>;
+  mainOwner?: Resolver<Maybe<User>, ParentType, Context>;
   myActions?: Resolver<Array<Maybe<VMActions>>, ParentType, Context>;
   PVDriversUpToDate?: Resolver<Maybe<Scalars["Boolean"]>, ParentType, Context>;
   PVDriversVersion?: Resolver<Maybe<PvDriversVersion>, ParentType, Context>;
@@ -3911,6 +3933,7 @@ export type Resolvers<Context = any> = {
   GPoolAccessEntry?: GPoolAccessEntryResolvers<Context>;
   GPoolOrDeleted?: GPoolOrDeletedResolvers;
   GPoolsSubscription?: GPoolsSubscriptionResolvers<Context>;
+  GQuotaObject?: GQuotaObjectResolvers;
   GSR?: GSRResolvers<Context>;
   GSRAccessEntry?: GSRAccessEntryResolvers<Context>;
   GSROrDeleted?: GSROrDeletedResolvers;
@@ -4231,6 +4254,16 @@ export const StorageAttachVDIListFragmentFragmentDoc = gql`
     virtualSize
   }
 `;
+export const VMSettingsFragmentFragmentDoc = gql`
+  fragment VMSettingsFragment on GVM {
+    ...AbstractVMFragment
+    mainOwner {
+      ...UserFragment
+    }
+  }
+  ${AbstractVMFragmentFragmentDoc}
+  ${UserFragmentFragmentDoc}
+`;
 export const VMVIFFragmentFragmentDoc = gql`
   fragment VMVIFFragment on GVIF {
     network {
@@ -4275,7 +4308,7 @@ export const VMInfoFragmentFragmentDoc = gql`
   fragment VMInfoFragment on GVM {
     PVBootloader
     ...ACLXenObjectFragment
-    ...AbstractVMFragment
+    ...VMSettingsFragment
     VIFs {
       ...VMVIFFragment
     }
@@ -4293,7 +4326,7 @@ export const VMInfoFragmentFragmentDoc = gql`
     myActions
   }
   ${ACLXenObjectFragmentFragmentDoc}
-  ${AbstractVMFragmentFragmentDoc}
+  ${VMSettingsFragmentFragmentDoc}
   ${VMVIFFragmentFragmentDoc}
   ${VMVBDFragmentFragmentDoc}
   ${VMAccessFragmentFragmentDoc}
@@ -4574,7 +4607,6 @@ export const createVmDocument = gql`
     $iso: ID
     $template: ID!
     $network: ID
-    $user: String
   ) {
     createVm(
       disks: $disks
@@ -4583,7 +4615,6 @@ export const createVmDocument = gql`
       network: $network
       iso: $iso
       vmOptions: $vmOptions
-      user: $user
     ) {
       taskId
       granted

@@ -29,7 +29,7 @@ class XenObjectDict(collections.UserDict):
             self[key] = other[key]
 
     def get_value(self, value):
-        from handlers.graphql.types.objecttype import ObjectType
+        from handlers.graphql.types.base.objecttype import ObjectType
         if isinstance(value, xmldt):
             try:  # XenAPI standard time format. Z means strictly UTC
                 time =  datetime.strptime(value.value, "%Y%m%dT%H:%M:%SZ")

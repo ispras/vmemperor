@@ -3,6 +3,7 @@ from typing import Union, Optional
 from authentication import with_default_authentication
 from handlers.graphql.types.vdi import VDIActions, GVDI
 from handlers.graphql.utils.querybuilder.querybuilder import QueryBuilder
+from xenadapter.quotaobject import QuotaObject
 from xenadapter.sr import SR
 from xenadapter.vbd import VBD
 from xenadapter.helpers import use_logger
@@ -110,7 +111,7 @@ class Attachable:
         return sr.get_content_type()
 
 
-class VDI(ACLXenObject, Attachable):
+class VDI(QuotaObject, Attachable):
     api_class = 'VDI'
     db_table_name = 'vdis'
     EVENT_CLASSES = ['vdi']
@@ -119,7 +120,7 @@ class VDI(ACLXenObject, Attachable):
 
 
     @classmethod
-    def create(cls, xen, sr_ref, size, access=None, name_label=None):
+    def create(cls, xen, user, sr_ref, size, name_label=None):
         """
         Creates a VDI of a certain size in storage repository
         :param sr_ref: Storage Repository ref
@@ -136,11 +137,10 @@ class VDI(ACLXenObject, Attachable):
                 'sharable': False, 'read_only': False, 'other_config': {}, \
                 'name_label': name_label}
         try:
-            vdi_ref = VDI.create(xen, args)
-            vdi = VDI(xen, vdi_ref)
-            if access:
-                for user, action in access.items():
-                    vdi.manage_actions(action, user=user)
+            vdi_ref = cls._create(xen, args)
+            vdi = cls(xen, vdi_ref)
+            vdi.manage_actions(VDIActions.ALL, user=user)
+            vdi.set_main_owner(user, force=True)
 
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(xen.log, "Failed to create VDI:", f.details)

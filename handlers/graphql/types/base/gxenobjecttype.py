@@ -1,9 +1,8 @@
-from typing import Collection, Iterable
+from typing import Iterable
 
 import graphene
-from graphene.types.resolver import dict_resolver
 
-from handlers.graphql.types.objecttype import ObjectType
+from handlers.graphql.types.base.objecttype import ObjectType
 
 
 class GXenObjectType(ObjectType):

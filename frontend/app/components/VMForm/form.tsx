@@ -87,7 +87,7 @@ const VMForm = (props: FormikPropsValues) => {
       {!currentUser.isAdmin && <Fragment>
         <H4> Ownership </H4>
         <Field
-          name='user'
+          name='vmOptions.mainOwner'
           component={UserInputField}
           placeholder="Select an owner user/group"
         />

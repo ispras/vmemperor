@@ -1,6 +1,4 @@
-import graphene
-
-from handlers.graphql.types.objecttype import InputObjectType
+from handlers.graphql.types.base.objecttype import InputObjectType
 
 class BasicXenInput(InputObjectType):
     pass

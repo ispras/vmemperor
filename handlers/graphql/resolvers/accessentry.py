@@ -3,7 +3,6 @@ from typing import Type
 from serflag import SerFlag
 
 from handlers.graphql.utils.query import resolve_from_root
-from handlers.graphql.types.objecttype import ObjectType
 
 
 def resolve_accessentries(actions_type: Type[SerFlag]):

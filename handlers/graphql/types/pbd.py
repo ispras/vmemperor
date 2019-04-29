@@ -2,7 +2,7 @@ import graphene
 
 from handlers.graphql.resolvers.host import hostType
 from handlers.graphql.resolvers.sr import srType
-from handlers.graphql.types.gxenobjecttype import GXenObjectType
+from handlers.graphql.types.base.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.query import resolve_one
 
 

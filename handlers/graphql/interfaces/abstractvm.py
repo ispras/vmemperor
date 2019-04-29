@@ -3,7 +3,7 @@ import enum
 import graphene
 from graphene.types.resolver import dict_resolver
 
-from handlers.graphql.types.gxenobjecttype import GSubtypeObjectType
+from handlers.graphql.types.base.gxenobjecttype import GSubtypeObjectType
 
 
 class DomainType(enum.Enum):

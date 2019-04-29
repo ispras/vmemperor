@@ -130,7 +130,7 @@ class VM (AbstractVM):
 
 
     @use_logger
-    def create(self, user, task : "CustomTask", provision_config : Sequence[SetDisksEntry], net, options : Mapping, template : "Template",  override_pv_args=None, iso=None, install_params=None):
+    def create(self,  task : "CustomTask", provision_config : Sequence[SetDisksEntry], net, options : Mapping, template : "Template",  override_pv_args=None, iso=None, install_params=None):
         '''
         Creates a virtual machine and installs an OS
         :param task: a task which logs VM creation process
@@ -141,11 +141,12 @@ class VM (AbstractVM):
 
         '''
 
-        self.user = user
+        self.user = options.get('main_owner')
         self.task = task
         self.install = True
         self.remove_tags('vmemperor')
-        self.manage_actions(self.Actions.ALL, user=user)
+        self.manage_actions(self.Actions.ALL, user=self.user)
+        self.set_main_owner(self.user, force=True)
 
         set_subtype_from_input("platform", return_diff=False)(options, self)
         set_VCPUs(options, self, return_diff=False)
@@ -212,7 +213,7 @@ class VM (AbstractVM):
             task.set_status('failure', error_info_add="Failed to start VM ")
             return
 
-        cur = re.db.table('vms').get(self.ref).changes().run()
+        cur = re.db.table(VM.db_table_name).get(self.ref).changes().run()
         self.log.debug(f"Waiting for {self} to finish installing")
         if set_hvm_after_install:
             self.set_domain_type("hvm")
@@ -287,6 +288,7 @@ class VM (AbstractVM):
                     vdi.set_name_description(f"Created by VMEmperor for VM {self.ref} (UUID {self.get_uuid()})")
                     # After provision. manage disks actions
                     vdi.manage_actions(VDI.Actions.ALL, user=self.user)
+                    vdi.set_main_owner(self.user, force=True)
 
 
     @use_logger

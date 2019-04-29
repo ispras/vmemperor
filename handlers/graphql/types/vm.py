@@ -7,18 +7,16 @@ from serflag import SerFlag
 
 from handlers.graphql.action_deserializers.abstractvm_deserializer import AbstractVMDeserializer
 from handlers.graphql.interfaces.abstractvm import GAbstractVM
+from handlers.graphql.interfaces.quotaobject import GQuotaObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
 from handlers.graphql.types.access import create_access_type
-from handlers.graphql.types.gxenobjecttype import GXenObjectType, GSubtypeObjectType
-from handlers.graphql.types.objecttype import ObjectType
+from handlers.graphql.types.base.gxenobjecttype import GXenObjectType
 from handlers.graphql.utils.query import resolve_many
-from xenadapter.vbd import VBD
 from handlers.graphql.types.vbd import GVBD
-from xenadapter.vif import VIF
 from handlers.graphql.types.vif import GVIF
 from xenadapter.xenobject import XenObject
-from handlers.graphql.interfaces.xenobject import GAclXenObject
+from handlers.graphql.interfaces.aclxenobject import GAclXenObject
 
 
 @dataclass
@@ -108,7 +106,7 @@ GVMAccessEntry = create_access_type("GVMAccessEntry", GVMActions)
 
 class GVM(GXenObjectType):
     class Meta:
-        interfaces = (GAclXenObject, GAbstractVM)
+        interfaces = (GAclXenObject, GAbstractVM, GQuotaObject)
 
     access = graphene.Field(graphene.List(GVMAccessEntry), required=True)
     my_actions = graphene.Field(graphene.List(GVMActions), required=True)

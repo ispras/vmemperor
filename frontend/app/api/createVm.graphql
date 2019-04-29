@@ -1,7 +1,7 @@
 #import AbstractVMFragment from "./abstractVmFragment.graphql"
 
 mutation createVm($vmOptions: VMInput!, $disks: [NewVDI], $installParams: AutoInstall,
-  $iso:ID, $template:ID!, $network:ID, $user: String) {
+  $iso:ID, $template:ID!, $network:ID) {
   createVm(
     disks:$disks,
     installParams:$installParams,
@@ -9,7 +9,6 @@ mutation createVm($vmOptions: VMInput!, $disks: [NewVDI], $installParams: AutoIn
     network:$network,
     iso:$iso,
     vmOptions:$vmOptions,
-    user: $user,
   )
   {
     taskId

@@ -1,9 +1,8 @@
 import graphene
 
-from handlers.graphql.types.objecttype import InputObjectType
+from handlers.graphql.types.base.objecttype import InputObjectType
 from handlers.graphql.types.input.abstractvm import AbstractVMInput
 from handlers.graphql.types.template import GDistro, GArch
-from xentools.os import Arch, Distro
 
 
 class InstallOSOptionsInput(InputObjectType):

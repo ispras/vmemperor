@@ -3,7 +3,7 @@ from graphene.types.resolver import dict_resolver
 
 from handlers.graphql.interfaces.xenobject import GXenObject
 from handlers.graphql.resolvers.vm import vmType
-from handlers.graphql.types.gxenobjecttype import GSubtypeObjectType, GXenObjectType
+from handlers.graphql.types.base.gxenobjecttype import GSubtypeObjectType, GXenObjectType
 from handlers.graphql.types.pbd import GPBD
 from handlers.graphql.utils.query import resolve_many
 

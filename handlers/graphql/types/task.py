@@ -3,12 +3,12 @@ from enum import auto, Enum
 import graphene
 from serflag import SerFlag
 
-from handlers.graphql.interfaces.xenobject import GAclXenObject
+from handlers.graphql.interfaces.aclxenobject import GAclXenObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
 from handlers.graphql.resolvers.user import resolve_user
 from handlers.graphql.types.access import create_access_type
-from handlers.graphql.types.gxenobjecttype import GXenObjectType
+from handlers.graphql.types.base.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.user import User
 
 

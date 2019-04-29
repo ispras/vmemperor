@@ -3,7 +3,7 @@ import graphene
 from handlers.graphql.interfaces.abstractvm import GDomainType
 from handlers.graphql.types.input.namedinput import NamedInput
 
-from handlers.graphql.types.objecttype import InputObjectType
+from handlers.graphql.types.base.objecttype import InputObjectType
 
 
 class PlatformInput(InputObjectType):

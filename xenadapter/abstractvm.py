@@ -6,9 +6,10 @@ import XenAPI
 import constants.re as re
 from authentication import BasicAuthenticator
 from xenadapter.aclxenobject import ACLXenObject
+from xenadapter.quotaobject import QuotaObject
 
 
-class AbstractVM(ACLXenObject):
+class AbstractVM(QuotaObject):
     api_class = 'VM'
 
     @classmethod
@@ -91,23 +92,23 @@ def set_memory(input: Mapping, vm: AbstractVM, return_diff=True):
         dmax = None
 
     if smin and smax and dmin and dmax: # No worries on zeros, memory cant be 0
-        vm.set_memory_limits(smin, smax, dmin, dmax)
+        vm.set_memory_limits(str(smin), str(smax), str(dmin), str(dmax))
         return
     if smin and smax:
-        vm.set_memory_static_range(smin, smax)
+        vm.set_memory_static_range(str(smin), str(smax))
     elif smin or smax:
         if smin:
-            vm.set_memory_static_min(smin)
+            vm.set_memory_static_min(str(smin))
         else:
-            vm.set_memory_static_max(smax)
+            vm.set_memory_static_max(str(smax))
 
     if dmin and smax:
-        vm.set_memory_dynamic_range(smin, smax)
+        vm.set_memory_dynamic_range(str(smin), str(smax))
     elif dmin or dmax:
         if dmin:
-            vm.set_memory_dynamic_min(dmin)
+            vm.set_memory_dynamic_min(str(dmin))
         else:
-            vm.set_memory_dynamic_max(dmax)
+            vm.set_memory_dynamic_max(str(dmax))
 
     if return_diff:
         new_val = get_memory_dict()

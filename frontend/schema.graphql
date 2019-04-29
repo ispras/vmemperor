@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Thu Apr 25 21:09:56 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Mon Apr 29 18:32:54 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -37,6 +37,11 @@ interface GAclXenObject {
   ref: ID!
   "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
+}
+
+interface GQuotaObject {
+  "The user against whom the quotas for this object are calculated"
+  mainOwner: User
 }
 
 interface GXenObject {
@@ -393,12 +398,14 @@ type GVBD {
   uuid: ID!
 }
 
-type GVDI implements GAclXenObject {
+type GVDI implements GAclXenObject & GQuotaObject {
   SR: GSR
   VBDs: [GVBD]!
   access: [GVDIAccessEntry]!
   contentType: SRContentType!
   isOwner: Boolean!
+  "The user against whom the quotas for this object are calculated"
+  mainOwner: User
   myActions: [VDIActions]!
   "a human-readable description"
   nameDescription: String!
@@ -438,7 +445,7 @@ type GVIF {
   ref: ID!
 }
 
-type GVM implements GAbstractVM & GAclXenObject {
+type GVM implements GAbstractVM & GAclXenObject & GQuotaObject {
   PVBootloader: String!
   "True if PV drivers are up to date, reported if Guest Additions are installed"
   PVDriversUpToDate: Boolean
@@ -454,6 +461,8 @@ type GVM implements GAbstractVM & GAclXenObject {
   guestMetrics: ID!
   installTime: DateTime!
   isOwner: Boolean!
+  "The user against whom the quotas for this object are calculated"
+  mainOwner: User
   memoryActual: Float!
   memoryDynamicMax: Float!
   memoryDynamicMin: Float!
@@ -506,8 +515,6 @@ type Mutation {
     network: ID,
     #Template ID
     template: ID!,
-    #User or group we should create VM as
-    user: String,
     #Basic VM options. Leave fields empty to use Template options
     vmOptions: VMInput!
   ): CreateVM
@@ -1192,6 +1199,8 @@ input TemplateInput {
   "VM domain type: 'pv', 'hvm', 'pv_in_pvh'"
   domainType: DomainType
   installOptions: InstallOSOptionsInput
+  "A user against whom the quotes are calculated"
+  mainOwner: ID
   "Dynamic memory max in bytes"
   memoryDynamicMax: Float
   "Dynamic memory min in bytes"
@@ -1222,6 +1231,8 @@ input VMInput {
   VCPUsMax: Int
   "VM domain type: 'pv', 'hvm', 'pv_in_pvh'"
   domainType: DomainType
+  "A user against whom the quotes are calculated"
+  mainOwner: ID
   "Dynamic memory max in bytes"
   memoryDynamicMax: Float
   "Dynamic memory min in bytes"

@@ -5,11 +5,11 @@ from serflag import SerFlag
 
 from handlers.graphql.action_deserializers.abstractvm_deserializer import AbstractVMDeserializer
 from handlers.graphql.interfaces.abstractvm import GAbstractVM
-from handlers.graphql.interfaces.xenobject import GAclXenObject
+from handlers.graphql.interfaces.aclxenobject import GAclXenObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
 from handlers.graphql.types.access import create_access_type
-from handlers.graphql.types.gxenobjecttype import GXenObjectType, GSubtypeObjectType
+from handlers.graphql.types.base.gxenobjecttype import GXenObjectType, GSubtypeObjectType
 from xentools.os import Arch, Distro
 
 GArch = graphene.Enum.from_enum(Arch)

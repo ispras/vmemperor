@@ -3,15 +3,15 @@ from enum import auto
 import graphene
 from serflag import SerFlag
 
-from handlers.graphql.interfaces.xenobject import GXenObject, GAclXenObject
+from handlers.graphql.interfaces.aclxenobject import GAclXenObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.host import hostType
 from handlers.graphql.resolvers.myactions import resolve_owner, resolve_myactions
 from handlers.graphql.resolvers.sr import srType
 from handlers.graphql.resolvers.user import userType, resolve_user
 from handlers.graphql.types.access import create_access_type
-from handlers.graphql.types.gxenobjecttype import GXenObjectType, GSubtypeObjectType
-from handlers.graphql.types.objecttype import ObjectType
+from handlers.graphql.types.base.gxenobjecttype import GXenObjectType
+from handlers.graphql.types.base.objecttype import ObjectType
 from handlers.graphql.utils.query import resolve_one
 
 class PoolActions(SerFlag):

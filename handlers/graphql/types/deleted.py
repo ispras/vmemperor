@@ -1,6 +1,6 @@
 import graphene
 
-from handlers.graphql.types.gxenobjecttype import GXenObjectType
+from handlers.graphql.types.base.gxenobjecttype import GXenObjectType
 
 
 class Deleted(GXenObjectType):
