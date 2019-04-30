@@ -1,15 +1,20 @@
 # import ACLXenObjectFragment from "xenObjectFragment.graphql"
+# import AccessFragment from "access.graphql"
+# import UserFragment from "user.graphql"
+
+fragment VDISettingsFragment on GVDI {
+  mainOwner {
+    ...UserFragment
+  }
+}
 
 fragment VDIInfoFragment on GVDI {
   ...ACLXenObjectFragment
   access {
     actions
-    userId {
-      id
-      name
-      username
-    }
+    ...AccessFragment
   }
+  ...VDISettingsFragment
   myActions
 }
 

@@ -50,7 +50,7 @@ def set_install_options(input: TemplateInput, tmpl : Template):
     new_val = get_install_options_dict()
     return old_val, new_val
 
-def install_options_validator(input: TemplateInput, _):
+def install_options_validator(input: TemplateInput, *args,  **kwargs):
     '''
     Use the fact that both {} and None are falsy values.
     Either distro  is not set (or cleared) or if distro is set other parameters should be set

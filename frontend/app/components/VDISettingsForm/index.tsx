@@ -10,8 +10,13 @@ import XenObjectHeader from "../XenObjectHeader";
 import * as React from "react";
 import {TabWidget, TabWidgetProps} from "../TabWidget";
 import AccessView from "../AccessView";
+import {ResourcesFormContainer} from "../ApplyResetForm";
+import schema from "./schema";
+import defaults from "./defaults";
+import MainOwnerForm from "../MainOwnerForm";
 
 enum Tab {
+  Overview = 'overview',
   Access = 'access'
 }
 
@@ -27,6 +32,19 @@ const VDISettingsForm: React.FunctionComponent<SettingsComponentProps<VDIInfoQue
     ), [vdi.nameLabel, vdi.nameDescription]);
     const tabs: TabWidgetProps['tabs'] = new Map(
       [
+        [Tab.Overview, {
+          header: "Overview",
+          content: (
+            <ResourcesFormContainer
+              object={vdi}
+              mutationName="vdi"
+              mutationNode={VDIEditOptionsDocument}
+              defaultValues={defaults}
+              schema={schema}>
+              <MainOwnerForm object={vdi}/>
+            </ResourcesFormContainer>
+          )
+        }],
         [Tab.Access, {
           header: "Access",
           content: (

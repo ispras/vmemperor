@@ -69,7 +69,7 @@ class MutationHelper:
             if getattr(changes, item.func) is None:
                 return
         else:
-            granted, reason = item.func[1](changes, self.mutable_object)
+            granted, reason = item.func[1](changes, self.mutable_object, self.ctx)
             if not granted:
                 if not reason: # if Reason is None, we're instructed to skip this mutation as user didn't supply anything
                     return

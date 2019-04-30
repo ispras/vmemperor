@@ -28,7 +28,7 @@ import {
 import {TabWidget, TabWidgetProps} from "../TabWidget";
 import {Fields} from "../AbstractVMSettingsComponents/fields";
 import {Mode} from "../AbstractVMSettingsComponents/mode";
-import {MainOwnerForm} from "../MainOwnerForm";
+import MainOwnerForm from "../MainOwnerForm";
 
 
 enum Tab {

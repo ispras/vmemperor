@@ -124,6 +124,7 @@ export type GAbstractVM = {
 
 export type GAccessEntry = {
   userId: User;
+  isOwner: Scalars["Boolean"];
 };
 
 export type GAclXenObject = {
@@ -208,6 +209,7 @@ export type GNetwork = GAclXenObject & {
 
 export type GNetworkAccessEntry = GAccessEntry & {
   userId: User;
+  isOwner: Scalars["Boolean"];
   actions: Array<NetworkActions>;
 };
 
@@ -269,6 +271,7 @@ export type GPool = GAclXenObject & {
 
 export type GPoolAccessEntry = GAccessEntry & {
   userId: User;
+  isOwner: Scalars["Boolean"];
   actions: Array<PoolActions>;
 };
 
@@ -316,6 +319,7 @@ export type GSR = GAclXenObject & {
 
 export type GSRAccessEntry = GAccessEntry & {
   userId: User;
+  isOwner: Scalars["Boolean"];
   actions: Array<SRActions>;
 };
 
@@ -364,6 +368,7 @@ export type GTask = GAclXenObject & {
 
 export type GTaskAccessEntry = GAccessEntry & {
   userId: User;
+  isOwner: Scalars["Boolean"];
   actions: Array<TaskActions>;
 };
 
@@ -409,6 +414,7 @@ export type GTemplate = GAclXenObject &
 
 export type GTemplateAccessEntry = GAccessEntry & {
   userId: User;
+  isOwner: Scalars["Boolean"];
   actions: Array<TemplateActions>;
 };
 
@@ -458,6 +464,7 @@ export type GVDI = GAclXenObject &
 
 export type GVDIAccessEntry = GAccessEntry & {
   userId: User;
+  isOwner: Scalars["Boolean"];
   actions: Array<VDIActions>;
 };
 
@@ -528,6 +535,7 @@ export type GVM = GAclXenObject &
 
 export type GVMAccessEntry = GAccessEntry & {
   userId: User;
+  isOwner: Scalars["Boolean"];
   actions: Array<VMActions>;
 };
 
@@ -1586,6 +1594,10 @@ export type VDIAccessSetMutationMutation = { __typename?: "Mutation" } & {
   >;
 };
 
+export type AccessFragmentFragment = Pick<GAccessEntry, "isOwner"> & {
+  userId: { __typename?: "User" } & Pick<User, "username" | "name" | "id">;
+};
+
 export type VDIAttachMutationVariables = {
   vmRef: Scalars["ID"];
   vdiRef: Scalars["ID"];
@@ -2606,24 +2618,21 @@ export type UserGetQuery = { __typename?: "Query" } & {
   user: Maybe<{ __typename?: "User" } & UserFragmentFragment>;
 };
 
+export type VDISettingsFragmentFragment = { __typename?: "GVDI" } & {
+  mainOwner: Maybe<{ __typename?: "User" } & UserFragmentFragment>;
+};
+
 export type VDIInfoFragmentFragment = { __typename?: "GVDI" } & Pick<
   GVDI,
   "myActions"
 > & {
     access: Array<
       Maybe<
-        { __typename?: "GVDIAccessEntry" } & Pick<
-          GVDIAccessEntry,
-          "actions"
-        > & {
-            userId: { __typename?: "User" } & Pick<
-              User,
-              "id" | "name" | "username"
-            >;
-          }
+        { __typename?: "GVDIAccessEntry" } & Pick<GVDIAccessEntry, "actions"> &
+          AccessFragmentFragment
       >
     >;
-  } & ACLXenObjectFragmentFragment;
+  } & (ACLXenObjectFragmentFragment & VDISettingsFragmentFragment);
 
 export type VDIInfoQueryVariables = {
   ref: Scalars["ID"];
@@ -2705,9 +2714,8 @@ export type VMVBDFragmentFragment = { __typename?: "GVBD" } & Pick<
 export type VMAccessFragmentFragment = { __typename?: "GVMAccessEntry" } & Pick<
   GVMAccessEntry,
   "actions"
-> & {
-    userId: { __typename?: "User" } & Pick<User, "id" | "name" | "username">;
-  };
+> &
+  AccessFragmentFragment;
 
 export type VMSettingsFragmentFragment = { __typename?: "GVM" } & {
   mainOwner: Maybe<{ __typename?: "User" } & UserFragmentFragment>;
@@ -2939,6 +2947,7 @@ export type GAccessEntryResolvers<Context = any, ParentType = GAccessEntry> = {
     Context
   >;
   userId?: Resolver<User, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
 };
 
 export type GAclXenObjectResolvers<
@@ -3022,6 +3031,7 @@ export type GNetworkAccessEntryResolvers<
   ParentType = GNetworkAccessEntry
 > = {
   userId?: Resolver<User, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   actions?: Resolver<Array<NetworkActions>, ParentType, Context>;
 };
 
@@ -3075,6 +3085,7 @@ export type GPoolAccessEntryResolvers<
   ParentType = GPoolAccessEntry
 > = {
   userId?: Resolver<User, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   actions?: Resolver<Array<PoolActions>, ParentType, Context>;
 };
 
@@ -3122,6 +3133,7 @@ export type GSRAccessEntryResolvers<
   ParentType = GSRAccessEntry
 > = {
   userId?: Resolver<User, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   actions?: Resolver<Array<SRActions>, ParentType, Context>;
 };
 
@@ -3167,6 +3179,7 @@ export type GTaskAccessEntryResolvers<
   ParentType = GTaskAccessEntry
 > = {
   userId?: Resolver<User, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   actions?: Resolver<Array<TaskActions>, ParentType, Context>;
 };
 
@@ -3214,6 +3227,7 @@ export type GTemplateAccessEntryResolvers<
   ParentType = GTemplateAccessEntry
 > = {
   userId?: Resolver<User, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   actions?: Resolver<Array<TemplateActions>, ParentType, Context>;
 };
 
@@ -3265,6 +3279,7 @@ export type GVDIAccessEntryResolvers<
   ParentType = GVDIAccessEntry
 > = {
   userId?: Resolver<User, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   actions?: Resolver<Array<VDIActions>, ParentType, Context>;
 };
 
@@ -3331,6 +3346,7 @@ export type GVMAccessEntryResolvers<
   ParentType = GVMAccessEntry
 > = {
   userId?: Resolver<User, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
   actions?: Resolver<Array<VMActions>, ParentType, Context>;
 };
 
@@ -4223,20 +4239,37 @@ export const TemplateListFragmentFragmentDoc = gql`
     domainType
   }
 `;
+export const AccessFragmentFragmentDoc = gql`
+  fragment AccessFragment on GAccessEntry {
+    isOwner
+    userId {
+      username
+      name
+      id
+    }
+  }
+`;
+export const VDISettingsFragmentFragmentDoc = gql`
+  fragment VDISettingsFragment on GVDI {
+    mainOwner {
+      ...UserFragment
+    }
+  }
+  ${UserFragmentFragmentDoc}
+`;
 export const VDIInfoFragmentFragmentDoc = gql`
   fragment VDIInfoFragment on GVDI {
     ...ACLXenObjectFragment
     access {
       actions
-      userId {
-        id
-        name
-        username
-      }
+      ...AccessFragment
     }
+    ...VDISettingsFragment
     myActions
   }
   ${ACLXenObjectFragmentFragmentDoc}
+  ${AccessFragmentFragmentDoc}
+  ${VDISettingsFragmentFragmentDoc}
 `;
 export const VDIListFragmentFragmentDoc = gql`
   fragment VDIListFragment on GVDI {
@@ -4296,13 +4329,10 @@ export const VMVBDFragmentFragmentDoc = gql`
 `;
 export const VMAccessFragmentFragmentDoc = gql`
   fragment VMAccessFragment on GVMAccessEntry {
-    userId {
-      id
-      name
-      username
-    }
+    ...AccessFragment
     actions
   }
+  ${AccessFragmentFragmentDoc}
 `;
 export const VMInfoFragmentFragmentDoc = gql`
   fragment VMInfoFragment on GVM {

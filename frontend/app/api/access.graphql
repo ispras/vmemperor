@@ -33,3 +33,13 @@ mutation VDIAccessSetMutation($actions: [VDIActions!]!, $user: String!,  $ref :I
   }
 }
 
+
+fragment AccessFragment on GAccessEntry {
+  isOwner
+  userId{
+    username
+    name
+    id
+  }
+}
+

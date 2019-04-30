@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Mon Apr 29 18:32:54 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Tue Apr 30 14:27:42 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -23,6 +23,7 @@ interface GAbstractVM {
 }
 
 interface GAccessEntry {
+  isOwner: Boolean!
   userId: User!
 }
 
@@ -187,6 +188,7 @@ type GNetwork implements GAclXenObject {
 
 type GNetworkAccessEntry implements GAccessEntry {
   actions: [NetworkActions!]!
+  isOwner: Boolean!
   userId: User!
 }
 
@@ -247,6 +249,7 @@ type GPool implements GAclXenObject {
 
 type GPoolAccessEntry implements GAccessEntry {
   actions: [PoolActions!]!
+  isOwner: Boolean!
   userId: User!
 }
 
@@ -287,6 +290,7 @@ type GSR implements GAclXenObject {
 
 type GSRAccessEntry implements GAccessEntry {
   actions: [SRActions!]!
+  isOwner: Boolean!
   userId: User!
 }
 
@@ -333,6 +337,7 @@ type GTask implements GAclXenObject {
 
 type GTaskAccessEntry implements GAccessEntry {
   actions: [TaskActions!]!
+  isOwner: Boolean!
   userId: User!
 }
 
@@ -375,6 +380,7 @@ type GTemplate implements GAbstractVM & GAclXenObject {
 
 type GTemplateAccessEntry implements GAccessEntry {
   actions: [TemplateActions!]!
+  isOwner: Boolean!
   userId: User!
 }
 
@@ -421,6 +427,7 @@ type GVDI implements GAclXenObject & GQuotaObject {
 
 type GVDIAccessEntry implements GAccessEntry {
   actions: [VDIActions!]!
+  isOwner: Boolean!
   userId: User!
 }
 
@@ -487,6 +494,7 @@ type GVM implements GAbstractVM & GAclXenObject & GQuotaObject {
 
 type GVMAccessEntry implements GAccessEntry {
   actions: [VMActions!]!
+  isOwner: Boolean!
   userId: User!
 }
 
@@ -1199,8 +1207,6 @@ input TemplateInput {
   "VM domain type: 'pv', 'hvm', 'pv_in_pvh'"
   domainType: DomainType
   installOptions: InstallOSOptionsInput
-  "A user against whom the quotes are calculated"
-  mainOwner: ID
   "Dynamic memory max in bytes"
   memoryDynamicMax: Float
   "Dynamic memory min in bytes"

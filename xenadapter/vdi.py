@@ -140,7 +140,7 @@ class VDI(QuotaObject, Attachable):
             vdi_ref = cls._create(xen, args)
             vdi = cls(xen, vdi_ref)
             vdi.manage_actions(VDIActions.ALL, user=user)
-            vdi.set_main_owner(user, force=True)
+            vdi.set_main_owner(user)
 
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(xen.log, "Failed to create VDI:", f.details)

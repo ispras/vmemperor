@@ -14,10 +14,12 @@ def resolve_accessentries(actions_type: Type[SerFlag]):
 
         def resolve_entry(key, value):
             actions = actions_type.deserialize_distinct(value)
-            return {"user_id": key, "actions": actions}
+            actions_all = actions_type.deserialize(value)
+            is_owner = actions_all == actions_type.ALL
+
+            return {"user_id": key, "actions": actions, "is_owner": is_owner}
 
         ret =[resolve_entry(k,v) for k,v in access.items()]
         return ret
 
     return resolver
-

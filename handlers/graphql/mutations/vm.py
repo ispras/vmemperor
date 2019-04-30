@@ -7,6 +7,7 @@ from handlers.graphql.graphql_handler import ContextProtocol
 from handlers.graphql.mutation_utils.asyncmutationmethod import AsyncMutationMethod
 from handlers.graphql.mutation_utils.mutationmethod import MutationMethod
 from handlers.graphql.mutations.abstractvm import vcpus_input_validator, memory_input_validator, platform_validator
+from handlers.graphql.mutations.quotaobject import set_main_owner, main_owner_validator
 from xenadapter.abstractvm import set_memory, set_VCPUs
 from handlers.graphql.types.base.objecttype import InputObjectType
 from handlers.graphql.utils.editmutation import create_edit_mutation, create_async_mutation
@@ -21,7 +22,7 @@ mutations = [
             MutationMethod(func=(set_subtype_from_input("platform"), platform_validator), access_action=VM.Actions.changing_VCPUs),
             MutationMethod(func=(set_VCPUs, vcpus_input_validator), access_action=VM.Actions.changing_VCPUs),
             MutationMethod(func=(set_memory, memory_input_validator), access_action=VM.Actions.changing_memory_limits),
-            MutationMethod(func="main_owner", access_action=VM.Actions.ALL)
+            MutationMethod(func=(set_main_owner, main_owner_validator), access_action=VM.Actions.ALL)
         ]
 VMMutation = create_edit_mutation("VMMutation", "vm", VMInput, VM, mutations)
 

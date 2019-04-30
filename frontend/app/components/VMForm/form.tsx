@@ -29,7 +29,8 @@ import {faDesktop} from "@fortawesome/free-solid-svg-icons/faDesktop";
 import styled from "styled-components";
 import {Fields as ResourceFields} from '../AbstractVMSettingsComponents/fields';
 import {TemplateInputField} from "./templateInput";
-import {UserInputField} from "./userInput";
+import {useCurrentUserAndGroups} from "../../hooks/user";
+import {UserInputField} from "../MainOwnerForm/userInput";
 
 const H4 = styled.h4`
 margin: 20px;
@@ -37,7 +38,7 @@ margin: 20px;
 const VMForm = (props: FormikPropsValues) => {
   const {data: {pools}} = usePoolListQuery();
   const poolOptions = useReactSelectFromRecord(pools);
-
+  const currentUserAndGroups = useCurrentUserAndGroups();
   const templateList = useTemplateListQuery();
   const templates = templateList.data.templates.filter(item => {
     return item.myActions.includes(TemplateActions.create_vm)
@@ -90,6 +91,7 @@ const VMForm = (props: FormikPropsValues) => {
           name='vmOptions.mainOwner'
           component={UserInputField}
           placeholder="Select an owner user/group"
+          users={currentUserAndGroups}
         />
       </Fragment>}
 

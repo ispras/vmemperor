@@ -3,7 +3,7 @@ from handlers.graphql.types.input.abstractvm import AbstractVMInput
 from xenadapter.abstractvm import AbstractVM
 
 
-def memory_input_validator(input: AbstractVMInput, _):
+def memory_input_validator(input: AbstractVMInput, *args, **kwargs):
     smin : float = input.memory_static_min
     smax : float = input.memory_static_max
     dmin : float = input.memory_dynamic_min
@@ -17,7 +17,7 @@ def memory_input_validator(input: AbstractVMInput, _):
 
     return has_values, None
 
-def vcpus_input_validator(input: AbstractVMInput, vm: AbstractVM):
+def vcpus_input_validator(input: AbstractVMInput, vm: AbstractVM, *args, **kwargs):
     if not input.VCPUs_at_startup and not input.VCPUs_max:
         return False, None
 
@@ -27,7 +27,7 @@ def vcpus_input_validator(input: AbstractVMInput, vm: AbstractVM):
     return True, None
 
 
-def platform_validator(input, vm):
+def platform_validator(input, vm, *args, **kwargs):
     return validate_subtype('platform')(input, vm)
 
 

@@ -146,7 +146,7 @@ class VM (AbstractVM):
         self.install = True
         self.remove_tags('vmemperor')
         self.manage_actions(self.Actions.ALL, user=self.user)
-        self.set_main_owner(self.user, force=True)
+        self.set_main_owner(self.user)
 
         set_subtype_from_input("platform", return_diff=False)(options, self)
         set_VCPUs(options, self, return_diff=False)
@@ -288,7 +288,7 @@ class VM (AbstractVM):
                     vdi.set_name_description(f"Created by VMEmperor for VM {self.ref} (UUID {self.get_uuid()})")
                     # After provision. manage disks actions
                     vdi.manage_actions(VDI.Actions.ALL, user=self.user)
-                    vdi.set_main_owner(self.user, force=True)
+                    vdi.set_main_owner(self.user)
 
 
     @use_logger

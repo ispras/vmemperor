@@ -1,6 +1,8 @@
 # import AbstractVMFragment from "abstractVmFragment.graphql"
 # import ACLXenObjectFragment from "xenObjectFragment.graphql"
+# import AccessFragment from "access.graphql"
 # import UserFragment from "user.graphql"
+
 
 fragment VMVIFFragment on GVIF {
   network {
@@ -31,12 +33,7 @@ fragment VMVBDFragment on GVBD {
 }
 
 fragment VMAccessFragment on GVMAccessEntry {
-  userId
-  {
-    id
-    name
-    username
-  }
+  ...AccessFragment
   actions
 }
 fragment VMSettingsFragment on GVM  {
