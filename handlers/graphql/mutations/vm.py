@@ -8,6 +8,7 @@ from handlers.graphql.mutation_utils.asyncmutationmethod import AsyncMutationMet
 from handlers.graphql.mutation_utils.mutationmethod import MutationMethod
 from handlers.graphql.mutations.abstractvm import vcpus_input_validator, memory_input_validator, platform_validator
 from handlers.graphql.mutations.quotaobject import set_main_owner, main_owner_validator
+from utils.quota import before_vm_start_resume, before_vm_unpause
 from xenadapter.abstractvm import set_memory, set_VCPUs
 from handlers.graphql.types.base.objecttype import InputObjectType
 from handlers.graphql.utils.editmutation import create_edit_mutation, create_async_mutation
@@ -49,7 +50,11 @@ class VMStartMutation(graphene.Mutation):
         paused = options.paused if options else False
         force = options.force if options else False
         host = options.host if options else None
-        vm = VM(ctx.xen, ref)
+        try:
+            vm = VM(ctx.xen, ref)
+        except ValueError as e:
+            return VMStartMutation(granted=False, reason=str(e))
+
         power_state = vm.get_power_state()
         if power_state == "Halted":
             if host:
@@ -71,7 +76,10 @@ class VMStartMutation(graphene.Mutation):
         if not vm.check_access(ctx.user_authenticator, access_action):
             return VMStartMutation(granted=False, reason=f"Access to action {access_action} for VM {vm.ref} is not granted")
 
-        # calling signature: method(paused, force)
+        before_error = before_vm_start_resume(vm.ref)
+        if before_error:
+            return VMStartMutation(granted=False, reason=before_error)
+
         return VMStartMutation(granted=True, taskId=AsyncMutationMethod.call(vm, method, info.context,  args=(paused, force)))
 
 
@@ -168,6 +176,11 @@ class VMPauseMutation(graphene.Mutation):
 
         if not vm.check_access(ctx.user_authenticator, access_action):
             return VMPauseMutation(granted=False, reason=f"Access to action {access_action} for VM {vm.ref} is not granted")
+
+        if method == 'unpause':
+            before_unpause = before_vm_unpause(vm.ref)
+            if before_unpause:
+                return VMPauseMutation(granted=False, reason=before_unpause)
 
         return VMPauseMutation(taskId=AsyncMutationMethod.call(vm, method, info.context), granted=True)
 

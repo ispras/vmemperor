@@ -42,3 +42,9 @@ class QuotaObject(ACLXenObject):
 
     def get_main_owner(self):
         return self.get_main_owner_from_other_config(self.get_other_config())
+
+    @classmethod
+    def create_db(cls, indexes=()):
+        my_indexes = ['main_owner']
+        my_indexes.extend(indexes)
+        super(QuotaObject, cls).create_db(indexes=my_indexes)

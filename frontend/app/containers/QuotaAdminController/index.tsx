@@ -41,7 +41,6 @@ export const QuotaAdminController: React.FC<RouteComponentProps<Args>> =
       memory: null,
     });
 
-
     useEffect(() => {
         const func = async () => {
             console.log("Loading user data:", userId);
@@ -49,7 +48,8 @@ export const QuotaAdminController: React.FC<RouteComponentProps<Args>> =
               query: QuotaGetDocument,
               variables: {
                 userId
-              }
+              },
+              fetchPolicy: "network-only"
             });
             const {data: {user}} = await client.query<UserGetQuery, UserGetQueryVariables>({
               query: UserGetDocument,
@@ -86,6 +86,7 @@ export const QuotaAdminController: React.FC<RouteComponentProps<Args>> =
       });
       if (!result.data.quotaSet.success) {
         formikActions.setStatus({'error': "Unable to set quota"})
+      } else { //Trigger reloading data
       }
 
     };

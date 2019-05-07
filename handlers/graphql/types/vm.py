@@ -26,7 +26,7 @@ class SetDisksEntry:
     '''
 
     SR : XenObject # Storage repository
-    size: int # disk size in megabytes
+    size: int # disk size in bytes
 
 
 class PvDriversVersion(graphene.ObjectType):
