@@ -16,6 +16,7 @@ from handlers.graphql.utils.query import resolve_one
 
 class PoolActions(SerFlag):
     create_vm = auto()
+    rename = auto()
 
 GPoolActions = graphene.Enum.from_enum(PoolActions)
 GPoolAccessEntry = create_access_type("GPoolAccessEntry", GPoolActions)

@@ -3,9 +3,11 @@
 
 from handlers.graphql.types.access import create_access_mutation_type
 from handlers.graphql.types.network import GNetworkActions
+from handlers.graphql.types.pool import GPoolActions
 from handlers.graphql.types.sr import GSRActions
 from handlers.graphql.types.vdi import GVDIActions
 from handlers.graphql.types.vm import GVMActions
+from xenadapter import Pool
 from xenadapter.network import Network
 from xenadapter.sr import SR
 from xenadapter.template import Template
@@ -24,6 +26,4 @@ TemplateAccessSet = create_access_mutation_type("TemplateAccessSet", GTemplateAc
 
 NetAccessSet = create_access_mutation_type("NetAccessSet", GNetworkActions, Network)
 
-
-
-
+PoolAccessSet = create_access_mutation_type("PoolAccessSet", GPoolActions, Pool)

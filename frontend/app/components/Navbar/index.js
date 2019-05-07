@@ -38,7 +38,8 @@ class MyNavbar extends React.Component {
         {to: "/networks", text: {...messages.networks}},
         {to: "/vdis", text: {...messages.vdis}},
         {to: "/isos", text: {...messages.isos}},
-        {to: "/srs", text: {...messages.srs}}
+        {to: "/srs", text: {...messages.srs}},
+        {to: "/pool", text: {...messages.pool}}
       ],
       rightLinks: [{to: "/logout", text: {...messages.logout}}]
     };

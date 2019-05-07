@@ -75,7 +75,6 @@ const VMForm = (props: FormikPropsValues) => {
     return domainType === DomainType.PV && installOptions && installOptions.installRepository && installOptions.arch && installOptions.release && installOptions.distro;
 
   }, [props.values.template]);
-  const {data: {currentUser}} = useCurrentUserQuery();
   const hideTemplateElementsStyle = useMemo(() => {
     return props.values.template ? {} : {display: 'none'}
   }, [props.values.template]);
@@ -85,7 +84,7 @@ const VMForm = (props: FormikPropsValues) => {
       onSubmit={props.handleSubmit}
       onReset={props.handleReset}
     >
-      {!currentUser.isAdmin && <Fragment>
+      {currentUserAndGroups && <Fragment>
         <H4> Ownership </H4>
         <Field
           name='vmOptions.mainOwner'

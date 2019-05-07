@@ -45,6 +45,10 @@ export default defineMessages({
   quota: {
     id: "app.components.navbar.quota",
     defaultMessage: "Quotas"
+  },
+  pool: {
+    id: "app.components.navbar.pool",
+    defaultMessage: "Pool",
   }
 
 

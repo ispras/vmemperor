@@ -33,6 +33,11 @@ mutation VDIAccessSetMutation($actions: [VDIActions!]!, $user: String!,  $ref :I
   }
 }
 
+mutation PoolAccessSetMutation ($actions: [PoolActions!]!, $user: String!, $ref: ID!, $revoke: Boolean!) {
+  poolAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref) {
+    success
+  }
+}
 
 fragment AccessFragment on GAccessEntry {
   isOwner

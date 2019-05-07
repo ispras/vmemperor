@@ -1,14 +1,11 @@
 # import ACLXenObjectFragment from "xenObjectFragment.graphql"
+# import AccessFragment from "access.graphql"
 
 fragment SRInfoFragment on GSR {
   ...ACLXenObjectFragment
   access {
+    ...AccessFragment
     actions
-    userId {
-      id
-      name
-      username
-    }
   }
   myActions
   isOwner

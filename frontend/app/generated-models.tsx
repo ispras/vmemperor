@@ -651,6 +651,10 @@ export type Mutation = {
   srAccessSet?: Maybe<SRAccessSet>;
   /** Delete a SR */
   srDelete?: Maybe<SRDestroyMutation>;
+  /** Edit pool options */
+  pool?: Maybe<PoolMutation>;
+  /** Set pool access rights */
+  poolAccessSet?: Maybe<PoolAccessSet>;
   /** Delete a Task */
   taskDelete?: Maybe<TaskRemoveMutation>;
   /** Adjust quota */
@@ -790,6 +794,18 @@ export type MutationsrDeleteArgs = {
   ref: Scalars["ID"];
 };
 
+export type MutationpoolArgs = {
+  pool: PoolInput;
+  ref: Scalars["ID"];
+};
+
+export type MutationpoolAccessSetArgs = {
+  actions: Array<PoolActions>;
+  ref: Scalars["ID"];
+  revoke: Scalars["Boolean"];
+  user: Scalars["String"];
+};
+
 export type MutationtaskDeleteArgs = {
   ref: Scalars["ID"];
 };
@@ -887,12 +903,29 @@ export type PlaybookRequirements = {
   osVersion: Array<Maybe<OSVersion>>;
 };
 
+export type PoolAccessSet = {
+  success: Scalars["Boolean"];
+};
+
 /** An enumeration. */
 export enum PoolActions {
   create_vm = "create_vm",
+  rename = "rename",
   NONE = "NONE",
   ALL = "ALL"
 }
+
+export type PoolInput = {
+  /** Object's human-readable name */
+  nameLabel?: Maybe<Scalars["String"]>;
+  /** Object's human-readable description */
+  nameDescription?: Maybe<Scalars["String"]>;
+};
+
+export type PoolMutation = {
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
+};
 
 export enum PowerState {
   Halted = "Halted",
@@ -1594,6 +1627,19 @@ export type VDIAccessSetMutationMutation = { __typename?: "Mutation" } & {
   >;
 };
 
+export type PoolAccessSetMutationMutationVariables = {
+  actions: Array<PoolActions>;
+  user: Scalars["String"];
+  ref: Scalars["ID"];
+  revoke: Scalars["Boolean"];
+};
+
+export type PoolAccessSetMutationMutation = { __typename?: "Mutation" } & {
+  poolAccessSet: Maybe<
+    { __typename?: "PoolAccessSet" } & Pick<PoolAccessSet, "success">
+  >;
+};
+
 export type AccessFragmentFragment = Pick<GAccessEntry, "isOwner"> & {
   userId: { __typename?: "User" } & Pick<User, "username" | "name" | "id">;
 };
@@ -1759,6 +1805,17 @@ export type NetworkEditOptionsMutation = { __typename?: "Mutation" } & {
       NetworkMutation,
       "granted" | "reason"
     >
+  >;
+};
+
+export type PoolEditOptionsMutationVariables = {
+  pool: PoolInput;
+  ref: Scalars["ID"];
+};
+
+export type PoolEditOptionsMutation = { __typename?: "Mutation" } & {
+  pool: Maybe<
+    { __typename?: "PoolMutation" } & Pick<PoolMutation, "granted" | "reason">
   >;
 };
 
@@ -2270,10 +2327,41 @@ export type PoolListFragmentFragment = { __typename?: "GPool" } & Pick<
   "nameLabel" | "nameDescription" | "ref" | "uuid"
 > & { master: Maybe<{ __typename?: "GHost" } & Pick<GHost, "ref">> };
 
+export type PoolInfoFragmentFragment = { __typename?: "GPool" } & Pick<
+  GPool,
+  "myActions" | "isOwner"
+> & {
+    access: Array<
+      Maybe<
+        { __typename?: "GPoolAccessEntry" } & Pick<
+          GPoolAccessEntry,
+          "actions"
+        > &
+          AccessFragmentFragment
+      >
+    >;
+  } & ACLXenObjectFragmentFragment;
+
 export type PoolListQueryVariables = {};
 
 export type PoolListQuery = { __typename?: "Query" } & {
   pools: Array<Maybe<{ __typename?: "GPool" } & PoolListFragmentFragment>>;
+};
+
+export type PoolInfoQueryVariables = {
+  ref: Scalars["ID"];
+};
+
+export type PoolInfoQuery = { __typename?: "Query" } & {
+  pool: Maybe<{ __typename?: "GPool" } & PoolInfoFragmentFragment>;
+};
+
+export type PoolInfoUpdateSubscriptionVariables = {
+  ref: Scalars["ID"];
+};
+
+export type PoolInfoUpdateSubscription = { __typename?: "Subscription" } & {
+  pool: Maybe<{ __typename?: "GPool" } & PoolInfoFragmentFragment>;
 };
 
 export type PoolListUpdateSubscriptionVariables = {};
@@ -2335,12 +2423,8 @@ export type SRInfoFragmentFragment = { __typename?: "GSR" } & Pick<
 > & {
     access: Array<
       Maybe<
-        { __typename?: "GSRAccessEntry" } & Pick<GSRAccessEntry, "actions"> & {
-            userId: { __typename?: "User" } & Pick<
-              User,
-              "id" | "name" | "username"
-            >;
-          }
+        { __typename?: "GSRAccessEntry" } & Pick<GSRAccessEntry, "actions"> &
+          AccessFragmentFragment
       >
     >;
   } & ACLXenObjectFragmentFragment;
@@ -3515,6 +3599,13 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
     Context,
     MutationsrDeleteArgs
   >;
+  pool?: Resolver<Maybe<PoolMutation>, ParentType, Context, MutationpoolArgs>;
+  poolAccessSet?: Resolver<
+    Maybe<PoolAccessSet>,
+    ParentType,
+    Context,
+    MutationpoolAccessSetArgs
+  >;
   taskDelete?: Resolver<
     Maybe<TaskRemoveMutation>,
     ParentType,
@@ -3579,6 +3670,18 @@ export type PlaybookRequirementsResolvers<
   ParentType = PlaybookRequirements
 > = {
   osVersion?: Resolver<Array<Maybe<OSVersion>>, ParentType, Context>;
+};
+
+export type PoolAccessSetResolvers<
+  Context = any,
+  ParentType = PoolAccessSet
+> = {
+  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+};
+
+export type PoolMutationResolvers<Context = any, ParentType = PoolMutation> = {
+  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
 };
 
 export type PvDriversVersionResolvers<
@@ -3982,6 +4085,8 @@ export type Resolvers<Context = any> = {
   Platform?: PlatformResolvers<Context>;
   PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers<Context>;
   PlaybookRequirements?: PlaybookRequirementsResolvers<Context>;
+  PoolAccessSet?: PoolAccessSetResolvers<Context>;
+  PoolMutation?: PoolMutationResolvers<Context>;
   PvDriversVersion?: PvDriversVersionResolvers<Context>;
   Query?: QueryResolvers<Context>;
   Quota?: QuotaResolvers<Context>;
@@ -4107,21 +4212,41 @@ export const PoolListFragmentFragmentDoc = gql`
     uuid
   }
 `;
-export const SRInfoFragmentFragmentDoc = gql`
-  fragment SRInfoFragment on GSR {
+export const AccessFragmentFragmentDoc = gql`
+  fragment AccessFragment on GAccessEntry {
+    isOwner
+    userId {
+      username
+      name
+      id
+    }
+  }
+`;
+export const PoolInfoFragmentFragmentDoc = gql`
+  fragment PoolInfoFragment on GPool {
     ...ACLXenObjectFragment
     access {
+      ...AccessFragment
       actions
-      userId {
-        id
-        name
-        username
-      }
     }
     myActions
     isOwner
   }
   ${ACLXenObjectFragmentFragmentDoc}
+  ${AccessFragmentFragmentDoc}
+`;
+export const SRInfoFragmentFragmentDoc = gql`
+  fragment SRInfoFragment on GSR {
+    ...ACLXenObjectFragment
+    access {
+      ...AccessFragment
+      actions
+    }
+    myActions
+    isOwner
+  }
+  ${ACLXenObjectFragmentFragmentDoc}
+  ${AccessFragmentFragmentDoc}
 `;
 export const SRListFragmentFragmentDoc = gql`
   fragment SRListFragment on GSR {
@@ -4237,16 +4362,6 @@ export const TemplateListFragmentFragmentDoc = gql`
     }
     isOwner
     domainType
-  }
-`;
-export const AccessFragmentFragmentDoc = gql`
-  fragment AccessFragment on GAccessEntry {
-    isOwner
-    userId {
-      username
-      name
-      id
-    }
   }
 `;
 export const VDISettingsFragmentFragmentDoc = gql`
@@ -4518,6 +4633,30 @@ export function useVDIAccessSetMutationMutation(
     VDIAccessSetMutationMutationVariables
   >(VDIAccessSetMutationDocument, baseOptions);
 }
+export const PoolAccessSetMutationDocument = gql`
+  mutation PoolAccessSetMutation(
+    $actions: [PoolActions!]!
+    $user: String!
+    $ref: ID!
+    $revoke: Boolean!
+  ) {
+    poolAccessSet(actions: $actions, user: $user, revoke: $revoke, ref: $ref) {
+      success
+    }
+  }
+`;
+
+export function usePoolAccessSetMutationMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    PoolAccessSetMutationMutation,
+    PoolAccessSetMutationMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    PoolAccessSetMutationMutation,
+    PoolAccessSetMutationMutationVariables
+  >(PoolAccessSetMutationDocument, baseOptions);
+}
 export const VDIAttachDocument = gql`
   mutation VDIAttach($vmRef: ID!, $vdiRef: ID!) {
     vdiAttach(vmRef: $vmRef, vdiRef: $vdiRef, isAttach: true) {
@@ -4782,6 +4921,26 @@ export function useNetworkEditOptionsMutation(
     NetworkEditOptionsMutation,
     NetworkEditOptionsMutationVariables
   >(NetworkEditOptionsDocument, baseOptions);
+}
+export const PoolEditOptionsDocument = gql`
+  mutation PoolEditOptions($pool: PoolInput!, $ref: ID!) {
+    pool(ref: $ref, pool: $pool) {
+      granted
+      reason
+    }
+  }
+`;
+
+export function usePoolEditOptionsMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    PoolEditOptionsMutation,
+    PoolEditOptionsMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    PoolEditOptionsMutation,
+    PoolEditOptionsMutationVariables
+  >(PoolEditOptionsDocument, baseOptions);
 }
 export const SREditOptionsDocument = gql`
   mutation SREditOptions($sr: SRInput!, $ref: ID!) {
@@ -5657,6 +5816,43 @@ export function usePoolListQuery(
     PoolListDocument,
     baseOptions
   );
+}
+export const PoolInfoDocument = gql`
+  query PoolInfo($ref: ID!) {
+    pool(ref: $ref) {
+      ...PoolInfoFragment
+    }
+  }
+  ${PoolInfoFragmentFragmentDoc}
+`;
+
+export function usePoolInfoQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<PoolInfoQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<PoolInfoQuery, PoolInfoQueryVariables>(
+    PoolInfoDocument,
+    baseOptions
+  );
+}
+export const PoolInfoUpdateDocument = gql`
+  subscription PoolInfoUpdate($ref: ID!) {
+    pool(ref: $ref) {
+      ...PoolInfoFragment
+    }
+  }
+  ${PoolInfoFragmentFragmentDoc}
+`;
+
+export function usePoolInfoUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    PoolInfoUpdateSubscription,
+    PoolInfoUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    PoolInfoUpdateSubscription,
+    PoolInfoUpdateSubscriptionVariables
+  >(PoolInfoUpdateDocument, baseOptions);
 }
 export const PoolListUpdateDocument = gql`
   subscription PoolListUpdate {

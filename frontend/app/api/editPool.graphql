@@ -1,0 +1,6 @@
+mutation PoolEditOptions ($pool: PoolInput!, $ref: ID!) {
+  pool(ref: $ref, pool: $pool) {
+    granted
+    reason
+  }
+}

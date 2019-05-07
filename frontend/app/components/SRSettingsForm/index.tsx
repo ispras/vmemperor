@@ -34,7 +34,7 @@ const SRSettingsForm: React.FunctionComponent<SettingsComponentProps<SRInfoQuery
               data={sr}
               ALL={SRActions.ALL}
               mutationNode={SRAccessSetMutationDocument}
-              mutationName="netAccessSet"/>
+              mutationName="srAccessSet"/>
           )
         }
 

@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Tue Apr 30 14:27:42 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Tue May 07 15:47:00 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -551,6 +551,15 @@ type Mutation {
     #VM UUIDs to run Playbook on. Ignored if this is a Playbook with provided Inventory
     vms: [ID]
   ): PlaybookLaunchMutation
+  "Edit pool options"
+  pool(
+    #Pool to change
+    pool: PoolInput!,
+    #Object ID
+    ref: ID!
+  ): PoolMutation
+  "Set pool access rights"
+  poolAccessSet(actions: [PoolActions!]!, ref: ID!, revoke: Boolean!, user: String!): PoolAccessSet
   "Adjust quota"
   quotaSet(quota: QuotaInput!, userId: String!): QuotaMutation
   "Edit SR options"
@@ -672,6 +681,15 @@ type PlaybookLaunchMutation {
 type PlaybookRequirements {
   "Minimal supported OS versions"
   osVersion: [OSVersion]!
+}
+
+type PoolAccessSet {
+  success: Boolean!
+}
+
+type PoolMutation {
+  granted: Boolean!
+  reason: String
 }
 
 "Drivers version. We don't want any fancy resolver except for the thing that we know that it's a dict in VM document"
@@ -1001,6 +1019,7 @@ enum PoolActions {
   ALL
   NONE
   create_vm
+  rename
 }
 
 enum PowerState {
@@ -1183,6 +1202,13 @@ input PlatformInput {
   pae: Boolean
   timeoffset: Int
   videoram: Int
+}
+
+input PoolInput {
+  "Object's human-readable description"
+  nameDescription: String
+  "Object's human-readable name"
+  nameLabel: String
 }
 
 input QuotaInput {

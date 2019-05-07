@@ -3,11 +3,13 @@ import graphene
 from graphene import ObjectType
 
 from handlers.graphql.graphene_with_flags.schema import SchemaWithFlags
-from handlers.graphql.mutations.accessset import SRAccessSet, VDIAccessSet, NetAccessSet, VMAccessSet, TemplateAccessSet
+from handlers.graphql.mutations.accessset import SRAccessSet, VDIAccessSet, NetAccessSet, VMAccessSet, \
+    TemplateAccessSet, PoolAccessSet
 from handlers.graphql.mutations.attachnet import AttachNetworkMutation
 from handlers.graphql.mutations.attachvdi import AttachVDIMutation
 from handlers.graphql.mutations.createvm import CreateVM
 from handlers.graphql.mutations.network import NetworkMutation
+from handlers.graphql.mutations.pool import PoolMutation
 from handlers.graphql.mutations.quota import QuotaMutation
 from handlers.graphql.mutations.task import TaskRemoveMutation
 from handlers.graphql.mutations.vm import VMDestroyMutation, VMSuspendMutation, VMPauseMutation, VMRebootMutation, \
@@ -126,6 +128,10 @@ class Mutation(ObjectType):
     sr = SRMutation.Field(description="Edit SR options")
     sr_access_set = SRAccessSet.Field(description="Set SR access rights")
     sr_delete = SRDestroyMutation.Field(description="Delete a SR")
+
+    pool = PoolMutation.Field(description="Edit pool options")
+    pool_access_set = PoolAccessSet.Field(description="Set pool access rights")
+
 
     task_delete = TaskRemoveMutation.Field(description="Delete a Task")
 

@@ -1,4 +1,6 @@
 # import DeletedFragment from "deleted.graphql"
+# import ACLXenObjectFragment from "xenObjectFragment.graphql"
+# import AccessFragment from "access.graphql"
 
 fragment PoolListFragment on GPool {
   master{
@@ -10,9 +12,31 @@ fragment PoolListFragment on GPool {
   uuid
 }
 
+fragment PoolInfoFragment on GPool {
+  ...ACLXenObjectFragment
+  access {
+    ...AccessFragment
+    actions
+  }
+  myActions
+  isOwner
+}
+
 query PoolList{
   pools{
     ...PoolListFragment
+  }
+}
+
+query PoolInfo ($ref: ID!) {
+  pool(ref: $ref) {
+    ...PoolInfoFragment
+  }
+}
+
+subscription  PoolInfoUpdate($ref: ID!) {
+  pool(ref: $ref) {
+    ...PoolInfoFragment
   }
 }
 
