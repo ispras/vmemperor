@@ -22,7 +22,7 @@ enum Tab {
 
 const VDISettingsForm: React.FunctionComponent<SettingsComponentProps<VDIInfoQuery>> =
   ({object: {vdi}}) => {
-    const defaultTab = Tab.Access;
+    const defaultTab = Tab.Overview;
     const header = useMemo(() => (
       <XenObjectHeader
         editMutation={VDIEditOptionsDocument}

@@ -1401,6 +1401,8 @@ export type VDIInput = {
   nameLabel?: Maybe<Scalars["String"]>;
   /** Object's human-readable description */
   nameDescription?: Maybe<Scalars["String"]>;
+  /** A user against whom the quotes are calculated */
+  mainOwner?: Maybe<Scalars["ID"]>;
 };
 
 export type VDIMutation = {

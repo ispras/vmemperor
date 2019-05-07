@@ -7,7 +7,7 @@ import * as React from "react";
 import {Omit} from "react-apollo-hooks/lib/utils";
 
 
-interface Props extends Omit<SelectFieldProps<User, any>, "options"> {
+interface Props extends Omit<SelectFieldProps<User, any>, "options" | "getOptionValue" | "comparator"> {
   users: Array<User>;
 }
 
@@ -55,8 +55,7 @@ export const UserInputField = ({users, ...props}: Props) => {
   }, [users]);
    */
 
-
-  if (users.length) {
+  if (options.length) {
     return (
       <Select
         {...props}
