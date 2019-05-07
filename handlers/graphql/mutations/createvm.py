@@ -7,6 +7,7 @@ from connman import ReDBConnection
 from customtask.customtask import CustomTask
 from handlers.graphql.types.input.newvdi import NewVDI
 from handlers.graphql.types.input.vm import AutoInstall, VMInput
+from utils.quota import quota_memory_error, quota_vcpu_count_error, quota_vdi_size_error
 from utils.user import check_user_input
 from xenadapter.vdi import VDI
 from xenadapter.network import Network
@@ -30,10 +31,11 @@ def createvm(ctx : ContextProtocol, task_id : str,
     with ReDBConnection().get_connection():
         xen = XenAdapterPool().get()
         task = CustomTask(task_id, Template, template, "create_vm", ctx.user_authenticator)
+        options = {**vm_options}
         if not vm_options.main_owner and not ctx.user_authenticator.is_admin():
-            vm_options.main_owner = 'users/' + ctx.user_authenticator.get_id()
-        user = vm_options.main_owner
+            options['main_owner'] = 'users/' + ctx.user_authenticator.get_id()
 
+        user = options['main_owner']
         try:
             if not check_user_input(user, ctx.user_authenticator):
                 task.set_status(status='failure', error_info_add=f"Incorrect value of argument: 'vmOptions.mainOwner': {user}")
@@ -44,10 +46,24 @@ def createvm(ctx : ContextProtocol, task_id : str,
                     if sr.check_access(ctx.user_authenticator, SR.Actions.vdi_create):
                         yield SetDisksEntry(SR=sr, size=entry.size)
 
-
-
-            # TODO: Check quotas here as well as in create vdi method
             provision_config = list(disk_entries())
+
+            if user: # Check quotas here
+                memory_error = quota_memory_error(options, user)
+                if memory_error:
+                    task.set_status(status='failure', error_info_add=memory_error)
+                    return
+                vcpus_error = quota_vcpu_count_error(options, user)
+                if vcpus_error:
+                    task.set_status(status='failure', error_info_add=vcpus_error)
+                    return
+
+                size_sum = sum((item.size for item in provision_config))
+                vdi_error = quota_vdi_size_error(size_sum, user)
+                if vdi_error:
+                    task.set_status(status='failure', error_info_add=vdi_error)
+                    return
+
             tmpl = kwargs['Template']
             vm = tmpl.clone_as_vm(f"New VM for {user}")
             task.set_status(progress=0.1, result=vm.ref)
@@ -59,7 +75,7 @@ def createvm(ctx : ContextProtocol, task_id : str,
                 template=tmpl,
                 iso=kwargs.get('VDI'),
                 install_params=install_params,
-                options=vm_options
+                options=options
             )
         finally:
             XenAdapterPool().unget(xen)

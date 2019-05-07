@@ -37,11 +37,11 @@ def check_vdi_size(user_id: str):
 
     real_vdi_size = re.db.table('vdis')\
         .get_all(user_id, index='main_owner')\
-        .map(lambda item: item['vdi_size'])\
+        .map(lambda item: item['virtual_size'])\
         .sum()\
         .run()
 
-    return real_vdi_size - vdi_size
+    return vdi_size - real_vdi_size
 
 def check_memory(user_id: str):
     memory = _get_from_quotas(user_id, 'memory')
@@ -73,20 +73,32 @@ def check_vcpu_count(user_id: str):
 
     return vcpu_count - real_vcpu_count
 
-def do_memory_check(vm_info, main_owner):
+def quota_memory_error(vm_info, main_owner):
     memory_left = check_memory(main_owner)
     if memory_left is not None:
         memory_expected_left  = memory_left - vm_info['memory_static_max']
         if memory_expected_left < 0:
             return f'Unable to allocate memory: memory quota will be exceeded by {-(memory_expected_left/1024/1024)} Mb'
 
-def do_vcpus_check(vm_info, main_owner):
+def quota_vcpu_count_error(vm_info, main_owner):
     vcpus_left = check_vcpu_count(main_owner)
     if vcpus_left is not None:
         vcpus_expected_left = vcpus_left - vm_info['VCPUs_max']
         if vcpus_expected_left < 0:
             return f'Unable to allocate VCPUs: VCPUs quota will be exceeded by {-vcpus_expected_left} VCPUs'
 
+def quota_vdi_size_error(size, main_owner):
+    """
+    Perform a VDI size check for main_owner against disk of size bytes
+    :param size:
+    :param main_owner:
+    :return: None if OK, error message otherwise
+    """
+    vdi_size_left = check_vdi_size(main_owner)
+    if vdi_size_left is not None:
+        vdi_size_expected_left = vdi_size_left - size
+        if vdi_size_expected_left < 0:
+            return f'Unable to allocate VDI: VDI size quota will be exceeded by {-vdi_size_expected_left/1024/1024/1024} Gb'
 
 def before_vm_start_resume(ref: str):
     '''
@@ -102,11 +114,11 @@ def before_vm_start_resume(ref: str):
     if not main_owner:
         return
 
-    memcheck = do_memory_check(vm_info, main_owner)
+    memcheck = quota_memory_error(vm_info, main_owner)
     if memcheck:
         return memcheck
 
-    vcpucheck = do_vcpus_check(vm_info, main_owner)
+    vcpucheck = quota_vcpu_count_error(vm_info, main_owner)
     if vcpucheck:
         return vcpucheck
 
@@ -120,5 +132,5 @@ def before_vm_unpause(ref: str):
     if not main_owner:
         return
 
-    return do_vcpus_check(vm_info, main_owner)
+    return quota_vcpu_count_error(vm_info, main_owner)
 
