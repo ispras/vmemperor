@@ -254,6 +254,8 @@ const render = (messages) => {
           <ConnectedRouter history={history}>
             <ApolloProvider client={client}>
               <Suspense fallback={<div>Loading...</div>}>
+                <div id="react-toast">
+                </div>
                 <App/>
               </Suspense>
             </ApolloProvider>

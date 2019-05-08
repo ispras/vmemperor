@@ -111,7 +111,7 @@ const Templates: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {selectedItems}} = useTemplateTableSelectionQuery();
   const [state, dispatch] = useReducer<TemplateListReducer>(reducer, initialState);
   useTableSelectionInInternalState(dispatch, selectedItems);
-  useUpdateInternalStateWithSubscription(dispatch, TemplateListUpdateDocument, TemplateListDocument, client, "templates");
+  useUpdateInternalStateWithSubscription(dispatch, TemplateListUpdateDocument, TemplateListDocument, "templates");
 
   return (
     <Fragment>

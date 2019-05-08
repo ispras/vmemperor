@@ -11,7 +11,7 @@ import * as React from "react";
 import {Omit} from "react-apollo-hooks/lib/utils";
 import * as moment from "moment";
 
-export interface DataType extends Omit<TaskFragmentFragment, "nameLabel" | "created" | "finished"> {
+export interface TaskDataType extends Omit<TaskFragmentFragment, "nameLabel" | "created" | "finished"> {
   nameLabel: React.ReactNode | TaskFragmentFragment['nameLabel']
 }
 
@@ -142,7 +142,7 @@ const getNameLabel = (client: ApolloClient<any>) => async (value: TaskFragmentFr
   }
 };
 
-const getValue: (client: ApolloClient<any>) => (value: TaskFragmentFragment) => Promise<DataType>
+export const getValue: (client: ApolloClient<any>) => (value: TaskFragmentFragment) => Promise<TaskDataType>
   = client => async value => ({
     ...value,
     nameLabel: await getNameLabel(client)(value),

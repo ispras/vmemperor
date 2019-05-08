@@ -16,14 +16,15 @@ import PauseButton from "../../components/PauseButton";
 import SuspendButton from "../../components/SuspendButton";
 import SetAccessButton from "../../components/SetAccessButton";
 import ActionListModal from "../../components/AccessView/actionListModal";
+import toast from 'toasted-notes';
 import {
   Change, DeleteVMDocument,
-  PowerState,
+  PowerState, TaskInfoUpdateDocument, TaskInfoUpdateSubscription,
   useDeleteVMMutation,
   usePauseVMMutation,
   useShutdownVMMutation,
   useStartVMMutation,
-  useSuspendVMMutation,
+  useSuspendVMMutation, useTaskInfoUpdateSubscription,
   useVMListQuery,
   useVMListUpdateSubscription,
   useVmTableSelectionQuery,
@@ -46,6 +47,7 @@ import {buttonTitle} from "../../utils/buttonTitle";
 import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
 import {_readVM} from "./tools";
 import {uptimeFormatter, VIFsFormatter} from "./formatters";
+import {showTaskErrorNotification} from "../../components/Toast/task";
 
 
 type VMColumnType = ColumnType<VMListFragmentFragment>;
@@ -124,7 +126,6 @@ export default function ({history}: RouteComponentProps) {
 
   const client = useApolloClient();
   const readVM = _readVM(client);
-
   const reducer: VMListReducer = (state, action) => {
 
 
@@ -231,17 +232,31 @@ export default function ({history}: RouteComponentProps) {
     history.push(`/vm/${row.ref}`);
   }, [history]);
 
-  useUpdateInternalStateWithSubscription(dispatch, VMListUpdateDocument, VMListDocument, client, 'vms');
+  const onVmTask = (data) => {
+    /*client.subscribe({
+      query: TaskInfoUpdateDocument,
+      variables: {
+        ref: data.vmStart.taskId
+      }
+    }).subscribe(({data}) => {
+      console.log("New task data: ", data);
+    }); */
+  };
+  useUpdateInternalStateWithSubscription(dispatch, VMListUpdateDocument, VMListDocument, 'vms');
 
 
   const startVM = useStartVMMutation();
   const suspendVM = useSuspendVMMutation();
   const pauseVM = usePauseVMMutation();
   const onStartVM = useCallback(async () => {
-    console.log("Staring...", selectedForStart);
     for (const id of selectedForStart.toArray()) {
       const variables = {ref: id};
-      await startVM({variables});
+      const {data, errors} = await startVM({variables});
+      if (!data.vmStart.granted)
+        showTaskErrorNotification(`Starting VM "${readVM(id).nameLabel}"`, data.vmStart);
+      else {
+        onVmTask(data);
+      }
     }
   }, [selectedForStart, startVM, pauseVM, suspendVM]);
 

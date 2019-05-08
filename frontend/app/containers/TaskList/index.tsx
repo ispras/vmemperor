@@ -4,7 +4,7 @@
  */
 
 import StatefulTable, {ColumnType} from "../StatefulTable";
-import _getValue, {DataType} from './getValue';
+import _getValue, {TaskDataType} from './getValue';
 import {nameFormatter, plainFormatter} from "../../utils/formatters";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter';
 import {RouteComponentProps} from "react-router";
@@ -58,7 +58,7 @@ import {onDoubleClick} from "./onDoubleClick";
 import RecycleBinButton from "../../components/RecycleBinButton";
 
 
-export type TaskColumnType = ColumnType<DataType>;
+export type TaskColumnType = ColumnType<TaskDataType>;
 
 
 interface State extends SelectedForSetActionState, SelectedForTrashState {
@@ -166,9 +166,9 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
 
   const loadTasks = async () => {
     const onLoad = async (data: TaskFragmentFragment[]) => {
-      const asyncMap: Promise<DataType>[] = data.map(getValue);
+      const asyncMap: Promise<TaskDataType>[] = data.map(getValue);
       const newTasks = await Promise.all(asyncMap);
-      client.writeQuery({ //Omit type check since our DataType allows React.Node s
+      client.writeQuery({ //Omit type check since our TaskDataType allows React.Node s
         query: TaskListDocument,
         data: {
           tasks: newTasks
@@ -206,12 +206,12 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
         switch (changeType) {
           case Change.Change:
             const func = async () => {
-              client.cache.writeFragment<DataType>({
+              client.cache.writeFragment<TaskDataType>({
                 fragment: TaskFragmentFragmentDoc,
                 id: dataIdFromObject(value),
                 data: await getValue(value),
                 fragmentName: "TaskFragment"
-              });
+              })
             };
             func();
             break;

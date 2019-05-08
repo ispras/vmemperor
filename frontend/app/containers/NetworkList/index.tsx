@@ -74,7 +74,7 @@ const Networks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {selectedItems}} = useNetworkTableSelectionQuery();
   const [state, dispatch] = useReducer<NetworkListReducer>(reducer, initialState);
   useTableSelectionInInternalState(dispatch, selectedItems);
-  useUpdateInternalStateWithSubscription(dispatch, NetworkListUpdateDocument, NetworkListDocument, client, "networks");
+  useUpdateInternalStateWithSubscription(dispatch, NetworkListUpdateDocument, NetworkListDocument, "networks");
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: NetworkListFragmentFragment, index) => {
     e.preventDefault();

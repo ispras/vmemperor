@@ -70,7 +70,7 @@ const SRs: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {selectedItems}} = useSRTableSelectionQuery();
   const [state, dispatch] = useReducer<SRListReducer>(reducer, initialState);
   useTableSelectionInInternalState(dispatch, selectedItems);
-  useUpdateInternalStateWithSubscription(dispatch, SRListUpdateDocument, SRListDocument, client, "srs");
+  useUpdateInternalStateWithSubscription(dispatch, SRListUpdateDocument, SRListDocument, "srs");
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: SRListFragmentFragment, index) => {
     e.preventDefault();

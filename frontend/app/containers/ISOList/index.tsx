@@ -70,7 +70,7 @@ const ISOs: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {selectedItems}} = useISOTableSelectionQuery();
   const [state, dispatch] = useReducer<ISOListReducer>(reducer, initialState);
   useTableSelectionInInternalState(dispatch, selectedItems);
-  useUpdateInternalStateWithSubscription(dispatch, ISOListUpdateDocument, ISOListDocument, client, "vdis");
+  useUpdateInternalStateWithSubscription(dispatch, ISOListUpdateDocument, ISOListDocument, "vdis");
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: VDIListFragmentFragment, index) => {
     e.preventDefault();

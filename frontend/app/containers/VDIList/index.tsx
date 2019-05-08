@@ -72,7 +72,7 @@ const VDIs: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {selectedItems}} = useVDITableSelectionQuery();
   const [state, dispatch] = useReducer<VDIListReducer>(reducer, initialState);
   useTableSelectionInInternalState(dispatch, selectedItems);
-  useUpdateInternalStateWithSubscription(dispatch, VDIListUpdateDocument, VDIListDocument, client, "vdis");
+  useUpdateInternalStateWithSubscription(dispatch, VDIListUpdateDocument, VDIListDocument, "vdis");
 
   const onDoubleClick = useCallback((e: React.MouseEvent, row: VDIListFragmentFragment, index) => {
     e.preventDefault();
