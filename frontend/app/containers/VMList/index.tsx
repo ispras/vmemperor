@@ -47,7 +47,7 @@ import {buttonTitle} from "../../utils/buttonTitle";
 import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
 import {_readVM} from "./tools";
 import {uptimeFormatter, VIFsFormatter} from "./formatters";
-import {showTaskErrorNotification} from "../../components/Toast/task";
+import {showTaskErrorNotification, showTaskNotification} from "../../components/Toast/task";
 
 
 type VMColumnType = ColumnType<VMListFragmentFragment>;
@@ -232,33 +232,21 @@ export default function ({history}: RouteComponentProps) {
     history.push(`/vm/${row.ref}`);
   }, [history]);
 
-  const onVmTask = (data) => {
-    /*client.subscribe({
-      query: TaskInfoUpdateDocument,
-      variables: {
-        ref: data.vmStart.taskId
-      }
-    }).subscribe(({data}) => {
-      console.log("New task data: ", data);
-    }); */
-  };
+
   useUpdateInternalStateWithSubscription(dispatch, VMListUpdateDocument, VMListDocument, 'vms');
 
 
   const startVM = useStartVMMutation();
   const suspendVM = useSuspendVMMutation();
   const pauseVM = usePauseVMMutation();
-  const onStartVM = useCallback(async () => {
+  const onStartVM = async () => {
     for (const id of selectedForStart.toArray()) {
       const variables = {ref: id};
       const {data, errors} = await startVM({variables});
-      if (!data.vmStart.granted)
-        showTaskErrorNotification(`Starting VM "${readVM(id).nameLabel}"`, data.vmStart);
-      else {
-        onVmTask(data);
-      }
+      showTaskNotification(client, `Starting VM "${readVM(id).nameLabel}"`, data.vmStart);
+
     }
-  }, [selectedForStart, startVM, pauseVM, suspendVM]);
+  };
 
   const stopVM = useShutdownVMMutation();
 
@@ -312,7 +300,7 @@ export default function ({history}: RouteComponentProps) {
         <ButtonGroup size="lg">
           <StartButton
             title={startButtonTitle}
-            onClick={onStartVM}
+            onClick={() => onStartVM()}
             disabled={selectedForStart.isEmpty()}/>
           <StopButton
             title={stopButtonTitle}

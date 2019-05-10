@@ -77,13 +77,22 @@ class ChangefeedBuilder:
         Asynchronous iterable yielding value based on changes of that query
         :return:
         '''
+        non_existence = False
         while True:
             try:
                 async with ReDBConnection().get_async_connection() as conn:
                     try:
                         value = await self.builder.run_query(conn)
-                    except ReqlNonExistenceError as e:
-                        value = None
+                    except ReqlNonExistenceError as e: # If an item is yet to be created, wait for creaton using 'ref' path
+                        if non_existence or not isinstance(self.builder.id, str):
+                            value = None
+                        else:
+                            table_name = self.builder.paths['ref'].db_table_name
+                            cur = await re.db.table(table_name).get_all(self.builder.id).changes().run(conn)
+                            await cur.next()
+                            non_existence = True
+                            continue
+
                     if not value:
                         item  = {
                             "type": "remove",

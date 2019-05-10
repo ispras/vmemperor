@@ -17,7 +17,6 @@ export function useQuery<TData = any, TVariables = OperationVariables, TCache = 
     suspend: true,
     ...options
   });
-
 }
 
 export {useSubscription, useMutation, QueryHookOptions, SubscriptionHookOptions, MutationHookOptions};
