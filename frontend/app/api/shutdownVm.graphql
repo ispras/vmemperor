@@ -1,5 +1,6 @@
 mutation ShutdownVM ($ref : ID!, $force: ShutdownForce) {
   vmShutdown(ref: $ref, force: $force) {
     taskId
+    granted
   }
 }

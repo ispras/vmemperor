@@ -2404,7 +2404,10 @@ export type RebootVmMutationVariables = {
 
 export type RebootVmMutation = { __typename?: "Mutation" } & {
   vmReboot: Maybe<
-    { __typename?: "VMRebootMutation" } & Pick<VMRebootMutation, "taskId">
+    { __typename?: "VMRebootMutation" } & Pick<
+      VMRebootMutation,
+      "taskId" | "granted"
+    >
   >;
 };
 
@@ -2415,7 +2418,10 @@ export type ShutdownVMMutationVariables = {
 
 export type ShutdownVMMutation = { __typename?: "Mutation" } & {
   vmShutdown: Maybe<
-    { __typename?: "VMShutdownMutation" } & Pick<VMShutdownMutation, "taskId">
+    { __typename?: "VMShutdownMutation" } & Pick<
+      VMShutdownMutation,
+      "taskId" | "granted"
+    >
   >;
 };
 
@@ -5927,6 +5933,7 @@ export const RebootVmDocument = gql`
   mutation RebootVm($ref: ID!, $force: ShutdownForce) {
     vmReboot(ref: $ref, force: $force) {
       taskId
+      granted
     }
   }
 `;
@@ -5946,6 +5953,7 @@ export const ShutdownVMDocument = gql`
   mutation ShutdownVM($ref: ID!, $force: ShutdownForce) {
     vmShutdown(ref: $ref, force: $force) {
       taskId
+      granted
     }
   }
 `;

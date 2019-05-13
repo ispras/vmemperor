@@ -253,46 +253,55 @@ export default function ({history}: RouteComponentProps) {
   const onStopVM = useCallback(async () => {
     for (const id of selectedForStop.toArray()) {
       console.log("Stopping...", id);
-      await stopVM(
+      const {data, errors} = await stopVM(
         {
           variables: {
             ref: id
           },
         }
       );
+      showTaskNotification(client, `Stopping VM "${readVM(id).nameLabel}"`, data.vmShutdown);
     }
   }, [selectedForStop]);
 
   const onPauseVM = useCallback(async () => {
+    let data: {
+      granted: boolean;
+      reason?: string;
+      taskId?: string;
+    };
+    let title: string;
     for (const id of selectedForPause.toArray()) {
       const powerState = readVM(id).powerState;
       switch (powerState) {
         case PowerState.Running:
         case PowerState.Paused:
-          await pauseVM({variables: {ref: id}});
+          data = (await pauseVM({variables: {ref: id}}))
+            .data.vmPause;
+          title = `Unpausing VM "${readVM(id).nameLabel}"`;
           break;
         case PowerState.Halted:
         case PowerState.Suspended:
-          await startVM({
+          data = (await startVM({
             variables: {
               ref: id,
               options: {
                 paused: true,
               }
             }
-          });
+          })).data.vmStart;
+          title = `Pausing VM ${readVM(id).nameLabel}`;
+          break;
       }
-
     }
+    showTaskNotification(client, title, data);
   }, [selectedForPause, readVM]);
   const onSuspendVM = useCallback(async () => {
     for (const id of selectedForSuspend.toArray()) {
-      await suspendVM({variables: {ref: id}});
+      const {data, errors} = await suspendVM({variables: {ref: id}});
+      showTaskNotification(client, `Suspending VM "${readVM(id).nameLabel}`, data);
     }
   }, [selectedForSuspend]);
-
-
-  const DeleteVM = useDeleteVMMutation();
 
   return (
     <Fragment>

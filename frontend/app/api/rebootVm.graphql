@@ -1,5 +1,6 @@
 mutation RebootVm ($ref : ID!, $force: ShutdownForce) {
   vmReboot(ref: $ref, force: $force) {
     taskId
+    granted
   }
 }

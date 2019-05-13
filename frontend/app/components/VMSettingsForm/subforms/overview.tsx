@@ -18,6 +18,8 @@ import {
 
 
 import ActionButton from "../../../components/ActionButton";
+import {useApolloClient} from "react-apollo-hooks";
+import {showTaskNotification} from "../../Toast/task";
 
 interface Props {
   vm: VMInfoFragmentFragment
@@ -25,7 +27,7 @@ interface Props {
 
 const Overview = ({vm}: Props) => {
   const startMoment = moment(vm.startTime);
-
+  const client = useApolloClient();
   let uptime_text: string;
 
   switch (vm.powerState) {
@@ -57,7 +59,21 @@ const Overview = ({vm}: Props) => {
     }
   });
 
+  const onHardRebootClick = async () => {
+    const {data, errors} = await onReboot();
+    showTaskNotification(client, `Hard rebooting VM "${vm.nameLabel}"`, data.vmReboot);
 
+  };
+
+  const onHardShutdownClick = async () => {
+    const {data, errors} = await onShutdown();
+    showTaskNotification(client, `Hard halting VM "${vm.nameLabel}"`, data.vmShutdown);
+  };
+
+  const onStartClick = async () => {
+    const {data, errors} = await onStart();
+    showTaskNotification(client, `Starting VM "${vm.nameLabel}"`, data.vmStart);
+  };
   return (
     <Fragment>
       <Row>
@@ -75,7 +91,7 @@ const Overview = ({vm}: Props) => {
 
                   <ActionButton size="lg"
                                 color="danger"
-                                onClick={() => onReboot()}
+                                onClick={onHardRebootClick}
                                 action={VMActions.hard_reboot}
                                 data={vm}
                                 id="button-hard-reboot">
@@ -88,7 +104,7 @@ const Overview = ({vm}: Props) => {
                   <ActionButton size="lg"
                                 id="button-hard-shutdown"
                                 color="primary"
-                                onClick={() => onShutdown()}
+                                onClick={onHardShutdownClick}
                                 action={VMActions.hard_shutdown}
                                 data={vm}
 
@@ -99,7 +115,7 @@ const Overview = ({vm}: Props) => {
                   <ActionButton size="lg"
                                 id="button-start"
                                 color="primary"
-                                onClick={() => onStart()}
+                                onClick={onStartClick}
                                 action={VMActions.start}
                                 data={vm}
                   >
