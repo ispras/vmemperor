@@ -38,8 +38,8 @@ export default object().shape<Values>({
   networkType: string().when('autoMode', autoModeRequired(string)),
   installParams: object().shape<AutoInstall>(
     {
-      hostname: string().min(1).max(255).matches(HOSTNAME_REGEX),
-      fullname: string(),
+      hostname: string().min(1).max(255).matches(HOSTNAME_REGEX).when('$autoMode', autoModeRequired(string)),
+      fullname: string().nullable(true),
       username: string().min(1).max(31).matches(USERNAME_REGEX).when('$autoMode', autoModeRequired(string)),
       password: string().min(1).matches(PASSWORD_REGEX).when('$autoMode', autoModeRequired(string)),
       partition: mixed(), //For now we don't support editing partition options. This is TODO
@@ -54,7 +54,7 @@ export default object().shape<Values>({
       )
 
     }
-  ).when('autoMode', autoModeRequired(object)),
+  ).when('autoMode', autoModeRequired(object)).nullable(true),
 
   password2: string().nullable(true).label("Confirm password").test('pass-match', 'Passwords must match',
     function (value) {

@@ -1,4 +1,4 @@
-import React, {Fragment, useMemo} from "react";
+import React, {Fragment, useEffect, useMemo, useState} from "react";
 import {FormikPropsValues, networkTypeOptions} from "./props";
 import {Field} from "formik";
 import {faDatabase, faHdd, faServer, faSignature, faTag} from "@fortawesome/free-solid-svg-icons";
@@ -31,11 +31,17 @@ import {Fields as ResourceFields} from '../AbstractVMSettingsComponents/fields';
 import {TemplateInputField} from "./templateInput";
 import {useCurrentUserAndGroups} from "../../hooks/user";
 import {UserInputField} from "../MainOwnerForm/userInput";
+import {PostInstall} from "./postinstall";
 
 const H4 = styled.h4`
 margin: 20px;
 `;
-const VMForm = (props: FormikPropsValues) => {
+
+interface Props extends FormikPropsValues {
+  taskId?: string;
+}
+
+const VMForm: React.FC<Props> = ({taskId, ...props}) => {
   const {data: {pools}} = usePoolListQuery();
   const poolOptions = useReactSelectFromRecord(pools);
   const currentUserAndGroups = useCurrentUserAndGroups();
@@ -43,8 +49,13 @@ const VMForm = (props: FormikPropsValues) => {
   const templates = templateList.data.templates.filter(item => {
     return item.myActions.includes(TemplateActions.create_vm)
   });
-
-
+  const [postInstall, setPostInstall] = useState(false);
+  useEffect(() => {
+    if (taskId)
+      setPostInstall(true);
+    else
+      setPostInstall(false);
+  }, [taskId]);
   const templateOptions = useReactSelectFromRecord(templates);
 
   const {data: srData} = useStorageListQuery();
@@ -224,9 +235,13 @@ const VMForm = (props: FormikPropsValues) => {
           </Fragment>
         </Fragment>
       )}
+      {postInstall && (
+        <PostInstall
+          taskId={taskId} onClose={() => setPostInstall(false)}/>) ||
       <Button type="submit" block={true} disabled={!props.isValid} primary={true}>
         Create
-      </Button>
+      </Button>}
+
     </form>
   )
 

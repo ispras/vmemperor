@@ -3,7 +3,7 @@
  * VMform
  *
  */
-import React, {useMemo} from 'react';
+import React, {useMemo, useState} from 'react';
 
 
 import * as Yup from "yup";
@@ -14,7 +14,7 @@ import {Formik, FormikActions} from "formik";
 import {HDD_SIZE_GB_MAX, RAM_MB_MAX, RAM_MB_MIN, VCPU_MAX} from "../../utils/constants";
 import VMForm from "./form";
 import {networkTypeOptions, Values} from "./props";
-import {useMutation} from "react-apollo-hooks";
+import {useApolloClient, useMutation} from "react-apollo-hooks";
 import {
   AutoInstall,
   CreateVM,
@@ -26,6 +26,7 @@ import {schema as resourceSchema} from '../AbstractVMSettingsComponents/schema';
 import {Omit} from "../AbstractSettingsForm/utils";
 import {validation} from "../../utils/forms";
 import validationSchema from './schema';
+import {showTaskNotification} from "../Toast/task";
 
 const baseValues: Values = {
   pool: null,
@@ -37,10 +38,10 @@ const baseValues: Values = {
   networkType: "dhcp",
   autoMode: false,
   installParams: {
-    hostname: "",
-    username: "",
-    password: "",
-    partition: "",
+    hostname: null,
+    username: null,
+    password: null,
+    partition: null,
   },
   hddSizeGB: 10,
   password2: null,
@@ -48,14 +49,15 @@ const baseValues: Values = {
 
 
 const VMFormContainer: React.FunctionComponent = () => {
-
-
+  const client = useApolloClient();
+  const [taskId, setTaskId] = useState<string>(null);
   const createVM = usecreateVmMutation();
 
   const onSumbit = async (values: Values, formikActions: FormikActions<Values>) => {
     const hddSizeMegabytes = values.hddSizeGB * 1024;
     if (!(values.autoMode && values.networkType === 'static'))
-      delete values.installParams.staticIpConfig;
+      if (values.installParams && values.installParams.staticIpConfig)
+        delete values.installParams.staticIpConfig;
 
     if (values.autoMode) { //Temporary while we do not show partition options to users
       values.installParams.partition = `/-${hddSizeMegabytes}-`;
@@ -74,11 +76,18 @@ const VMFormContainer: React.FunctionComponent = () => {
       ],
     };
     console.log("VM is created with the following variables: ", finalValues);
-    const taskId = await createVM({
+    const {data} = await createVM({
       variables: finalValues,
 
     });
-    console.log("VM  created! Task ID: ", taskId);
+
+    if (data.createVm.taskId) {
+      setTaskId(data.createVm.taskId);
+      console.log("VM  created! Task ID: ", taskId);
+    } else {
+      showTaskNotification(client, `Creating new VM ${values.vmOptions.nameLabel}`,
+        data.createVm);
+    }
     formikActions.setSubmitting(false);
   };
 
@@ -88,7 +97,8 @@ const VMFormContainer: React.FunctionComponent = () => {
     <Formik initialValues={baseValues}
             onSubmit={onSumbit}
             validate={validator}
-            component={VMForm}
+            render={props =>
+              <VMForm taskId={taskId} {...props}/>}
     />
   );
 };

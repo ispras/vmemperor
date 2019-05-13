@@ -24,7 +24,7 @@ from handlers.graphql.types.vm import SetDisksEntry
 
 def createvm(ctx : ContextProtocol, task_id : str,
              vm_options: VMInput,
-             template: str, disks : Sequence[NewVDI], network : str, iso : str =None, install_params : AutoInstall =None,
+             template: str, disks : Sequence[NewVDI], install_params : AutoInstall =None,
              **kwargs):
 
 
@@ -35,7 +35,7 @@ def createvm(ctx : ContextProtocol, task_id : str,
         if not vm_options.main_owner and not ctx.user_authenticator.is_admin():
             options['main_owner'] = 'users/' + ctx.user_authenticator.get_id()
 
-        user = options['main_owner']
+        user = options.get('main_owner')
         try:
             if not check_user_input(user, ctx.user_authenticator):
                 task.set_status(status='failure', error_info_add=f"Incorrect value of argument: 'vmOptions.mainOwner': {user}")
@@ -106,8 +106,8 @@ class CreateVM(graphene.Mutation):
     def mutate(root, info,  *args, **kwargs):
         task_id  = str(uuid.uuid4())
         ctx :ContextProtocol = info.context
-        if 'VDI' in kwargs and kwargs['VDI'].type != 'iso':
-            raise TypeError("VDI argument is not ISO image")
+        if 'VDI' in kwargs and kwargs['VDI'].get_content_type() != 'iso':
+            raise TypeError("VDI argument is not an ISO image")
 
         tornado.ioloop.IOLoop.current().run_in_executor(ctx.executor,
         lambda: createvm(ctx, task_id, *args, **kwargs))
