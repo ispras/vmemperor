@@ -1,5 +1,6 @@
 from typing import Mapping
 
+from rethinkdb.errors import ReqlNonExistenceError
 from serflag import SerFlag
 
 import XenAPI
@@ -50,7 +51,10 @@ class AbstractVM(QuotaObject):
     def check_access(self, auth : BasicAuthenticator, action : SerFlag):
         if action:
             blocked_operations_query = re.db.table(self.db_table_name).get(self.ref).pluck('_blocked_operations_')
-            if action.name in blocked_operations_query.run()['_blocked_operations_']:
+            try:
+                if action.name in blocked_operations_query.run()['_blocked_operations_']:
+                    return False
+            except ReqlNonExistenceError:
                 return False
         return super().check_access(auth, action)
 
