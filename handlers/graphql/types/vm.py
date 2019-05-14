@@ -1,17 +1,16 @@
 from dataclasses import dataclass
-from enum import auto
 
 import graphene
 from graphene.types.resolver import dict_resolver
-from serflag import SerFlag
 
 from handlers.graphql.action_deserializers.abstractvm_deserializer import AbstractVMDeserializer
 from handlers.graphql.interfaces.abstractvm import GAbstractVM
 from handlers.graphql.interfaces.quotaobject import GQuotaObject
 from handlers.graphql.resolvers.accessentry import resolve_accessentries
 from handlers.graphql.resolvers.myactions import resolve_myactions, resolve_owner
-from handlers.graphql.types.access import create_access_type
+from handlers.graphql.types.base.vmbase import VMActions, GVMActions, GVMAccessEntry
 from handlers.graphql.types.base.gxenobjecttype import GXenObjectType
+from handlers.graphql.types.vmsnapshot import GVMSnapshot
 from handlers.graphql.utils.query import resolve_many
 from handlers.graphql.types.vbd import GVBD
 from handlers.graphql.types.vif import GVIF
@@ -63,47 +62,6 @@ class PowerState(graphene.Enum):
     Suspended = 'Suspended'
 
 
-class VMActions(SerFlag):
-    attach_vdi = auto()
-    attach_network = auto()
-    rename = auto()
-    change_domain_type = auto()
-    VNC = auto()
-    launch_playbook = auto()
-
-    changing_VCPUs = auto()
-    changing_memory_limits = auto()
-    snapshot = auto()
-    clone = auto()
-    copy = auto()
-    create_template = auto()
-    revert = auto()
-    checkpoint = auto()
-    snapshot_with_quiesce = auto()
-    #provision = auto()
-    start = auto()
-    start_on = auto()
-    pause = auto()
-    unpause = auto()
-    clean_shutdown = auto()
-    clean_reboot = auto()
-    hard_shutdown = auto()
-    power_state_reset = auto()
-    hard_reboot = auto()
-    suspend = auto()
-    csvm = auto()
-    resume = auto()
-    resume_on = auto()
-    pool_migrate = auto()
-    migrate_send = auto()
-    shutdown = auto()
-    destroy = auto()
-
-
-GVMActions = graphene.Enum.from_enum(VMActions)
-GVMAccessEntry = create_access_type("GVMAccessEntry", GVMActions)
-
-
 class GVM(GXenObjectType):
     class Meta:
         interfaces = (GAclXenObject, GAbstractVM, GQuotaObject)
@@ -121,6 +79,7 @@ class GVM(GXenObjectType):
     start_time = graphene.Field(graphene.DateTime)
     VIFs = graphene.Field(graphene.List(GVIF), required=True, resolver=resolve_many())
     VBDs = graphene.Field(graphene.List(GVBD), description="Virtual block devices", required=True, resolver=resolve_many())
+    snapshots = graphene.Field(graphene.List(GVMSnapshot), required=True, resolver=resolve_many())
 
     @staticmethod
     def resolve_my_actions(root, info, *args, **kwargs):

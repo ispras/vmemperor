@@ -10,4 +10,5 @@ from .vbd import VBD
 from .vdi import VDI
 from .vif import VIF
 from .vm import VM
+from .vmsnapshot import VMSnapshot
 

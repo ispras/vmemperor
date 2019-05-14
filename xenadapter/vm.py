@@ -4,7 +4,8 @@ from rethinkdb.errors import ReqlTimeoutError, ReqlDriverError
 from sentry_sdk import capture_exception
 import constants.re as re
 
-from handlers.graphql.types.vm import SetDisksEntry, VMActions, GVM
+from handlers.graphql.types.vm import SetDisksEntry, GVM
+from handlers.graphql.types.base.vmbase import VMActions
 from rethinkdb_tools.helper import CHECK_ER
 from xenadapter import SR
 from xenadapter.vif import VIF
@@ -77,7 +78,7 @@ class VM (AbstractVM):
 
     @classmethod
     def filter_record(cls, xen, record, ref):
-        return not (record['is_a_template'] or record['is_control_domain'])
+        return not (record['is_a_template'] or record['is_control_domain'] or record['is_a_snapshot'])
 
 
     @classmethod

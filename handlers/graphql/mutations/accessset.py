@@ -6,7 +6,7 @@ from handlers.graphql.types.network import GNetworkActions
 from handlers.graphql.types.pool import GPoolActions
 from handlers.graphql.types.sr import GSRActions
 from handlers.graphql.types.vdi import GVDIActions
-from handlers.graphql.types.vm import GVMActions
+from handlers.graphql.types.base.vmbase import GVMActions
 from xenadapter import Pool
 from xenadapter.network import Network
 from xenadapter.sr import SR
