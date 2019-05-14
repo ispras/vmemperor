@@ -1,0 +1,17 @@
+fragment VMSnapshotInfoFragment on GVMSnapshot {
+  ...ACLXenObjectFragment
+  snapshotTime
+
+}
+
+query VMSnapshotInfo ($ref: ID!) {
+  vmSnapshot(ref: $ref) {
+    ...VMSnapshotInfoFragment
+  }
+}
+
+subscription VMSnapshotInfoUpdate($ref: ID!) {
+  vmSnapshot(ref: $ref) {
+    ...VMSnapshotInfoFragment
+  }
+}

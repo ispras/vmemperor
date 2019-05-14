@@ -21,6 +21,7 @@ from handlers.graphql.resolvers.task import resolve_tasks
 from handlers.graphql.resolvers.vdi import resolve_vdis
 from handlers.graphql.mutations.sr import SRMutation, SRDestroyMutation
 from handlers.graphql.mutations.vdi import VDIMutation, VDIDestroyMutation
+from handlers.graphql.types.vmsnapshot import GVMSnapshot
 from handlers.graphql.utils.query import resolve_all, resolve_one
 from handlers.graphql.utils.querybuilder.changefeedbuilder import ChangefeedBuilder
 from handlers.graphql.utils.querybuilder.querybuilder import QueryBuilder
@@ -51,6 +52,7 @@ class Query(ObjectType):
     vms = graphene.List(GVM, required=True, resolver=resolve_all(), description="All VMs available to user")
     vm = graphene.Field(GVM, ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
 
+    vm_snapshot = graphene.Field(GVMSnapshot, ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
     templates = graphene.List(GTemplate, required=True, resolver=resolve_all(), description="All Templates available to user")
     template = graphene.Field(GTemplate,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
 
@@ -149,6 +151,8 @@ class Subscription(ObjectType):
     '''
     vms = graphene.Field(MakeSubscriptionWithChangeType(GVM), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all VMs")
     vm = graphene.Field(MakeSubscription(GVM), ref=graphene.NonNull(graphene.ID), description="Updates for a particular VM")
+
+    vm_snapshot = graphene.Field(MakeSubscription(GVMSnapshot), ref=graphene.NonNull(graphene.ID), description="Updates for a VM Snapshot")
 
     templates = graphene.Field(MakeSubscriptionWithChangeType(GTemplate), required=True, with_initials=graphene.Argument(graphene.Boolean, default_value=False), description="Updates for all Templates")
     template = graphene.Field(MakeSubscription(GTemplate), ref=graphene.NonNull(graphene.ID), description="Updates for a particular Template")

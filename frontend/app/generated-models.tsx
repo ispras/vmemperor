@@ -531,6 +531,7 @@ export type GVM = GAclXenObject &
     VIFs: Array<Maybe<GVIF>>;
     /** Virtual block devices */
     VBDs: Array<Maybe<GVBD>>;
+    snapshots: Array<Maybe<GVMSnapshot>>;
   };
 
 export type GVMAccessEntry = GAccessEntry & {
@@ -540,6 +541,42 @@ export type GVMAccessEntry = GAccessEntry & {
 };
 
 export type GVMOrDeleted = GVM | Deleted;
+
+export type GVMSnapshot = GAclXenObject &
+  GAbstractVM &
+  GQuotaObject & {
+    /** a human-readable name */
+    nameLabel: Scalars["String"];
+    /** a human-readable description */
+    nameDescription: Scalars["String"];
+    /** Unique constant identifier/object reference (primary) */
+    ref: Scalars["ID"];
+    /** Unique constant identifier/object reference (used in XenCenter) */
+    uuid: Scalars["ID"];
+    access: Array<Maybe<GVMAccessEntry>>;
+    isOwner: Scalars["Boolean"];
+    /** CPU platform parameters */
+    platform?: Maybe<Platform>;
+    VCPUsAtStartup: Scalars["Int"];
+    VCPUsMax: Scalars["Int"];
+    domainType: DomainType;
+    guestMetrics: Scalars["ID"];
+    installTime: Scalars["DateTime"];
+    memoryActual: Scalars["Float"];
+    memoryStaticMin: Scalars["Float"];
+    memoryStaticMax: Scalars["Float"];
+    memoryDynamicMin: Scalars["Float"];
+    memoryDynamicMax: Scalars["Float"];
+    PVBootloader: Scalars["String"];
+    /** The user against whom the quotas for this object are calculated */
+    mainOwner?: Maybe<User>;
+    myActions: Array<Maybe<VMActions>>;
+    VIFs: Array<Maybe<GVIF>>;
+    /** Virtual block devices */
+    VBDs: Array<Maybe<GVBD>>;
+    snapshotTime: Scalars["DateTime"];
+    snapshotOf: GVM;
+  };
 
 export type GVMsSubscription = {
   /** Change type */
@@ -625,6 +662,10 @@ export type Mutation = {
   vmPause?: Maybe<VMPauseMutation>;
   /** If VM is Running, suspend VM. If Suspended, resume VM */
   vmSuspend?: Maybe<VMSuspendMutation>;
+  /** Make a snapshot */
+  vmSnapshot?: Maybe<VMSnapshotMutation>;
+  /** Restore VM state from a snapshot */
+  vmRevert?: Maybe<VMRevertMutation>;
   /** Delete a Halted VM */
   vmDelete?: Maybe<VMDestroyMutation>;
   /** Set VM access rights */
@@ -718,6 +759,15 @@ export type MutationvmPauseArgs = {
 };
 
 export type MutationvmSuspendArgs = {
+  ref: Scalars["ID"];
+};
+
+export type MutationvmSnapshotArgs = {
+  nameLabel: Scalars["String"];
+  ref: Scalars["ID"];
+};
+
+export type MutationvmRevertArgs = {
   ref: Scalars["ID"];
 };
 
@@ -946,6 +996,7 @@ export type Query = {
   /** All VMs available to user */
   vms: Array<Maybe<GVM>>;
   vm?: Maybe<GVM>;
+  vmSnapshot?: Maybe<GVMSnapshot>;
   /** All Templates available to user */
   templates: Array<Maybe<GTemplate>>;
   template?: Maybe<GTemplate>;
@@ -991,6 +1042,10 @@ export type Query = {
 };
 
 export type QueryvmArgs = {
+  ref: Scalars["ID"];
+};
+
+export type QueryvmSnapshotArgs = {
   ref: Scalars["ID"];
 };
 
@@ -1147,6 +1202,8 @@ export type Subscription = {
   vms: GVMsSubscription;
   /** Updates for a particular VM */
   vm?: Maybe<GVM>;
+  /** Updates for a VM Snapshot */
+  vmSnapshot?: Maybe<GVMSnapshot>;
   /** Updates for all Templates */
   templates: GTemplatesSubscription;
   /** Updates for a particular Template */
@@ -1184,6 +1241,11 @@ export type SubscriptionvmsArgs = {
 
 /** All subscriptions must return  Observable */
 export type SubscriptionvmArgs = {
+  ref: Scalars["ID"];
+};
+
+/** All subscriptions must return  Observable */
+export type SubscriptionvmSnapshotArgs = {
   ref: Scalars["ID"];
 };
 
@@ -1512,6 +1574,14 @@ export type VMRebootMutation = {
   granted: Scalars["Boolean"];
 };
 
+export type VMRevertMutation = {
+  /** Deleting task ID */
+  taskId?: Maybe<Scalars["ID"]>;
+  /** Shows if access to delete is granted */
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
+};
+
 export type VMSelectedIDLists = {
   start?: Maybe<Array<Maybe<Scalars["ID"]>>>;
   stop?: Maybe<Array<Maybe<Scalars["ID"]>>>;
@@ -1523,6 +1593,14 @@ export type VMShutdownMutation = {
   taskId?: Maybe<Scalars["ID"]>;
   /** Shows if access to shutdown is granted */
   granted: Scalars["Boolean"];
+};
+
+export type VMSnapshotMutation = {
+  /** Snapshot task ID */
+  taskId?: Maybe<Scalars["ID"]>;
+  /** Shows if access to snapshot is granted */
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
 };
 
 export type VMStartInput = {
@@ -2425,6 +2503,20 @@ export type ShutdownVMMutation = { __typename?: "Mutation" } & {
   >;
 };
 
+export type VMSnapshotMutationVariables = {
+  ref: Scalars["ID"];
+  nameLabel: Scalars["String"];
+};
+
+export type VMSnapshotMutation = { __typename?: "Mutation" } & {
+  vmSnapshot: Maybe<
+    { __typename?: "VMSnapshotMutation" } & Pick<
+      VMSnapshotMutation,
+      "granted" | "reason" | "taskId"
+    >
+  >;
+};
+
 export type SRInfoFragmentFragment = { __typename?: "GSR" } & Pick<
   GSR,
   "myActions" | "isOwner"
@@ -2870,6 +2962,33 @@ export type VMListUpdateSubscription = { __typename?: "Subscription" } & {
   > & { value: VMListFragmentFragment | DeletedFragmentFragment };
 };
 
+export type VMSnapshotInfoFragmentFragment = {
+  __typename?: "GVMSnapshot";
+} & Pick<GVMSnapshot, "snapshotTime"> &
+  ACLXenObjectFragmentFragment;
+
+export type VMSnapshotInfoQueryVariables = {
+  ref: Scalars["ID"];
+};
+
+export type VMSnapshotInfoQuery = { __typename?: "Query" } & {
+  vmSnapshot: Maybe<
+    { __typename?: "GVMSnapshot" } & VMSnapshotInfoFragmentFragment
+  >;
+};
+
+export type VMSnapshotInfoUpdateSubscriptionVariables = {
+  ref: Scalars["ID"];
+};
+
+export type VMSnapshotInfoUpdateSubscription = {
+  __typename?: "Subscription";
+} & {
+  vmSnapshot: Maybe<
+    { __typename?: "GVMSnapshot" } & VMSnapshotInfoFragmentFragment
+  >;
+};
+
 export type XenObjectFragmentFragment = Pick<
   GXenObject,
   "ref" | "nameLabel" | "nameDescription"
@@ -3011,7 +3130,11 @@ export type DeletedResolvers<Context = any, ParentType = Deleted> = {
 };
 
 export type GAbstractVMResolvers<Context = any, ParentType = GAbstractVM> = {
-  __resolveType: TypeResolveFn<"GVM" | "GTemplate", ParentType, Context>;
+  __resolveType: TypeResolveFn<
+    "GVM" | "GVMSnapshot" | "GTemplate",
+    ParentType,
+    Context
+  >;
   platform?: Resolver<Maybe<Platform>, ParentType, Context>;
   VCPUsAtStartup?: Resolver<Scalars["Int"], ParentType, Context>;
   VCPUsMax?: Resolver<Scalars["Int"], ParentType, Context>;
@@ -3047,7 +3170,14 @@ export type GAclXenObjectResolvers<
   ParentType = GAclXenObject
 > = {
   __resolveType: TypeResolveFn<
-    "GVM" | "GNetwork" | "GVDI" | "GSR" | "GTemplate" | "GPool" | "GTask",
+    | "GVM"
+    | "GNetwork"
+    | "GVDI"
+    | "GSR"
+    | "GVMSnapshot"
+    | "GTemplate"
+    | "GPool"
+    | "GTask",
     ParentType,
     Context
   >;
@@ -3197,7 +3327,11 @@ export type GPoolsSubscriptionResolvers<
 };
 
 export type GQuotaObjectResolvers<Context = any, ParentType = GQuotaObject> = {
-  __resolveType: TypeResolveFn<"GVM" | "GVDI", ParentType, Context>;
+  __resolveType: TypeResolveFn<
+    "GVM" | "GVDI" | "GVMSnapshot",
+    ParentType,
+    Context
+  >;
   mainOwner?: Resolver<Maybe<User>, ParentType, Context>;
 };
 
@@ -3431,6 +3565,7 @@ export type GVMResolvers<Context = any, ParentType = GVM> = {
   startTime?: Resolver<Maybe<Scalars["DateTime"]>, ParentType, Context>;
   VIFs?: Resolver<Array<Maybe<GVIF>>, ParentType, Context>;
   VBDs?: Resolver<Array<Maybe<GVBD>>, ParentType, Context>;
+  snapshots?: Resolver<Array<Maybe<GVMSnapshot>>, ParentType, Context>;
 };
 
 export type GVMAccessEntryResolvers<
@@ -3444,6 +3579,33 @@ export type GVMAccessEntryResolvers<
 
 export type GVMOrDeletedResolvers<Context = any, ParentType = GVMOrDeleted> = {
   __resolveType: TypeResolveFn<"GVM" | "Deleted", ParentType, Context>;
+};
+
+export type GVMSnapshotResolvers<Context = any, ParentType = GVMSnapshot> = {
+  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
+  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
+  ref?: Resolver<Scalars["ID"], ParentType, Context>;
+  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
+  access?: Resolver<Array<Maybe<GVMAccessEntry>>, ParentType, Context>;
+  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  platform?: Resolver<Maybe<Platform>, ParentType, Context>;
+  VCPUsAtStartup?: Resolver<Scalars["Int"], ParentType, Context>;
+  VCPUsMax?: Resolver<Scalars["Int"], ParentType, Context>;
+  domainType?: Resolver<DomainType, ParentType, Context>;
+  guestMetrics?: Resolver<Scalars["ID"], ParentType, Context>;
+  installTime?: Resolver<Scalars["DateTime"], ParentType, Context>;
+  memoryActual?: Resolver<Scalars["Float"], ParentType, Context>;
+  memoryStaticMin?: Resolver<Scalars["Float"], ParentType, Context>;
+  memoryStaticMax?: Resolver<Scalars["Float"], ParentType, Context>;
+  memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
+  memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
+  PVBootloader?: Resolver<Scalars["String"], ParentType, Context>;
+  mainOwner?: Resolver<Maybe<User>, ParentType, Context>;
+  myActions?: Resolver<Array<Maybe<VMActions>>, ParentType, Context>;
+  VIFs?: Resolver<Array<Maybe<GVIF>>, ParentType, Context>;
+  VBDs?: Resolver<Array<Maybe<GVBD>>, ParentType, Context>;
+  snapshotTime?: Resolver<Scalars["DateTime"], ParentType, Context>;
+  snapshotOf?: Resolver<GVM, ParentType, Context>;
 };
 
 export type GVMsSubscriptionResolvers<
@@ -3538,6 +3700,18 @@ export type MutationResolvers<Context = any, ParentType = Mutation> = {
     ParentType,
     Context,
     MutationvmSuspendArgs
+  >;
+  vmSnapshot?: Resolver<
+    Maybe<VMSnapshotMutation>,
+    ParentType,
+    Context,
+    MutationvmSnapshotArgs
+  >;
+  vmRevert?: Resolver<
+    Maybe<VMRevertMutation>,
+    ParentType,
+    Context,
+    MutationvmRevertArgs
   >;
   vmDelete?: Resolver<
     Maybe<VMDestroyMutation>,
@@ -3705,6 +3879,12 @@ export type PvDriversVersionResolvers<
 export type QueryResolvers<Context = any, ParentType = Query> = {
   vms?: Resolver<Array<Maybe<GVM>>, ParentType, Context>;
   vm?: Resolver<Maybe<GVM>, ParentType, Context, QueryvmArgs>;
+  vmSnapshot?: Resolver<
+    Maybe<GVMSnapshot>,
+    ParentType,
+    Context,
+    QueryvmSnapshotArgs
+  >;
   templates?: Resolver<Array<Maybe<GTemplate>>, ParentType, Context>;
   template?: Resolver<Maybe<GTemplate>, ParentType, Context, QuerytemplateArgs>;
   hosts?: Resolver<Array<Maybe<GHost>>, ParentType, Context>;
@@ -3813,6 +3993,12 @@ export type SubscriptionResolvers<Context = any, ParentType = Subscription> = {
     ParentType,
     Context,
     SubscriptionvmArgs
+  >;
+  vmSnapshot?: SubscriptionResolver<
+    Maybe<GVMSnapshot>,
+    ParentType,
+    Context,
+    SubscriptionvmSnapshotArgs
   >;
   templates?: SubscriptionResolver<
     GTemplatesSubscription,
@@ -4001,6 +4187,15 @@ export type VMRebootMutationResolvers<
   granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
 };
 
+export type VMRevertMutationResolvers<
+  Context = any,
+  ParentType = VMRevertMutation
+> = {
+  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
+  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+};
+
 export type VMSelectedIDListsResolvers<
   Context = any,
   ParentType = VMSelectedIDLists
@@ -4016,6 +4211,15 @@ export type VMShutdownMutationResolvers<
 > = {
   taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
   granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+};
+
+export type VMSnapshotMutationResolvers<
+  Context = any,
+  ParentType = VMSnapshotMutation
+> = {
+  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
+  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
 };
 
 export type VMStartMutationResolvers<
@@ -4082,6 +4286,7 @@ export type Resolvers<Context = any> = {
   GVM?: GVMResolvers<Context>;
   GVMAccessEntry?: GVMAccessEntryResolvers<Context>;
   GVMOrDeleted?: GVMOrDeletedResolvers;
+  GVMSnapshot?: GVMSnapshotResolvers<Context>;
   GVMsSubscription?: GVMsSubscriptionResolvers<Context>;
   GXenObject?: GXenObjectResolvers;
   InstallOSOptions?: InstallOSOptionsResolvers<Context>;
@@ -4118,8 +4323,10 @@ export type Resolvers<Context = any> = {
   VMMutation?: VMMutationResolvers<Context>;
   VMPauseMutation?: VMPauseMutationResolvers<Context>;
   VMRebootMutation?: VMRebootMutationResolvers<Context>;
+  VMRevertMutation?: VMRevertMutationResolvers<Context>;
   VMSelectedIDLists?: VMSelectedIDListsResolvers<Context>;
   VMShutdownMutation?: VMShutdownMutationResolvers<Context>;
+  VMSnapshotMutation?: VMSnapshotMutationResolvers<Context>;
   VMStartMutation?: VMStartMutationResolvers<Context>;
   VMSuspendMutation?: VMSuspendMutationResolvers<Context>;
 };
@@ -4508,6 +4715,13 @@ export const VMListFragmentFragmentDoc = gql`
     }
   }
   ${VMListVIFFragmentFragmentDoc}
+`;
+export const VMSnapshotInfoFragmentFragmentDoc = gql`
+  fragment VMSnapshotInfoFragment on GVMSnapshot {
+    ...ACLXenObjectFragment
+    snapshotTime
+  }
+  ${ACLXenObjectFragmentFragmentDoc}
 `;
 export const XenObjectFragmentFragmentDoc = gql`
   fragment XenObjectFragment on GXenObject {
@@ -5969,6 +6183,27 @@ export function useShutdownVMMutation(
     ShutdownVMMutationVariables
   >(ShutdownVMDocument, baseOptions);
 }
+export const VMSnapshotDocument = gql`
+  mutation VMSnapshot($ref: ID!, $nameLabel: String!) {
+    vmSnapshot(ref: $ref, nameLabel: $nameLabel) {
+      granted
+      reason
+      taskId
+    }
+  }
+`;
+
+export function useVMSnapshotMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    VMSnapshotMutation,
+    VMSnapshotMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    VMSnapshotMutation,
+    VMSnapshotMutationVariables
+  >(VMSnapshotDocument, baseOptions);
+}
 export const SRInfoDocument = gql`
   query SRInfo($ref: ID!) {
     sr(ref: $ref) {
@@ -6553,4 +6788,41 @@ export function useVMListUpdateSubscription(
     VMListUpdateSubscription,
     VMListUpdateSubscriptionVariables
   >(VMListUpdateDocument, baseOptions);
+}
+export const VMSnapshotInfoDocument = gql`
+  query VMSnapshotInfo($ref: ID!) {
+    vmSnapshot(ref: $ref) {
+      ...VMSnapshotInfoFragment
+    }
+  }
+  ${VMSnapshotInfoFragmentFragmentDoc}
+`;
+
+export function useVMSnapshotInfoQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<VMSnapshotInfoQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<
+    VMSnapshotInfoQuery,
+    VMSnapshotInfoQueryVariables
+  >(VMSnapshotInfoDocument, baseOptions);
+}
+export const VMSnapshotInfoUpdateDocument = gql`
+  subscription VMSnapshotInfoUpdate($ref: ID!) {
+    vmSnapshot(ref: $ref) {
+      ...VMSnapshotInfoFragment
+    }
+  }
+  ${VMSnapshotInfoFragmentFragmentDoc}
+`;
+
+export function useVMSnapshotInfoUpdateSubscription(
+  baseOptions?: ReactApolloHooks.SubscriptionHookOptions<
+    VMSnapshotInfoUpdateSubscription,
+    VMSnapshotInfoUpdateSubscriptionVariables
+  >
+) {
+  return ReactApolloHooks.useSubscription<
+    VMSnapshotInfoUpdateSubscription,
+    VMSnapshotInfoUpdateSubscriptionVariables
+  >(VMSnapshotInfoUpdateDocument, baseOptions);
 }

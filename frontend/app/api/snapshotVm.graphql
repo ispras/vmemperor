@@ -1,0 +1,7 @@
+mutation VMSnapshot ($ref: ID!, $nameLabel: String!) {
+  vmSnapshot(ref: $ref, nameLabel: $nameLabel) {
+    granted
+    reason
+    taskId
+  }
+}

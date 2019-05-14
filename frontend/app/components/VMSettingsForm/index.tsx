@@ -29,6 +29,7 @@ import {TabWidget, TabWidgetProps} from "../TabWidget";
 import {Fields} from "../AbstractVMSettingsComponents/fields";
 import {Mode} from "../AbstractVMSettingsComponents/mode";
 import MainOwnerForm from "../MainOwnerForm";
+import {Snapshots} from "./subforms/snapshots";
 
 
 enum Tab {
@@ -36,6 +37,7 @@ enum Tab {
   Resources = 'resources',
   VNC = 'vnc',
   Access = 'access',
+  Snapshots = 'snapshots',
   Storage = 'storage',
   Network = 'network',
 }
@@ -137,6 +139,16 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
                 mutationName="vmAccessSet"
                 mutationNode={VMAccessSetMutationDocument}
               />}
+            </Col>
+          </Row>
+        )
+      }],
+      [Tab.Snapshots, {
+        header: "Snapshots",
+        content: (
+          <Row>
+            <Col sm="12">
+              <Snapshots vm={vm}/>
             </Col>
           </Row>
         )

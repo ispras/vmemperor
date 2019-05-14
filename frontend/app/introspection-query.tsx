@@ -30,6 +30,9 @@ const result: IntrospectionResultData = {
             name: "GSR"
           },
           {
+            name: "GVMSnapshot"
+          },
+          {
             name: "GTemplate"
           },
           {
@@ -75,6 +78,9 @@ const result: IntrospectionResultData = {
             name: "GVM"
           },
           {
+            name: "GVMSnapshot"
+          },
+          {
             name: "GTemplate"
           }
         ]
@@ -88,6 +94,9 @@ const result: IntrospectionResultData = {
           },
           {
             name: "GVDI"
+          },
+          {
+            name: "GVMSnapshot"
           }
         ]
       },

@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Tue May 07 15:47:00 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Tue May 14 15:49:12 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -487,6 +487,7 @@ type GVM implements GAbstractVM & GAclXenObject & GQuotaObject {
   powerState: PowerState!
   "Unique constant identifier/object reference (primary)"
   ref: ID!
+  snapshots: [GVMSnapshot]!
   startTime: DateTime
   "Unique constant identifier/object reference (used in XenCenter)"
   uuid: ID!
@@ -496,6 +497,40 @@ type GVMAccessEntry implements GAccessEntry {
   actions: [VMActions!]!
   isOwner: Boolean!
   userId: User!
+}
+
+type GVMSnapshot implements GAbstractVM & GAclXenObject & GQuotaObject {
+  PVBootloader: String!
+  "Virtual block devices"
+  VBDs: [GVBD]!
+  VCPUsAtStartup: Int!
+  VCPUsMax: Int!
+  VIFs: [GVIF]!
+  access: [GVMAccessEntry]!
+  domainType: DomainType!
+  guestMetrics: ID!
+  installTime: DateTime!
+  isOwner: Boolean!
+  "The user against whom the quotas for this object are calculated"
+  mainOwner: User
+  memoryActual: Float!
+  memoryDynamicMax: Float!
+  memoryDynamicMin: Float!
+  memoryStaticMax: Float!
+  memoryStaticMin: Float!
+  myActions: [VMActions]!
+  "a human-readable description"
+  nameDescription: String!
+  "a human-readable name"
+  nameLabel: String!
+  "CPU platform parameters"
+  platform: Platform
+  "Unique constant identifier/object reference (primary)"
+  ref: ID!
+  snapshotOf: GVM!
+  snapshotTime: DateTime!
+  "Unique constant identifier/object reference (used in XenCenter)"
+  uuid: ID!
 }
 
 type GVMsSubscription {
@@ -631,12 +666,16 @@ type Mutation {
     force: ShutdownForce,
     ref: ID!
   ): VMRebootMutation
+  "Restore VM state from a snapshot"
+  vmRevert(ref: ID!): VMRevertMutation
   "Shut down VM"
   vmShutdown(
     #Force shutdown in a hard or clean way
     force: ShutdownForce,
     ref: ID!
   ): VMShutdownMutation
+  "Make a snapshot"
+  vmSnapshot(nameLabel: String!, ref: ID!): VMSnapshotMutation
   "Start VM"
   vmStart(options: VMStartInput, ref: ID!): VMStartMutation
   "If VM is Running, suspend VM. If Suspended, resume VM"
@@ -745,6 +784,7 @@ type Query {
     onlyIsos: Boolean
   ): [GVDI]!
   vm(ref: ID!): GVM
+  vmSnapshot(ref: ID!): GVMSnapshot
   "All VMs available to user"
   vms: [GVM]!
 }
@@ -834,6 +874,8 @@ type Subscription {
   ): GVDIsSubscription!
   "Updates for a particular VM"
   vm(ref: ID!): GVM
+  "Updates for a VM Snapshot"
+  vmSnapshot(ref: ID!): GVMSnapshot
   "Updates for all VMs"
   vms(withInitials: Boolean): GVMsSubscription!
 }
@@ -926,10 +968,26 @@ type VMRebootMutation {
   taskId: ID
 }
 
+type VMRevertMutation {
+  "Shows if access to delete is granted"
+  granted: Boolean!
+  reason: String
+  "Deleting task ID"
+  taskId: ID
+}
+
 type VMShutdownMutation {
   "Shows if access to shutdown is granted"
   granted: Boolean!
   "Shutdown task ID"
+  taskId: ID
+}
+
+type VMSnapshotMutation {
+  "Shows if access to snapshot is granted"
+  granted: Boolean!
+  reason: String
+  "Snapshot task ID"
   taskId: ID
 }
 
@@ -1250,6 +1308,8 @@ input TemplateInput {
 }
 
 input VDIInput {
+  "A user against whom the quotes are calculated"
+  mainOwner: ID
   "Object's human-readable description"
   nameDescription: String
   "Object's human-readable name"
