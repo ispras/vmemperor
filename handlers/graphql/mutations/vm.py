@@ -204,4 +204,17 @@ class VMDestroyMutation(graphene.Mutation):
         else:
             return VMDestroyMutation(granted=False, reason=f"Power state of VM {VM.ref} is not Halted, unable to delete")
 
+class VMSnapshotMutation(graphene.Mutation):
+    taskId = graphene.ID(required=False, description="Snapshot task ID")
+    granted = graphene.Boolean(required=True, description="Shows if access to snapshot is granted")
+    reason = graphene.String()
 
+    class Arguments:
+        ref = graphene.ID(required=True)
+        name_label = graphene.String(required=True)
+
+    @staticmethod
+    @with_authentication(access_class=VM, access_action=VM.Actions.snapshot)
+    @return_if_access_is_not_granted([("VM", "ref", VM.Actions.snapshot)])
+    def mutate(root, info, ref, name_label, VM):
+        return VMSnapshotMutation(taskId=AsyncMutationMethod.call(VM, 'snapshot', info.context, (name_label, )), granted=True)
