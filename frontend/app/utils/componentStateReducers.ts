@@ -57,7 +57,7 @@ export function selectedForTrashReducer<ActionType>(destroyAction: ActionType, t
       selectedForTrash: info.myActions.includes(destroyAction)
         ? state.selectedForTrash.add(info.ref)
         : state.selectedForTrash.remove(info.ref)
-    }
+    };
   else {
     return {
       selectedForTrash: state.selectedForTrash.remove(info.ref)

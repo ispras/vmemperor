@@ -25,7 +25,9 @@ export const TaskComponent: React.FC<Props> = ({taskId, onClose, client, default
     observable.subscribe(({data: nextData}) => {
       const func = async () => {
         setData(await getTask(nextData.task));
+        console.log("Data updated:", data);
       };
+      console.log("New data: ", nextData);
       if (nextData.task)
         func();
     });
@@ -44,10 +46,8 @@ export const TaskComponent: React.FC<Props> = ({taskId, onClose, client, default
       }
     }
   }, [data]);
-  if (!data) {
-    return <Label>Loading...</Label>;
-  } else {
-    let alertColor = 'info';
+  let alertColor = 'info';
+  if (data) {
     switch (data.status) {
       case TaskStatus.Cancelled:
       case TaskStatus.Cancelling:
@@ -61,21 +61,21 @@ export const TaskComponent: React.FC<Props> = ({taskId, onClose, client, default
         break;
 
     }
-    return (
-      <div>
-        <Alert color={alertColor} toggle={onClose}>
-          <h4 className="alert-heading">
-            {data && data.nameLabel || defaultTitle || "Loading..."}
-          </h4>
-          <Progress value={data && data.progress * 100 || 0}>
-
-          </Progress>
-          <hr/>
-          {data && data.errorInfo.map(string => (
-            <Label>{string}</Label>
-          ))}
-        </Alert>
-      </div>
-    )
   }
+  return (
+    <div>
+      <Alert color={alertColor} toggle={onClose}>
+        <h4 className="alert-heading">
+          {data && data.nameLabel || defaultTitle || "Loading..."}
+        </h4>
+        <Progress value={data && data.progress * 100 || 0}>
+
+        </Progress>
+        <hr/>
+        {data && data.errorInfo.map(string => (
+          <Label>{string}</Label>
+        ))}
+      </Alert>
+    </div>
+  )
 };

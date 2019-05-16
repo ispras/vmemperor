@@ -1,0 +1,7 @@
+mutation RevertVM($ref : ID!) {
+  vmRevert(ref: $ref) {
+    granted
+    reason
+    taskId
+  }
+}

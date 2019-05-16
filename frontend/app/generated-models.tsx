@@ -666,6 +666,8 @@ export type Mutation = {
   vmSnapshot?: Maybe<VMSnapshotMutation>;
   /** Restore VM state from a snapshot */
   vmRevert?: Maybe<VMRevertMutation>;
+  /** Destroy a VM Snapshot */
+  vmSnapshotDestroy?: Maybe<VMSnapshotDestroyMutation>;
   /** Delete a Halted VM */
   vmDelete?: Maybe<VMDestroyMutation>;
   /** Set VM access rights */
@@ -768,6 +770,10 @@ export type MutationvmSnapshotArgs = {
 };
 
 export type MutationvmRevertArgs = {
+  ref: Scalars["ID"];
+};
+
+export type MutationvmSnapshotDestroyArgs = {
   ref: Scalars["ID"];
 };
 
@@ -1575,9 +1581,9 @@ export type VMRebootMutation = {
 };
 
 export type VMRevertMutation = {
-  /** Deleting task ID */
+  /** Task ID */
   taskId?: Maybe<Scalars["ID"]>;
-  /** Shows if access to delete is granted */
+  /** Shows if access to destroy is granted */
   granted: Scalars["Boolean"];
   reason?: Maybe<Scalars["String"]>;
 };
@@ -1593,6 +1599,14 @@ export type VMShutdownMutation = {
   taskId?: Maybe<Scalars["ID"]>;
   /** Shows if access to shutdown is granted */
   granted: Scalars["Boolean"];
+};
+
+export type VMSnapshotDestroyMutation = {
+  /** Task ID */
+  taskId?: Maybe<Scalars["ID"]>;
+  /** Shows if access to destroy is granted */
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
 };
 
 export type VMSnapshotMutation = {
@@ -1627,7 +1641,9 @@ export type VMSuspendMutation = {
   granted: Scalars["Boolean"];
   reason?: Maybe<Scalars["String"]>;
 };
-export type AbstractVMFragmentFragment = Pick<
+export type AbstractVMFragmentFragment = {
+  __typename?: "GVM" | "GVMSnapshot" | "GTemplate";
+} & Pick<
   GAbstractVM,
   | "memoryStaticMin"
   | "memoryStaticMax"
@@ -1637,10 +1653,10 @@ export type AbstractVMFragmentFragment = Pick<
   | "VCPUsMax"
   | "domainType"
 > & {
-  platform: Maybe<
-    { __typename?: "Platform" } & Pick<Platform, "coresPerSocket">
-  >;
-};
+    platform: Maybe<
+      { __typename?: "Platform" } & Pick<Platform, "coresPerSocket">
+    >;
+  };
 
 export type VMAccessSetMutationMutationVariables = {
   actions: Array<VMActions>;
@@ -1720,9 +1736,18 @@ export type PoolAccessSetMutationMutation = { __typename?: "Mutation" } & {
   >;
 };
 
-export type AccessFragmentFragment = Pick<GAccessEntry, "isOwner"> & {
-  userId: { __typename?: "User" } & Pick<User, "username" | "name" | "id">;
-};
+export type AccessFragmentFragment = {
+  __typename?:
+    | "GVMAccessEntry"
+    | "GNetworkAccessEntry"
+    | "GVDIAccessEntry"
+    | "GSRAccessEntry"
+    | "GTemplateAccessEntry"
+    | "GPoolAccessEntry"
+    | "GTaskAccessEntry";
+} & Pick<GAccessEntry, "isOwner"> & {
+    userId: { __typename?: "User" } & Pick<User, "username" | "name" | "id">;
+  };
 
 export type VDIAttachMutationVariables = {
   vmRef: Scalars["ID"];
@@ -2489,6 +2514,19 @@ export type RebootVmMutation = { __typename?: "Mutation" } & {
   >;
 };
 
+export type RevertVMMutationVariables = {
+  ref: Scalars["ID"];
+};
+
+export type RevertVMMutation = { __typename?: "Mutation" } & {
+  vmRevert: Maybe<
+    { __typename?: "VMRevertMutation" } & Pick<
+      VMRevertMutation,
+      "granted" | "reason" | "taskId"
+    >
+  >;
+};
+
 export type ShutdownVMMutationVariables = {
   ref: Scalars["ID"];
   force?: Maybe<ShutdownForce>;
@@ -2503,15 +2541,28 @@ export type ShutdownVMMutation = { __typename?: "Mutation" } & {
   >;
 };
 
-export type VMSnapshotMutationVariables = {
+export type SnapshotVMMutationVariables = {
   ref: Scalars["ID"];
   nameLabel: Scalars["String"];
 };
 
-export type VMSnapshotMutation = { __typename?: "Mutation" } & {
+export type SnapshotVMMutation = { __typename?: "Mutation" } & {
   vmSnapshot: Maybe<
     { __typename?: "VMSnapshotMutation" } & Pick<
       VMSnapshotMutation,
+      "granted" | "reason" | "taskId"
+    >
+  >;
+};
+
+export type DestroyVMSnapshotMutationVariables = {
+  ref: Scalars["ID"];
+};
+
+export type DestroyVMSnapshotMutation = { __typename?: "Mutation" } & {
+  vmSnapshotDestroy: Maybe<
+    { __typename?: "VMSnapshotDestroyMutation" } & Pick<
+      VMSnapshotDestroyMutation,
       "granted" | "reason" | "taskId"
     >
   >;
@@ -2895,6 +2946,11 @@ export type VMVBDFragmentFragment = { __typename?: "GVBD" } & Pick<
     >;
   };
 
+export type VMSnapshotFragmentFragment = { __typename?: "GVMSnapshot" } & Pick<
+  GVMSnapshot,
+  "ref" | "nameLabel" | "snapshotTime" | "myActions"
+>;
+
 export type VMAccessFragmentFragment = { __typename?: "GVMAccessEntry" } & Pick<
   GVMAccessEntry,
   "actions"
@@ -2914,6 +2970,9 @@ export type VMInfoFragmentFragment = { __typename?: "GVM" } & Pick<
     osVersion: Maybe<{ __typename?: "OSVersion" } & Pick<OSVersion, "name">>;
     access: Array<
       Maybe<{ __typename?: "GVMAccessEntry" } & VMAccessFragmentFragment>
+    >;
+    snapshots: Array<
+      Maybe<{ __typename?: "GVMSnapshot" } & VMSnapshotFragmentFragment>
     >;
   } & (ACLXenObjectFragmentFragment & VMSettingsFragmentFragment);
 
@@ -2989,21 +3048,30 @@ export type VMSnapshotInfoUpdateSubscription = {
   >;
 };
 
-export type XenObjectFragmentFragment = Pick<
+export type XenObjectFragmentFragment = { __typename?: "GHost" } & Pick<
   GXenObject,
   "ref" | "nameLabel" | "nameDescription"
 >;
 
-export type ACLXenObjectFragmentFragment = Pick<
-  GAclXenObject,
-  "ref" | "nameLabel" | "nameDescription" | "isOwner"
->;
+export type ACLXenObjectFragmentFragment = {
+  __typename?:
+    | "GVM"
+    | "GNetwork"
+    | "GVDI"
+    | "GSR"
+    | "GVMSnapshot"
+    | "GTemplate"
+    | "GPool"
+    | "GTask";
+} & Pick<GAclXenObject, "ref" | "nameLabel" | "nameDescription" | "isOwner">;
 
 import {
   GraphQLResolveInfo,
   GraphQLScalarType,
   GraphQLScalarTypeConfig
 } from "graphql";
+
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 
 export type ResolverFn<TResult, TParent, TContext, TArgs> = (
   parent: TParent,
@@ -3072,84 +3140,239 @@ export type DirectiveResolverFn<
   info: GraphQLResolveInfo
 ) => TResult | Promise<TResult>;
 
+/** Mapping between all available schema types and the resolvers types */
+export type ResolversTypes = {
+  Query: {};
+  GVM: GVM;
+  GAclXenObject: GAclXenObject;
+  String: Scalars["String"];
+  ID: Scalars["ID"];
+  GAccessEntry: GAccessEntry;
+  User: User;
+  Boolean: Scalars["Boolean"];
+  GAbstractVM: GAbstractVM;
+  Platform: Platform;
+  Int: Scalars["Int"];
+  DomainType: DomainType;
+  DateTime: Scalars["DateTime"];
+  Float: Scalars["Float"];
+  GQuotaObject: GQuotaObject;
+  GVMAccessEntry: GVMAccessEntry;
+  VMActions: VMActions;
+  PvDriversVersion: PvDriversVersion;
+  OSVersion: OSVersion;
+  PowerState: PowerState;
+  GVIF: GVIF;
+  GNetwork: GNetwork;
+  GNetworkAccessEntry: GNetworkAccessEntry;
+  NetworkActions: NetworkActions;
+  JSONString: Scalars["JSONString"];
+  GVBD: GVBD;
+  GVDI: GVDI;
+  GVDIAccessEntry: GVDIAccessEntry;
+  VDIActions: VDIActions;
+  GSR: GSR;
+  GSRAccessEntry: GSRAccessEntry;
+  SRActions: SRActions;
+  GPBD: GPBD;
+  GHost: GHost;
+  GXenObject: GXenObject;
+  HostAllowedOperations: HostAllowedOperations;
+  CpuInfo: CpuInfo;
+  HostDisplay: HostDisplay;
+  SoftwareVersion: SoftwareVersion;
+  SRContentType: SRContentType;
+  VDIType: VDIType;
+  VBDType: VBDType;
+  VBDMode: VBDMode;
+  GVMSnapshot: GVMSnapshot;
+  GTemplate: GTemplate;
+  GTemplateAccessEntry: GTemplateAccessEntry;
+  TemplateActions: TemplateActions;
+  InstallOSOptions: InstallOSOptions;
+  Distro: Distro;
+  Arch: Arch;
+  GPool: GPool;
+  GPoolAccessEntry: GPoolAccessEntry;
+  PoolActions: PoolActions;
+  GPlaybook: GPlaybook;
+  PlaybookRequirements: PlaybookRequirements;
+  GTask: GTask;
+  GTaskAccessEntry: GTaskAccessEntry;
+  TaskActions: TaskActions;
+  TaskStatus: TaskStatus;
+  CurrentUserInformation: CurrentUserInformation;
+  Quota: Quota;
+  Table: Table;
+  VMSelectedIDLists: VMSelectedIDLists;
+  Mutation: {};
+  NewVDI: NewVDI;
+  AutoInstall: AutoInstall;
+  NetworkConfiguration: NetworkConfiguration;
+  VMInput: VMInput;
+  PlatformInput: PlatformInput;
+  CreateVM: CreateVM;
+  TemplateInput: TemplateInput;
+  InstallOSOptionsInput: InstallOSOptionsInput;
+  TemplateMutation: TemplateMutation;
+  TemplateCloneMutation: TemplateCloneMutation;
+  TemplateDestroyMutation: TemplateDestroyMutation;
+  TemplateAccessSet: TemplateAccessSet;
+  VMMutation: VMMutation;
+  VMStartInput: VMStartInput;
+  VMStartMutation: VMStartMutation;
+  ShutdownForce: ShutdownForce;
+  VMShutdownMutation: VMShutdownMutation;
+  VMRebootMutation: VMRebootMutation;
+  VMPauseMutation: VMPauseMutation;
+  VMSuspendMutation: VMSuspendMutation;
+  VMSnapshotMutation: VMSnapshotMutation;
+  VMRevertMutation: VMRevertMutation;
+  VMSnapshotDestroyMutation: VMSnapshotDestroyMutation;
+  VMDestroyMutation: VMDestroyMutation;
+  VMAccessSet: VMAccessSet;
+  PlaybookLaunchMutation: PlaybookLaunchMutation;
+  NetworkInput: NetworkInput;
+  NetworkMutation: NetworkMutation;
+  AttachNetworkMutation: AttachNetworkMutation;
+  NetAccessSet: NetAccessSet;
+  VDIInput: VDIInput;
+  VDIMutation: VDIMutation;
+  AttachVDIMutation: AttachVDIMutation;
+  VDIAccessSet: VDIAccessSet;
+  VDIDestroyMutation: VDIDestroyMutation;
+  SRInput: SRInput;
+  SRMutation: SRMutation;
+  SRAccessSet: SRAccessSet;
+  SRDestroyMutation: SRDestroyMutation;
+  PoolInput: PoolInput;
+  PoolMutation: PoolMutation;
+  PoolAccessSet: PoolAccessSet;
+  TaskRemoveMutation: TaskRemoveMutation;
+  QuotaInput: QuotaInput;
+  QuotaMutation: QuotaMutation;
+  Subscription: {};
+  GVMsSubscription: GVMsSubscription;
+  Change: Change;
+  GVMOrDeleted: ResolversTypes["GVM"] | ResolversTypes["Deleted"];
+  Deleted: Deleted;
+  GTemplatesSubscription: GTemplatesSubscription;
+  GTemplateOrDeleted: ResolversTypes["GTemplate"] | ResolversTypes["Deleted"];
+  GHostsSubscription: GHostsSubscription;
+  GHostOrDeleted: ResolversTypes["GHost"] | ResolversTypes["Deleted"];
+  GPoolsSubscription: GPoolsSubscription;
+  GPoolOrDeleted: ResolversTypes["GPool"] | ResolversTypes["Deleted"];
+  GNetworksSubscription: GNetworksSubscription;
+  GNetworkOrDeleted: ResolversTypes["GNetwork"] | ResolversTypes["Deleted"];
+  GSRsSubscription: GSRsSubscription;
+  GSROrDeleted: ResolversTypes["GSR"] | ResolversTypes["Deleted"];
+  GVDIsSubscription: GVDIsSubscription;
+  GVDIOrDeleted: ResolversTypes["GVDI"] | ResolversTypes["Deleted"];
+  GTasksSubscription: GTasksSubscription;
+  GTaskOrDeleted: ResolversTypes["GTask"] | ResolversTypes["Deleted"];
+};
+
 export type AttachNetworkMutationResolvers<
-  Context = any,
-  ParentType = AttachNetworkMutation
+  ContextType = any,
+  ParentType = ResolversTypes["AttachNetworkMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type AttachVDIMutationResolvers<
-  Context = any,
-  ParentType = AttachVDIMutation
+  ContextType = any,
+  ParentType = ResolversTypes["AttachVDIMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
-export type CpuInfoResolvers<Context = any, ParentType = CpuInfo> = {
-  cpuCount?: Resolver<Scalars["Int"], ParentType, Context>;
-  modelname?: Resolver<Scalars["String"], ParentType, Context>;
-  socketCount?: Resolver<Scalars["Int"], ParentType, Context>;
-  vendor?: Resolver<Scalars["String"], ParentType, Context>;
-  family?: Resolver<Scalars["Int"], ParentType, Context>;
-  features?: Resolver<Scalars["ID"], ParentType, Context>;
-  featuresHvm?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  featuresPv?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  flags?: Resolver<Scalars["String"], ParentType, Context>;
-  model?: Resolver<Scalars["Int"], ParentType, Context>;
-  speed?: Resolver<Scalars["Float"], ParentType, Context>;
-  stepping?: Resolver<Scalars["Int"], ParentType, Context>;
+export type CpuInfoResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["CpuInfo"]
+> = {
+  cpuCount?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  modelname?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  socketCount?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  vendor?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  family?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  features?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  featuresHvm?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  featuresPv?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  flags?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  model?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  speed?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  stepping?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
 };
 
-export type CreateVMResolvers<Context = any, ParentType = CreateVM> = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+export type CreateVMResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["CreateVM"]
+> = {
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type CurrentUserInformationResolvers<
-  Context = any,
-  ParentType = CurrentUserInformation
+  ContextType = any,
+  ParentType = ResolversTypes["CurrentUserInformation"]
 > = {
-  isAdmin?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  user?: Resolver<Maybe<User>, ParentType, Context>;
-  groups?: Resolver<Maybe<Array<Maybe<User>>>, ParentType, Context>;
+  isAdmin?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  user?: Resolver<Maybe<ResolversTypes["User"]>, ParentType, ContextType>;
+  groups?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes["User"]>>>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export interface DateTimeScalarConfig
-  extends GraphQLScalarTypeConfig<Scalars["DateTime"], any> {
+  extends GraphQLScalarTypeConfig<ResolversTypes["DateTime"], any> {
   name: "DateTime";
 }
 
-export type DeletedResolvers<Context = any, ParentType = Deleted> = {
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
+export type DeletedResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["Deleted"]
+> = {
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
 };
 
-export type GAbstractVMResolvers<Context = any, ParentType = GAbstractVM> = {
+export type GAbstractVMResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GAbstractVM"]
+> = {
   __resolveType: TypeResolveFn<
     "GVM" | "GVMSnapshot" | "GTemplate",
     ParentType,
-    Context
+    ContextType
   >;
-  platform?: Resolver<Maybe<Platform>, ParentType, Context>;
-  VCPUsAtStartup?: Resolver<Scalars["Int"], ParentType, Context>;
-  VCPUsMax?: Resolver<Scalars["Int"], ParentType, Context>;
-  domainType?: Resolver<DomainType, ParentType, Context>;
-  guestMetrics?: Resolver<Scalars["ID"], ParentType, Context>;
-  installTime?: Resolver<Scalars["DateTime"], ParentType, Context>;
-  memoryActual?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryStaticMin?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryStaticMax?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
-  PVBootloader?: Resolver<Scalars["String"], ParentType, Context>;
+  platform?: Resolver<
+    Maybe<ResolversTypes["Platform"]>,
+    ParentType,
+    ContextType
+  >;
+  VCPUsAtStartup?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  VCPUsMax?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  domainType?: Resolver<ResolversTypes["DomainType"], ParentType, ContextType>;
+  guestMetrics?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  installTime?: Resolver<ResolversTypes["DateTime"], ParentType, ContextType>;
+  memoryActual?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryStaticMin?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryStaticMax?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryDynamicMin?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryDynamicMax?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  PVBootloader?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
 };
 
-export type GAccessEntryResolvers<Context = any, ParentType = GAccessEntry> = {
+export type GAccessEntryResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GAccessEntry"]
+> = {
   __resolveType: TypeResolveFn<
     | "GVMAccessEntry"
     | "GNetworkAccessEntry"
@@ -3159,15 +3382,15 @@ export type GAccessEntryResolvers<Context = any, ParentType = GAccessEntry> = {
     | "GPoolAccessEntry"
     | "GTaskAccessEntry",
     ParentType,
-    Context
+    ContextType
   >;
-  userId?: Resolver<User, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  userId?: Resolver<ResolversTypes["User"], ParentType, ContextType>;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
 export type GAclXenObjectResolvers<
-  Context = any,
-  ParentType = GAclXenObject
+  ContextType = any,
+  ParentType = ResolversTypes["GAclXenObject"]
 > = {
   __resolveType: TypeResolveFn<
     | "GVM"
@@ -3179,1166 +3402,1729 @@ export type GAclXenObjectResolvers<
     | "GPool"
     | "GTask",
     ParentType,
-    Context
+    ContextType
   >;
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GAccessEntry>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  access?: Resolver<
+    Array<Maybe<ResolversTypes["GAccessEntry"]>>,
+    ParentType,
+    ContextType
+  >;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
-export type GHostResolvers<Context = any, ParentType = GHost> = {
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  APIVersionMajor?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  APIVersionMinor?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  PBDs?: Resolver<Array<Maybe<GPBD>>, ParentType, Context>;
-  PCIs?: Resolver<Array<Maybe<Scalars["ID"]>>, ParentType, Context>;
-  PGPUs?: Resolver<Array<Maybe<Scalars["ID"]>>, ParentType, Context>;
-  PIFs?: Resolver<Array<Maybe<Scalars["ID"]>>, ParentType, Context>;
-  PUSBs?: Resolver<Array<Maybe<Scalars["ID"]>>, ParentType, Context>;
-  address?: Resolver<Scalars["String"], ParentType, Context>;
-  allowedOperations?: Resolver<
-    Array<Maybe<HostAllowedOperations>>,
+export type GHostResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GHost"]
+> = {
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  APIVersionMajor?: Resolver<
+    Maybe<ResolversTypes["Int"]>,
     ParentType,
-    Context
+    ContextType
   >;
-  cpuInfo?: Resolver<CpuInfo, ParentType, Context>;
-  display?: Resolver<HostDisplay, ParentType, Context>;
-  hostname?: Resolver<Scalars["String"], ParentType, Context>;
-  softwareVersion?: Resolver<SoftwareVersion, ParentType, Context>;
-  residentVms?: Resolver<Array<Maybe<GVM>>, ParentType, Context>;
-  metrics?: Resolver<Scalars["ID"], ParentType, Context>;
-  memoryTotal?: Resolver<Maybe<Scalars["Float"]>, ParentType, Context>;
-  memoryFree?: Resolver<Maybe<Scalars["Float"]>, ParentType, Context>;
-  memoryAvailable?: Resolver<Maybe<Scalars["Float"]>, ParentType, Context>;
-  memoryOverhead?: Resolver<Maybe<Scalars["Float"]>, ParentType, Context>;
-  live?: Resolver<Maybe<Scalars["Boolean"]>, ParentType, Context>;
-  liveUpdated?: Resolver<Maybe<Scalars["DateTime"]>, ParentType, Context>;
+  APIVersionMinor?: Resolver<
+    Maybe<ResolversTypes["Int"]>,
+    ParentType,
+    ContextType
+  >;
+  PBDs?: Resolver<
+    Array<Maybe<ResolversTypes["GPBD"]>>,
+    ParentType,
+    ContextType
+  >;
+  PCIs?: Resolver<Array<Maybe<ResolversTypes["ID"]>>, ParentType, ContextType>;
+  PGPUs?: Resolver<Array<Maybe<ResolversTypes["ID"]>>, ParentType, ContextType>;
+  PIFs?: Resolver<Array<Maybe<ResolversTypes["ID"]>>, ParentType, ContextType>;
+  PUSBs?: Resolver<Array<Maybe<ResolversTypes["ID"]>>, ParentType, ContextType>;
+  address?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  allowedOperations?: Resolver<
+    Array<Maybe<ResolversTypes["HostAllowedOperations"]>>,
+    ParentType,
+    ContextType
+  >;
+  cpuInfo?: Resolver<ResolversTypes["CpuInfo"], ParentType, ContextType>;
+  display?: Resolver<ResolversTypes["HostDisplay"], ParentType, ContextType>;
+  hostname?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  softwareVersion?: Resolver<
+    ResolversTypes["SoftwareVersion"],
+    ParentType,
+    ContextType
+  >;
+  residentVms?: Resolver<
+    Array<Maybe<ResolversTypes["GVM"]>>,
+    ParentType,
+    ContextType
+  >;
+  metrics?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  memoryTotal?: Resolver<
+    Maybe<ResolversTypes["Float"]>,
+    ParentType,
+    ContextType
+  >;
+  memoryFree?: Resolver<
+    Maybe<ResolversTypes["Float"]>,
+    ParentType,
+    ContextType
+  >;
+  memoryAvailable?: Resolver<
+    Maybe<ResolversTypes["Float"]>,
+    ParentType,
+    ContextType
+  >;
+  memoryOverhead?: Resolver<
+    Maybe<ResolversTypes["Float"]>,
+    ParentType,
+    ContextType
+  >;
+  live?: Resolver<Maybe<ResolversTypes["Boolean"]>, ParentType, ContextType>;
+  liveUpdated?: Resolver<
+    Maybe<ResolversTypes["DateTime"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GHostOrDeletedResolvers<
-  Context = any,
-  ParentType = GHostOrDeleted
+  ContextType = any,
+  ParentType = ResolversTypes["GHostOrDeleted"]
 > = {
-  __resolveType: TypeResolveFn<"GHost" | "Deleted", ParentType, Context>;
+  __resolveType: TypeResolveFn<"GHost" | "Deleted", ParentType, ContextType>;
 };
 
 export type GHostsSubscriptionResolvers<
-  Context = any,
-  ParentType = GHostsSubscription
+  ContextType = any,
+  ParentType = ResolversTypes["GHostsSubscription"]
 > = {
-  changeType?: Resolver<Change, ParentType, Context>;
-  value?: Resolver<GHostOrDeleted, ParentType, Context>;
+  changeType?: Resolver<ResolversTypes["Change"], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes["GHostOrDeleted"], ParentType, ContextType>;
 };
 
-export type GNetworkResolvers<Context = any, ParentType = GNetwork> = {
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GNetworkAccessEntry>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<NetworkActions>>, ParentType, Context>;
-  VIFs?: Resolver<Maybe<Array<Maybe<GVIF>>>, ParentType, Context>;
-  otherConfig?: Resolver<Maybe<Scalars["JSONString"]>, ParentType, Context>;
+export type GNetworkResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GNetwork"]
+> = {
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  access?: Resolver<
+    Array<Maybe<ResolversTypes["GNetworkAccessEntry"]>>,
+    ParentType,
+    ContextType
+  >;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  myActions?: Resolver<
+    Array<Maybe<ResolversTypes["NetworkActions"]>>,
+    ParentType,
+    ContextType
+  >;
+  VIFs?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes["GVIF"]>>>,
+    ParentType,
+    ContextType
+  >;
+  otherConfig?: Resolver<
+    Maybe<ResolversTypes["JSONString"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GNetworkAccessEntryResolvers<
-  Context = any,
-  ParentType = GNetworkAccessEntry
+  ContextType = any,
+  ParentType = ResolversTypes["GNetworkAccessEntry"]
 > = {
-  userId?: Resolver<User, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  actions?: Resolver<Array<NetworkActions>, ParentType, Context>;
+  userId?: Resolver<ResolversTypes["User"], ParentType, ContextType>;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  actions?: Resolver<
+    Array<ResolversTypes["NetworkActions"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GNetworkOrDeletedResolvers<
-  Context = any,
-  ParentType = GNetworkOrDeleted
+  ContextType = any,
+  ParentType = ResolversTypes["GNetworkOrDeleted"]
 > = {
-  __resolveType: TypeResolveFn<"GNetwork" | "Deleted", ParentType, Context>;
+  __resolveType: TypeResolveFn<"GNetwork" | "Deleted", ParentType, ContextType>;
 };
 
 export type GNetworksSubscriptionResolvers<
-  Context = any,
-  ParentType = GNetworksSubscription
+  ContextType = any,
+  ParentType = ResolversTypes["GNetworksSubscription"]
 > = {
-  changeType?: Resolver<Change, ParentType, Context>;
-  value?: Resolver<GNetworkOrDeleted, ParentType, Context>;
+  changeType?: Resolver<ResolversTypes["Change"], ParentType, ContextType>;
+  value?: Resolver<
+    ResolversTypes["GNetworkOrDeleted"],
+    ParentType,
+    ContextType
+  >;
 };
 
-export type GPBDResolvers<Context = any, ParentType = GPBD> = {
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  host?: Resolver<GHost, ParentType, Context>;
-  deviceConfig?: Resolver<Scalars["JSONString"], ParentType, Context>;
-  SR?: Resolver<GSR, ParentType, Context>;
-  currentlyAttached?: Resolver<Scalars["Boolean"], ParentType, Context>;
+export type GPBDResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GPBD"]
+> = {
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  host?: Resolver<ResolversTypes["GHost"], ParentType, ContextType>;
+  deviceConfig?: Resolver<
+    ResolversTypes["JSONString"],
+    ParentType,
+    ContextType
+  >;
+  SR?: Resolver<ResolversTypes["GSR"], ParentType, ContextType>;
+  currentlyAttached?: Resolver<
+    ResolversTypes["Boolean"],
+    ParentType,
+    ContextType
+  >;
 };
 
-export type GPlaybookResolvers<Context = any, ParentType = GPlaybook> = {
-  id?: Resolver<Scalars["ID"], ParentType, Context>;
-  inventory?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  requires?: Resolver<Maybe<PlaybookRequirements>, ParentType, Context>;
-  name?: Resolver<Scalars["String"], ParentType, Context>;
-  description?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  variables?: Resolver<Maybe<Scalars["JSONString"]>, ParentType, Context>;
+export type GPlaybookResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GPlaybook"]
+> = {
+  id?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  inventory?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType
+  >;
+  requires?: Resolver<
+    Maybe<ResolversTypes["PlaybookRequirements"]>,
+    ParentType,
+    ContextType
+  >;
+  name?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  description?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType
+  >;
+  variables?: Resolver<
+    Maybe<ResolversTypes["JSONString"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
-export type GPoolResolvers<Context = any, ParentType = GPool> = {
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GPoolAccessEntry>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<PoolActions>>, ParentType, Context>;
-  master?: Resolver<Maybe<GHost>, ParentType, Context>;
-  defaultSr?: Resolver<Maybe<GSR>, ParentType, Context>;
+export type GPoolResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GPool"]
+> = {
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  access?: Resolver<
+    Array<Maybe<ResolversTypes["GPoolAccessEntry"]>>,
+    ParentType,
+    ContextType
+  >;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  myActions?: Resolver<
+    Array<Maybe<ResolversTypes["PoolActions"]>>,
+    ParentType,
+    ContextType
+  >;
+  master?: Resolver<Maybe<ResolversTypes["GHost"]>, ParentType, ContextType>;
+  defaultSr?: Resolver<Maybe<ResolversTypes["GSR"]>, ParentType, ContextType>;
 };
 
 export type GPoolAccessEntryResolvers<
-  Context = any,
-  ParentType = GPoolAccessEntry
+  ContextType = any,
+  ParentType = ResolversTypes["GPoolAccessEntry"]
 > = {
-  userId?: Resolver<User, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  actions?: Resolver<Array<PoolActions>, ParentType, Context>;
+  userId?: Resolver<ResolversTypes["User"], ParentType, ContextType>;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  actions?: Resolver<
+    Array<ResolversTypes["PoolActions"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GPoolOrDeletedResolvers<
-  Context = any,
-  ParentType = GPoolOrDeleted
+  ContextType = any,
+  ParentType = ResolversTypes["GPoolOrDeleted"]
 > = {
-  __resolveType: TypeResolveFn<"GPool" | "Deleted", ParentType, Context>;
+  __resolveType: TypeResolveFn<"GPool" | "Deleted", ParentType, ContextType>;
 };
 
 export type GPoolsSubscriptionResolvers<
-  Context = any,
-  ParentType = GPoolsSubscription
+  ContextType = any,
+  ParentType = ResolversTypes["GPoolsSubscription"]
 > = {
-  changeType?: Resolver<Change, ParentType, Context>;
-  value?: Resolver<GPoolOrDeleted, ParentType, Context>;
+  changeType?: Resolver<ResolversTypes["Change"], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes["GPoolOrDeleted"], ParentType, ContextType>;
 };
 
-export type GQuotaObjectResolvers<Context = any, ParentType = GQuotaObject> = {
+export type GQuotaObjectResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GQuotaObject"]
+> = {
   __resolveType: TypeResolveFn<
     "GVM" | "GVDI" | "GVMSnapshot",
     ParentType,
-    Context
+    ContextType
   >;
-  mainOwner?: Resolver<Maybe<User>, ParentType, Context>;
+  mainOwner?: Resolver<Maybe<ResolversTypes["User"]>, ParentType, ContextType>;
 };
 
-export type GSRResolvers<Context = any, ParentType = GSR> = {
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GSRAccessEntry>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<SRActions>>, ParentType, Context>;
-  PBDs?: Resolver<Array<Maybe<GPBD>>, ParentType, Context>;
-  VDIs?: Resolver<Maybe<Array<Maybe<GVDI>>>, ParentType, Context>;
-  contentType?: Resolver<SRContentType, ParentType, Context>;
-  type?: Resolver<Scalars["String"], ParentType, Context>;
-  physicalSize?: Resolver<Scalars["Float"], ParentType, Context>;
-  virtualAllocation?: Resolver<Scalars["Float"], ParentType, Context>;
-  isToolsSr?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  physicalUtilisation?: Resolver<Scalars["Float"], ParentType, Context>;
-  spaceAvailable?: Resolver<Scalars["Float"], ParentType, Context>;
+export type GSRResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GSR"]
+> = {
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  access?: Resolver<
+    Array<Maybe<ResolversTypes["GSRAccessEntry"]>>,
+    ParentType,
+    ContextType
+  >;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  myActions?: Resolver<
+    Array<Maybe<ResolversTypes["SRActions"]>>,
+    ParentType,
+    ContextType
+  >;
+  PBDs?: Resolver<
+    Array<Maybe<ResolversTypes["GPBD"]>>,
+    ParentType,
+    ContextType
+  >;
+  VDIs?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes["GVDI"]>>>,
+    ParentType,
+    ContextType
+  >;
+  contentType?: Resolver<
+    ResolversTypes["SRContentType"],
+    ParentType,
+    ContextType
+  >;
+  type?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  physicalSize?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  virtualAllocation?: Resolver<
+    ResolversTypes["Float"],
+    ParentType,
+    ContextType
+  >;
+  isToolsSr?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  physicalUtilisation?: Resolver<
+    ResolversTypes["Float"],
+    ParentType,
+    ContextType
+  >;
+  spaceAvailable?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
 };
 
 export type GSRAccessEntryResolvers<
-  Context = any,
-  ParentType = GSRAccessEntry
+  ContextType = any,
+  ParentType = ResolversTypes["GSRAccessEntry"]
 > = {
-  userId?: Resolver<User, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  actions?: Resolver<Array<SRActions>, ParentType, Context>;
+  userId?: Resolver<ResolversTypes["User"], ParentType, ContextType>;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  actions?: Resolver<
+    Array<ResolversTypes["SRActions"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
-export type GSROrDeletedResolvers<Context = any, ParentType = GSROrDeleted> = {
-  __resolveType: TypeResolveFn<"GSR" | "Deleted", ParentType, Context>;
+export type GSROrDeletedResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GSROrDeleted"]
+> = {
+  __resolveType: TypeResolveFn<"GSR" | "Deleted", ParentType, ContextType>;
 };
 
 export type GSRsSubscriptionResolvers<
-  Context = any,
-  ParentType = GSRsSubscription
+  ContextType = any,
+  ParentType = ResolversTypes["GSRsSubscription"]
 > = {
-  changeType?: Resolver<Change, ParentType, Context>;
-  value?: Resolver<GSROrDeleted, ParentType, Context>;
+  changeType?: Resolver<ResolversTypes["Change"], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes["GSROrDeleted"], ParentType, ContextType>;
 };
 
-export type GTaskResolvers<Context = any, ParentType = GTask> = {
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GTaskAccessEntry>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<TaskActions>>, ParentType, Context>;
-  created?: Resolver<Scalars["DateTime"], ParentType, Context>;
-  finished?: Resolver<Maybe<Scalars["DateTime"]>, ParentType, Context>;
-  progress?: Resolver<Scalars["Float"], ParentType, Context>;
-  result?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  who?: Resolver<Maybe<User>, ParentType, Context>;
-  residentOn?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  errorInfo?: Resolver<
-    Maybe<Array<Maybe<Scalars["String"]>>>,
+export type GTaskResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GTask"]
+> = {
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  access?: Resolver<
+    Array<Maybe<ResolversTypes["GTaskAccessEntry"]>>,
     ParentType,
-    Context
+    ContextType
   >;
-  status?: Resolver<TaskStatus, ParentType, Context>;
-  objectRef?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  objectType?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  action?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  myActions?: Resolver<
+    Array<Maybe<ResolversTypes["TaskActions"]>>,
+    ParentType,
+    ContextType
+  >;
+  created?: Resolver<ResolversTypes["DateTime"], ParentType, ContextType>;
+  finished?: Resolver<
+    Maybe<ResolversTypes["DateTime"]>,
+    ParentType,
+    ContextType
+  >;
+  progress?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  result?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  who?: Resolver<Maybe<ResolversTypes["User"]>, ParentType, ContextType>;
+  residentOn?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  errorInfo?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes["String"]>>>,
+    ParentType,
+    ContextType
+  >;
+  status?: Resolver<ResolversTypes["TaskStatus"], ParentType, ContextType>;
+  objectRef?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  objectType?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType
+  >;
+  action?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type GTaskAccessEntryResolvers<
-  Context = any,
-  ParentType = GTaskAccessEntry
+  ContextType = any,
+  ParentType = ResolversTypes["GTaskAccessEntry"]
 > = {
-  userId?: Resolver<User, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  actions?: Resolver<Array<TaskActions>, ParentType, Context>;
+  userId?: Resolver<ResolversTypes["User"], ParentType, ContextType>;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  actions?: Resolver<
+    Array<ResolversTypes["TaskActions"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GTaskOrDeletedResolvers<
-  Context = any,
-  ParentType = GTaskOrDeleted
+  ContextType = any,
+  ParentType = ResolversTypes["GTaskOrDeleted"]
 > = {
-  __resolveType: TypeResolveFn<"GTask" | "Deleted", ParentType, Context>;
+  __resolveType: TypeResolveFn<"GTask" | "Deleted", ParentType, ContextType>;
 };
 
 export type GTasksSubscriptionResolvers<
-  Context = any,
-  ParentType = GTasksSubscription
+  ContextType = any,
+  ParentType = ResolversTypes["GTasksSubscription"]
 > = {
-  changeType?: Resolver<Change, ParentType, Context>;
-  value?: Resolver<GTaskOrDeleted, ParentType, Context>;
+  changeType?: Resolver<ResolversTypes["Change"], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes["GTaskOrDeleted"], ParentType, ContextType>;
 };
 
-export type GTemplateResolvers<Context = any, ParentType = GTemplate> = {
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GTemplateAccessEntry>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  platform?: Resolver<Maybe<Platform>, ParentType, Context>;
-  VCPUsAtStartup?: Resolver<Scalars["Int"], ParentType, Context>;
-  VCPUsMax?: Resolver<Scalars["Int"], ParentType, Context>;
-  domainType?: Resolver<DomainType, ParentType, Context>;
-  guestMetrics?: Resolver<Scalars["ID"], ParentType, Context>;
-  installTime?: Resolver<Scalars["DateTime"], ParentType, Context>;
-  memoryActual?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryStaticMin?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryStaticMax?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
-  PVBootloader?: Resolver<Scalars["String"], ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<TemplateActions>>, ParentType, Context>;
-  isDefaultTemplate?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  installOptions?: Resolver<Maybe<InstallOSOptions>, ParentType, Context>;
+export type GTemplateResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GTemplate"]
+> = {
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  access?: Resolver<
+    Array<Maybe<ResolversTypes["GTemplateAccessEntry"]>>,
+    ParentType,
+    ContextType
+  >;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  platform?: Resolver<
+    Maybe<ResolversTypes["Platform"]>,
+    ParentType,
+    ContextType
+  >;
+  VCPUsAtStartup?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  VCPUsMax?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  domainType?: Resolver<ResolversTypes["DomainType"], ParentType, ContextType>;
+  guestMetrics?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  installTime?: Resolver<ResolversTypes["DateTime"], ParentType, ContextType>;
+  memoryActual?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryStaticMin?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryStaticMax?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryDynamicMin?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryDynamicMax?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  PVBootloader?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  myActions?: Resolver<
+    Array<Maybe<ResolversTypes["TemplateActions"]>>,
+    ParentType,
+    ContextType
+  >;
+  isDefaultTemplate?: Resolver<
+    ResolversTypes["Boolean"],
+    ParentType,
+    ContextType
+  >;
+  installOptions?: Resolver<
+    Maybe<ResolversTypes["InstallOSOptions"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GTemplateAccessEntryResolvers<
-  Context = any,
-  ParentType = GTemplateAccessEntry
+  ContextType = any,
+  ParentType = ResolversTypes["GTemplateAccessEntry"]
 > = {
-  userId?: Resolver<User, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  actions?: Resolver<Array<TemplateActions>, ParentType, Context>;
+  userId?: Resolver<ResolversTypes["User"], ParentType, ContextType>;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  actions?: Resolver<
+    Array<ResolversTypes["TemplateActions"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GTemplateOrDeletedResolvers<
-  Context = any,
-  ParentType = GTemplateOrDeleted
+  ContextType = any,
+  ParentType = ResolversTypes["GTemplateOrDeleted"]
 > = {
-  __resolveType: TypeResolveFn<"GTemplate" | "Deleted", ParentType, Context>;
+  __resolveType: TypeResolveFn<
+    "GTemplate" | "Deleted",
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GTemplatesSubscriptionResolvers<
-  Context = any,
-  ParentType = GTemplatesSubscription
+  ContextType = any,
+  ParentType = ResolversTypes["GTemplatesSubscription"]
 > = {
-  changeType?: Resolver<Change, ParentType, Context>;
-  value?: Resolver<GTemplateOrDeleted, ParentType, Context>;
+  changeType?: Resolver<ResolversTypes["Change"], ParentType, ContextType>;
+  value?: Resolver<
+    ResolversTypes["GTemplateOrDeleted"],
+    ParentType,
+    ContextType
+  >;
 };
 
-export type GVBDResolvers<Context = any, ParentType = GVBD> = {
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  VM?: Resolver<Maybe<GVM>, ParentType, Context>;
-  VDI?: Resolver<Maybe<GVDI>, ParentType, Context>;
-  type?: Resolver<VBDType, ParentType, Context>;
-  mode?: Resolver<VBDMode, ParentType, Context>;
-  currentlyAttached?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  bootable?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  userdevice?: Resolver<Scalars["Int"], ParentType, Context>;
+export type GVBDResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GVBD"]
+> = {
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  VM?: Resolver<Maybe<ResolversTypes["GVM"]>, ParentType, ContextType>;
+  VDI?: Resolver<Maybe<ResolversTypes["GVDI"]>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes["VBDType"], ParentType, ContextType>;
+  mode?: Resolver<ResolversTypes["VBDMode"], ParentType, ContextType>;
+  currentlyAttached?: Resolver<
+    ResolversTypes["Boolean"],
+    ParentType,
+    ContextType
+  >;
+  bootable?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  userdevice?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
 };
 
-export type GVDIResolvers<Context = any, ParentType = GVDI> = {
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GVDIAccessEntry>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  mainOwner?: Resolver<Maybe<User>, ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<VDIActions>>, ParentType, Context>;
-  SR?: Resolver<Maybe<GSR>, ParentType, Context>;
-  virtualSize?: Resolver<Scalars["Float"], ParentType, Context>;
-  VBDs?: Resolver<Array<Maybe<GVBD>>, ParentType, Context>;
-  contentType?: Resolver<SRContentType, ParentType, Context>;
-  type?: Resolver<VDIType, ParentType, Context>;
+export type GVDIResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GVDI"]
+> = {
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  access?: Resolver<
+    Array<Maybe<ResolversTypes["GVDIAccessEntry"]>>,
+    ParentType,
+    ContextType
+  >;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  mainOwner?: Resolver<Maybe<ResolversTypes["User"]>, ParentType, ContextType>;
+  myActions?: Resolver<
+    Array<Maybe<ResolversTypes["VDIActions"]>>,
+    ParentType,
+    ContextType
+  >;
+  SR?: Resolver<Maybe<ResolversTypes["GSR"]>, ParentType, ContextType>;
+  virtualSize?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  VBDs?: Resolver<
+    Array<Maybe<ResolversTypes["GVBD"]>>,
+    ParentType,
+    ContextType
+  >;
+  contentType?: Resolver<
+    ResolversTypes["SRContentType"],
+    ParentType,
+    ContextType
+  >;
+  type?: Resolver<ResolversTypes["VDIType"], ParentType, ContextType>;
 };
 
 export type GVDIAccessEntryResolvers<
-  Context = any,
-  ParentType = GVDIAccessEntry
+  ContextType = any,
+  ParentType = ResolversTypes["GVDIAccessEntry"]
 > = {
-  userId?: Resolver<User, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  actions?: Resolver<Array<VDIActions>, ParentType, Context>;
+  userId?: Resolver<ResolversTypes["User"], ParentType, ContextType>;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  actions?: Resolver<
+    Array<ResolversTypes["VDIActions"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GVDIOrDeletedResolvers<
-  Context = any,
-  ParentType = GVDIOrDeleted
+  ContextType = any,
+  ParentType = ResolversTypes["GVDIOrDeleted"]
 > = {
-  __resolveType: TypeResolveFn<"GVDI" | "Deleted", ParentType, Context>;
+  __resolveType: TypeResolveFn<"GVDI" | "Deleted", ParentType, ContextType>;
 };
 
 export type GVDIsSubscriptionResolvers<
-  Context = any,
-  ParentType = GVDIsSubscription
+  ContextType = any,
+  ParentType = ResolversTypes["GVDIsSubscription"]
 > = {
-  changeType?: Resolver<Change, ParentType, Context>;
-  value?: Resolver<GVDIOrDeleted, ParentType, Context>;
+  changeType?: Resolver<ResolversTypes["Change"], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes["GVDIOrDeleted"], ParentType, ContextType>;
 };
 
-export type GVIFResolvers<Context = any, ParentType = GVIF> = {
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  MAC?: Resolver<Scalars["ID"], ParentType, Context>;
-  VM?: Resolver<Maybe<GVM>, ParentType, Context>;
-  device?: Resolver<Scalars["ID"], ParentType, Context>;
-  currentlyAttached?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  ip?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  ipv4?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  ipv6?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  network?: Resolver<Maybe<GNetwork>, ParentType, Context>;
+export type GVIFResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GVIF"]
+> = {
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  MAC?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  VM?: Resolver<Maybe<ResolversTypes["GVM"]>, ParentType, ContextType>;
+  device?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  currentlyAttached?: Resolver<
+    ResolversTypes["Boolean"],
+    ParentType,
+    ContextType
+  >;
+  ip?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+  ipv4?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+  ipv6?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+  network?: Resolver<
+    Maybe<ResolversTypes["GNetwork"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
-export type GVMResolvers<Context = any, ParentType = GVM> = {
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GVMAccessEntry>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  platform?: Resolver<Maybe<Platform>, ParentType, Context>;
-  VCPUsAtStartup?: Resolver<Scalars["Int"], ParentType, Context>;
-  VCPUsMax?: Resolver<Scalars["Int"], ParentType, Context>;
-  domainType?: Resolver<DomainType, ParentType, Context>;
-  guestMetrics?: Resolver<Scalars["ID"], ParentType, Context>;
-  installTime?: Resolver<Scalars["DateTime"], ParentType, Context>;
-  memoryActual?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryStaticMin?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryStaticMax?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
-  PVBootloader?: Resolver<Scalars["String"], ParentType, Context>;
-  mainOwner?: Resolver<Maybe<User>, ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<VMActions>>, ParentType, Context>;
-  PVDriversUpToDate?: Resolver<Maybe<Scalars["Boolean"]>, ParentType, Context>;
-  PVDriversVersion?: Resolver<Maybe<PvDriversVersion>, ParentType, Context>;
-  metrics?: Resolver<Scalars["ID"], ParentType, Context>;
-  osVersion?: Resolver<Maybe<OSVersion>, ParentType, Context>;
-  powerState?: Resolver<PowerState, ParentType, Context>;
-  startTime?: Resolver<Maybe<Scalars["DateTime"]>, ParentType, Context>;
-  VIFs?: Resolver<Array<Maybe<GVIF>>, ParentType, Context>;
-  VBDs?: Resolver<Array<Maybe<GVBD>>, ParentType, Context>;
-  snapshots?: Resolver<Array<Maybe<GVMSnapshot>>, ParentType, Context>;
+export type GVMResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GVM"]
+> = {
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  access?: Resolver<
+    Array<Maybe<ResolversTypes["GVMAccessEntry"]>>,
+    ParentType,
+    ContextType
+  >;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  platform?: Resolver<
+    Maybe<ResolversTypes["Platform"]>,
+    ParentType,
+    ContextType
+  >;
+  VCPUsAtStartup?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  VCPUsMax?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  domainType?: Resolver<ResolversTypes["DomainType"], ParentType, ContextType>;
+  guestMetrics?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  installTime?: Resolver<ResolversTypes["DateTime"], ParentType, ContextType>;
+  memoryActual?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryStaticMin?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryStaticMax?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryDynamicMin?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryDynamicMax?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  PVBootloader?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  mainOwner?: Resolver<Maybe<ResolversTypes["User"]>, ParentType, ContextType>;
+  myActions?: Resolver<
+    Array<Maybe<ResolversTypes["VMActions"]>>,
+    ParentType,
+    ContextType
+  >;
+  PVDriversUpToDate?: Resolver<
+    Maybe<ResolversTypes["Boolean"]>,
+    ParentType,
+    ContextType
+  >;
+  PVDriversVersion?: Resolver<
+    Maybe<ResolversTypes["PvDriversVersion"]>,
+    ParentType,
+    ContextType
+  >;
+  metrics?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  osVersion?: Resolver<
+    Maybe<ResolversTypes["OSVersion"]>,
+    ParentType,
+    ContextType
+  >;
+  powerState?: Resolver<ResolversTypes["PowerState"], ParentType, ContextType>;
+  startTime?: Resolver<
+    Maybe<ResolversTypes["DateTime"]>,
+    ParentType,
+    ContextType
+  >;
+  VIFs?: Resolver<
+    Array<Maybe<ResolversTypes["GVIF"]>>,
+    ParentType,
+    ContextType
+  >;
+  VBDs?: Resolver<
+    Array<Maybe<ResolversTypes["GVBD"]>>,
+    ParentType,
+    ContextType
+  >;
+  snapshots?: Resolver<
+    Array<Maybe<ResolversTypes["GVMSnapshot"]>>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type GVMAccessEntryResolvers<
-  Context = any,
-  ParentType = GVMAccessEntry
+  ContextType = any,
+  ParentType = ResolversTypes["GVMAccessEntry"]
 > = {
-  userId?: Resolver<User, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  actions?: Resolver<Array<VMActions>, ParentType, Context>;
+  userId?: Resolver<ResolversTypes["User"], ParentType, ContextType>;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  actions?: Resolver<
+    Array<ResolversTypes["VMActions"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
-export type GVMOrDeletedResolvers<Context = any, ParentType = GVMOrDeleted> = {
-  __resolveType: TypeResolveFn<"GVM" | "Deleted", ParentType, Context>;
+export type GVMOrDeletedResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GVMOrDeleted"]
+> = {
+  __resolveType: TypeResolveFn<"GVM" | "Deleted", ParentType, ContextType>;
 };
 
-export type GVMSnapshotResolvers<Context = any, ParentType = GVMSnapshot> = {
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
-  access?: Resolver<Array<Maybe<GVMAccessEntry>>, ParentType, Context>;
-  isOwner?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  platform?: Resolver<Maybe<Platform>, ParentType, Context>;
-  VCPUsAtStartup?: Resolver<Scalars["Int"], ParentType, Context>;
-  VCPUsMax?: Resolver<Scalars["Int"], ParentType, Context>;
-  domainType?: Resolver<DomainType, ParentType, Context>;
-  guestMetrics?: Resolver<Scalars["ID"], ParentType, Context>;
-  installTime?: Resolver<Scalars["DateTime"], ParentType, Context>;
-  memoryActual?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryStaticMin?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryStaticMax?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryDynamicMin?: Resolver<Scalars["Float"], ParentType, Context>;
-  memoryDynamicMax?: Resolver<Scalars["Float"], ParentType, Context>;
-  PVBootloader?: Resolver<Scalars["String"], ParentType, Context>;
-  mainOwner?: Resolver<Maybe<User>, ParentType, Context>;
-  myActions?: Resolver<Array<Maybe<VMActions>>, ParentType, Context>;
-  VIFs?: Resolver<Array<Maybe<GVIF>>, ParentType, Context>;
-  VBDs?: Resolver<Array<Maybe<GVBD>>, ParentType, Context>;
-  snapshotTime?: Resolver<Scalars["DateTime"], ParentType, Context>;
-  snapshotOf?: Resolver<GVM, ParentType, Context>;
+export type GVMSnapshotResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GVMSnapshot"]
+> = {
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  access?: Resolver<
+    Array<Maybe<ResolversTypes["GVMAccessEntry"]>>,
+    ParentType,
+    ContextType
+  >;
+  isOwner?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  platform?: Resolver<
+    Maybe<ResolversTypes["Platform"]>,
+    ParentType,
+    ContextType
+  >;
+  VCPUsAtStartup?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  VCPUsMax?: Resolver<ResolversTypes["Int"], ParentType, ContextType>;
+  domainType?: Resolver<ResolversTypes["DomainType"], ParentType, ContextType>;
+  guestMetrics?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  installTime?: Resolver<ResolversTypes["DateTime"], ParentType, ContextType>;
+  memoryActual?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryStaticMin?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryStaticMax?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryDynamicMin?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  memoryDynamicMax?: Resolver<ResolversTypes["Float"], ParentType, ContextType>;
+  PVBootloader?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  mainOwner?: Resolver<Maybe<ResolversTypes["User"]>, ParentType, ContextType>;
+  myActions?: Resolver<
+    Array<Maybe<ResolversTypes["VMActions"]>>,
+    ParentType,
+    ContextType
+  >;
+  VIFs?: Resolver<
+    Array<Maybe<ResolversTypes["GVIF"]>>,
+    ParentType,
+    ContextType
+  >;
+  VBDs?: Resolver<
+    Array<Maybe<ResolversTypes["GVBD"]>>,
+    ParentType,
+    ContextType
+  >;
+  snapshotTime?: Resolver<ResolversTypes["DateTime"], ParentType, ContextType>;
+  snapshotOf?: Resolver<ResolversTypes["GVM"], ParentType, ContextType>;
 };
 
 export type GVMsSubscriptionResolvers<
-  Context = any,
-  ParentType = GVMsSubscription
+  ContextType = any,
+  ParentType = ResolversTypes["GVMsSubscription"]
 > = {
-  changeType?: Resolver<Change, ParentType, Context>;
-  value?: Resolver<GVMOrDeleted, ParentType, Context>;
+  changeType?: Resolver<ResolversTypes["Change"], ParentType, ContextType>;
+  value?: Resolver<ResolversTypes["GVMOrDeleted"], ParentType, ContextType>;
 };
 
-export type GXenObjectResolvers<Context = any, ParentType = GXenObject> = {
-  __resolveType: TypeResolveFn<"GHost", ParentType, Context>;
-  nameLabel?: Resolver<Scalars["String"], ParentType, Context>;
-  nameDescription?: Resolver<Scalars["String"], ParentType, Context>;
-  ref?: Resolver<Scalars["ID"], ParentType, Context>;
-  uuid?: Resolver<Scalars["ID"], ParentType, Context>;
+export type GXenObjectResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["GXenObject"]
+> = {
+  __resolveType: TypeResolveFn<"GHost", ParentType, ContextType>;
+  nameLabel?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  nameDescription?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  ref?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  uuid?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
 };
 
 export type InstallOSOptionsResolvers<
-  Context = any,
-  ParentType = InstallOSOptions
+  ContextType = any,
+  ParentType = ResolversTypes["InstallOSOptions"]
 > = {
-  distro?: Resolver<Distro, ParentType, Context>;
-  arch?: Resolver<Maybe<Arch>, ParentType, Context>;
-  release?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  installRepository?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  distro?: Resolver<ResolversTypes["Distro"], ParentType, ContextType>;
+  arch?: Resolver<Maybe<ResolversTypes["Arch"]>, ParentType, ContextType>;
+  release?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+  installRepository?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export interface JSONStringScalarConfig
-  extends GraphQLScalarTypeConfig<Scalars["JSONString"], any> {
+  extends GraphQLScalarTypeConfig<ResolversTypes["JSONString"], any> {
   name: "JSONString";
 }
 
-export type MutationResolvers<Context = any, ParentType = Mutation> = {
+export type MutationResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["Mutation"]
+> = {
   createVm?: Resolver<
-    Maybe<CreateVM>,
+    Maybe<ResolversTypes["CreateVM"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationcreateVmArgs
   >;
   template?: Resolver<
-    Maybe<TemplateMutation>,
+    Maybe<ResolversTypes["TemplateMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationtemplateArgs
   >;
   templateClone?: Resolver<
-    Maybe<TemplateCloneMutation>,
+    Maybe<ResolversTypes["TemplateCloneMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationtemplateCloneArgs
   >;
   templateDelete?: Resolver<
-    Maybe<TemplateDestroyMutation>,
+    Maybe<ResolversTypes["TemplateDestroyMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationtemplateDeleteArgs
   >;
   templateAccessSet?: Resolver<
-    Maybe<TemplateAccessSet>,
+    Maybe<ResolversTypes["TemplateAccessSet"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationtemplateAccessSetArgs
   >;
-  vm?: Resolver<Maybe<VMMutation>, ParentType, Context, MutationvmArgs>;
-  vmStart?: Resolver<
-    Maybe<VMStartMutation>,
+  vm?: Resolver<
+    Maybe<ResolversTypes["VMMutation"]>,
     ParentType,
-    Context,
+    ContextType,
+    MutationvmArgs
+  >;
+  vmStart?: Resolver<
+    Maybe<ResolversTypes["VMStartMutation"]>,
+    ParentType,
+    ContextType,
     MutationvmStartArgs
   >;
   vmShutdown?: Resolver<
-    Maybe<VMShutdownMutation>,
+    Maybe<ResolversTypes["VMShutdownMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationvmShutdownArgs
   >;
   vmReboot?: Resolver<
-    Maybe<VMRebootMutation>,
+    Maybe<ResolversTypes["VMRebootMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationvmRebootArgs
   >;
   vmPause?: Resolver<
-    Maybe<VMPauseMutation>,
+    Maybe<ResolversTypes["VMPauseMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationvmPauseArgs
   >;
   vmSuspend?: Resolver<
-    Maybe<VMSuspendMutation>,
+    Maybe<ResolversTypes["VMSuspendMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationvmSuspendArgs
   >;
   vmSnapshot?: Resolver<
-    Maybe<VMSnapshotMutation>,
+    Maybe<ResolversTypes["VMSnapshotMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationvmSnapshotArgs
   >;
   vmRevert?: Resolver<
-    Maybe<VMRevertMutation>,
+    Maybe<ResolversTypes["VMRevertMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationvmRevertArgs
   >;
-  vmDelete?: Resolver<
-    Maybe<VMDestroyMutation>,
+  vmSnapshotDestroy?: Resolver<
+    Maybe<ResolversTypes["VMSnapshotDestroyMutation"]>,
     ParentType,
-    Context,
+    ContextType,
+    MutationvmSnapshotDestroyArgs
+  >;
+  vmDelete?: Resolver<
+    Maybe<ResolversTypes["VMDestroyMutation"]>,
+    ParentType,
+    ContextType,
     MutationvmDeleteArgs
   >;
   vmAccessSet?: Resolver<
-    Maybe<VMAccessSet>,
+    Maybe<ResolversTypes["VMAccessSet"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationvmAccessSetArgs
   >;
   playbookLaunch?: Resolver<
-    Maybe<PlaybookLaunchMutation>,
+    Maybe<ResolversTypes["PlaybookLaunchMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationplaybookLaunchArgs
   >;
   network?: Resolver<
-    Maybe<NetworkMutation>,
+    Maybe<ResolversTypes["NetworkMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationnetworkArgs
   >;
   netAttach?: Resolver<
-    Maybe<AttachNetworkMutation>,
+    Maybe<ResolversTypes["AttachNetworkMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationnetAttachArgs
   >;
   netAccessSet?: Resolver<
-    Maybe<NetAccessSet>,
+    Maybe<ResolversTypes["NetAccessSet"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationnetAccessSetArgs
   >;
-  vdi?: Resolver<Maybe<VDIMutation>, ParentType, Context, MutationvdiArgs>;
-  vdiAttach?: Resolver<
-    Maybe<AttachVDIMutation>,
+  vdi?: Resolver<
+    Maybe<ResolversTypes["VDIMutation"]>,
     ParentType,
-    Context,
+    ContextType,
+    MutationvdiArgs
+  >;
+  vdiAttach?: Resolver<
+    Maybe<ResolversTypes["AttachVDIMutation"]>,
+    ParentType,
+    ContextType,
     MutationvdiAttachArgs
   >;
   vdiAccessSet?: Resolver<
-    Maybe<VDIAccessSet>,
+    Maybe<ResolversTypes["VDIAccessSet"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationvdiAccessSetArgs
   >;
   vdiDelete?: Resolver<
-    Maybe<VDIDestroyMutation>,
+    Maybe<ResolversTypes["VDIDestroyMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationvdiDeleteArgs
   >;
-  sr?: Resolver<Maybe<SRMutation>, ParentType, Context, MutationsrArgs>;
-  srAccessSet?: Resolver<
-    Maybe<SRAccessSet>,
+  sr?: Resolver<
+    Maybe<ResolversTypes["SRMutation"]>,
     ParentType,
-    Context,
+    ContextType,
+    MutationsrArgs
+  >;
+  srAccessSet?: Resolver<
+    Maybe<ResolversTypes["SRAccessSet"]>,
+    ParentType,
+    ContextType,
     MutationsrAccessSetArgs
   >;
   srDelete?: Resolver<
-    Maybe<SRDestroyMutation>,
+    Maybe<ResolversTypes["SRDestroyMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationsrDeleteArgs
   >;
-  pool?: Resolver<Maybe<PoolMutation>, ParentType, Context, MutationpoolArgs>;
-  poolAccessSet?: Resolver<
-    Maybe<PoolAccessSet>,
+  pool?: Resolver<
+    Maybe<ResolversTypes["PoolMutation"]>,
     ParentType,
-    Context,
+    ContextType,
+    MutationpoolArgs
+  >;
+  poolAccessSet?: Resolver<
+    Maybe<ResolversTypes["PoolAccessSet"]>,
+    ParentType,
+    ContextType,
     MutationpoolAccessSetArgs
   >;
   taskDelete?: Resolver<
-    Maybe<TaskRemoveMutation>,
+    Maybe<ResolversTypes["TaskRemoveMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationtaskDeleteArgs
   >;
   quotaSet?: Resolver<
-    Maybe<QuotaMutation>,
+    Maybe<ResolversTypes["QuotaMutation"]>,
     ParentType,
-    Context,
+    ContextType,
     MutationquotaSetArgs
   >;
   selectedItems?: Resolver<
-    Maybe<Array<Scalars["ID"]>>,
+    Maybe<Array<ResolversTypes["ID"]>>,
     ParentType,
-    Context,
+    ContextType,
     MutationselectedItemsArgs
   >;
 };
 
-export type NetAccessSetResolvers<Context = any, ParentType = NetAccessSet> = {
-  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+export type NetAccessSetResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["NetAccessSet"]
+> = {
+  success?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
 export type NetworkMutationResolvers<
-  Context = any,
-  ParentType = NetworkMutation
+  ContextType = any,
+  ParentType = ResolversTypes["NetworkMutation"]
 > = {
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
-export type OSVersionResolvers<Context = any, ParentType = OSVersion> = {
-  name?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  uname?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  distro?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  major?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  minor?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
+export type OSVersionResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["OSVersion"]
+> = {
+  name?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+  uname?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+  distro?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+  major?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
+  minor?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
 };
 
-export type PlatformResolvers<Context = any, ParentType = Platform> = {
-  coresPerSocket?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  timeoffset?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  nx?: Resolver<Maybe<Scalars["Boolean"]>, ParentType, Context>;
-  deviceModel?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
-  pae?: Resolver<Maybe<Scalars["Boolean"]>, ParentType, Context>;
-  hpet?: Resolver<Maybe<Scalars["Boolean"]>, ParentType, Context>;
-  apic?: Resolver<Maybe<Scalars["Boolean"]>, ParentType, Context>;
-  acpi?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  videoram?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
+export type PlatformResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["Platform"]
+> = {
+  coresPerSocket?: Resolver<
+    Maybe<ResolversTypes["Int"]>,
+    ParentType,
+    ContextType
+  >;
+  timeoffset?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
+  nx?: Resolver<Maybe<ResolversTypes["Boolean"]>, ParentType, ContextType>;
+  deviceModel?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType
+  >;
+  pae?: Resolver<Maybe<ResolversTypes["Boolean"]>, ParentType, ContextType>;
+  hpet?: Resolver<Maybe<ResolversTypes["Boolean"]>, ParentType, ContextType>;
+  apic?: Resolver<Maybe<ResolversTypes["Boolean"]>, ParentType, ContextType>;
+  acpi?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
+  videoram?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
 };
 
 export type PlaybookLaunchMutationResolvers<
-  Context = any,
-  ParentType = PlaybookLaunchMutation
+  ContextType = any,
+  ParentType = ResolversTypes["PlaybookLaunchMutation"]
 > = {
-  taskId?: Resolver<Scalars["ID"], ParentType, Context>;
+  taskId?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
 };
 
 export type PlaybookRequirementsResolvers<
-  Context = any,
-  ParentType = PlaybookRequirements
+  ContextType = any,
+  ParentType = ResolversTypes["PlaybookRequirements"]
 > = {
-  osVersion?: Resolver<Array<Maybe<OSVersion>>, ParentType, Context>;
+  osVersion?: Resolver<
+    Array<Maybe<ResolversTypes["OSVersion"]>>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type PoolAccessSetResolvers<
-  Context = any,
-  ParentType = PoolAccessSet
+  ContextType = any,
+  ParentType = ResolversTypes["PoolAccessSet"]
 > = {
-  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  success?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
-export type PoolMutationResolvers<Context = any, ParentType = PoolMutation> = {
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+export type PoolMutationResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["PoolMutation"]
+> = {
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type PvDriversVersionResolvers<
-  Context = any,
-  ParentType = PvDriversVersion
+  ContextType = any,
+  ParentType = ResolversTypes["PvDriversVersion"]
 > = {
-  major?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  minor?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  micro?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  build?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
+  major?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
+  minor?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
+  micro?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
+  build?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
 };
 
-export type QueryResolvers<Context = any, ParentType = Query> = {
-  vms?: Resolver<Array<Maybe<GVM>>, ParentType, Context>;
-  vm?: Resolver<Maybe<GVM>, ParentType, Context, QueryvmArgs>;
-  vmSnapshot?: Resolver<
-    Maybe<GVMSnapshot>,
+export type QueryResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["Query"]
+> = {
+  vms?: Resolver<Array<Maybe<ResolversTypes["GVM"]>>, ParentType, ContextType>;
+  vm?: Resolver<
+    Maybe<ResolversTypes["GVM"]>,
     ParentType,
-    Context,
+    ContextType,
+    QueryvmArgs
+  >;
+  vmSnapshot?: Resolver<
+    Maybe<ResolversTypes["GVMSnapshot"]>,
+    ParentType,
+    ContextType,
     QueryvmSnapshotArgs
   >;
-  templates?: Resolver<Array<Maybe<GTemplate>>, ParentType, Context>;
-  template?: Resolver<Maybe<GTemplate>, ParentType, Context, QuerytemplateArgs>;
-  hosts?: Resolver<Array<Maybe<GHost>>, ParentType, Context>;
-  host?: Resolver<Maybe<GHost>, ParentType, Context, QueryhostArgs>;
-  pools?: Resolver<Array<Maybe<GPool>>, ParentType, Context>;
-  pool?: Resolver<Maybe<GPool>, ParentType, Context, QuerypoolArgs>;
-  networks?: Resolver<Array<Maybe<GNetwork>>, ParentType, Context>;
-  network?: Resolver<Maybe<GNetwork>, ParentType, Context, QuerynetworkArgs>;
-  srs?: Resolver<Array<Maybe<GSR>>, ParentType, Context>;
-  sr?: Resolver<Maybe<GSR>, ParentType, Context, QuerysrArgs>;
-  vdis?: Resolver<Array<Maybe<GVDI>>, ParentType, Context, QueryvdisArgs>;
-  vdi?: Resolver<Maybe<GVDI>, ParentType, Context, QueryvdiArgs>;
-  playbooks?: Resolver<Array<Maybe<GPlaybook>>, ParentType, Context>;
-  playbook?: Resolver<Maybe<GPlaybook>, ParentType, Context, QueryplaybookArgs>;
-  tasks?: Resolver<Array<Maybe<GTask>>, ParentType, Context, QuerytasksArgs>;
-  task?: Resolver<Maybe<GTask>, ParentType, Context, QuerytaskArgs>;
-  console?: Resolver<
-    Maybe<Scalars["String"]>,
+  templates?: Resolver<
+    Array<Maybe<ResolversTypes["GTemplate"]>>,
     ParentType,
-    Context,
+    ContextType
+  >;
+  template?: Resolver<
+    Maybe<ResolversTypes["GTemplate"]>,
+    ParentType,
+    ContextType,
+    QuerytemplateArgs
+  >;
+  hosts?: Resolver<
+    Array<Maybe<ResolversTypes["GHost"]>>,
+    ParentType,
+    ContextType
+  >;
+  host?: Resolver<
+    Maybe<ResolversTypes["GHost"]>,
+    ParentType,
+    ContextType,
+    QueryhostArgs
+  >;
+  pools?: Resolver<
+    Array<Maybe<ResolversTypes["GPool"]>>,
+    ParentType,
+    ContextType
+  >;
+  pool?: Resolver<
+    Maybe<ResolversTypes["GPool"]>,
+    ParentType,
+    ContextType,
+    QuerypoolArgs
+  >;
+  networks?: Resolver<
+    Array<Maybe<ResolversTypes["GNetwork"]>>,
+    ParentType,
+    ContextType
+  >;
+  network?: Resolver<
+    Maybe<ResolversTypes["GNetwork"]>,
+    ParentType,
+    ContextType,
+    QuerynetworkArgs
+  >;
+  srs?: Resolver<Array<Maybe<ResolversTypes["GSR"]>>, ParentType, ContextType>;
+  sr?: Resolver<
+    Maybe<ResolversTypes["GSR"]>,
+    ParentType,
+    ContextType,
+    QuerysrArgs
+  >;
+  vdis?: Resolver<
+    Array<Maybe<ResolversTypes["GVDI"]>>,
+    ParentType,
+    ContextType,
+    QueryvdisArgs
+  >;
+  vdi?: Resolver<
+    Maybe<ResolversTypes["GVDI"]>,
+    ParentType,
+    ContextType,
+    QueryvdiArgs
+  >;
+  playbooks?: Resolver<
+    Array<Maybe<ResolversTypes["GPlaybook"]>>,
+    ParentType,
+    ContextType
+  >;
+  playbook?: Resolver<
+    Maybe<ResolversTypes["GPlaybook"]>,
+    ParentType,
+    ContextType,
+    QueryplaybookArgs
+  >;
+  tasks?: Resolver<
+    Array<Maybe<ResolversTypes["GTask"]>>,
+    ParentType,
+    ContextType,
+    QuerytasksArgs
+  >;
+  task?: Resolver<
+    Maybe<ResolversTypes["GTask"]>,
+    ParentType,
+    ContextType,
+    QuerytaskArgs
+  >;
+  console?: Resolver<
+    Maybe<ResolversTypes["String"]>,
+    ParentType,
+    ContextType,
     QueryconsoleArgs
   >;
-  users?: Resolver<Array<Maybe<User>>, ParentType, Context>;
-  groups?: Resolver<Array<Maybe<User>>, ParentType, Context>;
-  user?: Resolver<Maybe<User>, ParentType, Context, QueryuserArgs>;
-  currentUser?: Resolver<Maybe<CurrentUserInformation>, ParentType, Context>;
-  findUser?: Resolver<
-    Array<Maybe<User>>,
+  users?: Resolver<
+    Array<Maybe<ResolversTypes["User"]>>,
     ParentType,
-    Context,
+    ContextType
+  >;
+  groups?: Resolver<
+    Array<Maybe<ResolversTypes["User"]>>,
+    ParentType,
+    ContextType
+  >;
+  user?: Resolver<
+    Maybe<ResolversTypes["User"]>,
+    ParentType,
+    ContextType,
+    QueryuserArgs
+  >;
+  currentUser?: Resolver<
+    Maybe<ResolversTypes["CurrentUserInformation"]>,
+    ParentType,
+    ContextType
+  >;
+  findUser?: Resolver<
+    Array<Maybe<ResolversTypes["User"]>>,
+    ParentType,
+    ContextType,
     QueryfindUserArgs
   >;
-  quotas?: Resolver<Array<Maybe<Quota>>, ParentType, Context>;
-  quota?: Resolver<Quota, ParentType, Context, QueryquotaArgs>;
-  selectedItems?: Resolver<
-    Array<Scalars["ID"]>,
+  quotas?: Resolver<
+    Array<Maybe<ResolversTypes["Quota"]>>,
     ParentType,
-    Context,
+    ContextType
+  >;
+  quota?: Resolver<
+    ResolversTypes["Quota"],
+    ParentType,
+    ContextType,
+    QueryquotaArgs
+  >;
+  selectedItems?: Resolver<
+    Array<ResolversTypes["ID"]>,
+    ParentType,
+    ContextType,
     QueryselectedItemsArgs
   >;
-  vmSelectedReadyFor?: Resolver<VMSelectedIDLists, ParentType, Context>;
+  vmSelectedReadyFor?: Resolver<
+    ResolversTypes["VMSelectedIDLists"],
+    ParentType,
+    ContextType
+  >;
 };
 
-export type QuotaResolvers<Context = any, ParentType = Quota> = {
-  memory?: Resolver<Maybe<Scalars["Float"]>, ParentType, Context>;
-  vdiSize?: Resolver<Maybe<Scalars["Float"]>, ParentType, Context>;
-  vcpuCount?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  vmCount?: Resolver<Maybe<Scalars["Int"]>, ParentType, Context>;
-  user?: Resolver<User, ParentType, Context>;
+export type QuotaResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["Quota"]
+> = {
+  memory?: Resolver<Maybe<ResolversTypes["Float"]>, ParentType, ContextType>;
+  vdiSize?: Resolver<Maybe<ResolversTypes["Float"]>, ParentType, ContextType>;
+  vcpuCount?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
+  vmCount?: Resolver<Maybe<ResolversTypes["Int"]>, ParentType, ContextType>;
+  user?: Resolver<ResolversTypes["User"], ParentType, ContextType>;
 };
 
 export type QuotaMutationResolvers<
-  Context = any,
-  ParentType = QuotaMutation
+  ContextType = any,
+  ParentType = ResolversTypes["QuotaMutation"]
 > = {
-  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  success?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
 export type SoftwareVersionResolvers<
-  Context = any,
-  ParentType = SoftwareVersion
+  ContextType = any,
+  ParentType = ResolversTypes["SoftwareVersion"]
 > = {
-  buildNumber?: Resolver<Scalars["String"], ParentType, Context>;
-  date?: Resolver<Scalars["String"], ParentType, Context>;
-  hostname?: Resolver<Scalars["String"], ParentType, Context>;
-  linux?: Resolver<Scalars["String"], ParentType, Context>;
-  networkBackend?: Resolver<Scalars["String"], ParentType, Context>;
-  platformName?: Resolver<Scalars["String"], ParentType, Context>;
-  platformVersion?: Resolver<Scalars["String"], ParentType, Context>;
-  platformVersionText?: Resolver<Scalars["String"], ParentType, Context>;
-  platformVersionTextShort?: Resolver<Scalars["String"], ParentType, Context>;
-  xapi?: Resolver<Scalars["String"], ParentType, Context>;
-  xen?: Resolver<Scalars["String"], ParentType, Context>;
-  productBrand?: Resolver<Scalars["String"], ParentType, Context>;
-  productVersion?: Resolver<Scalars["String"], ParentType, Context>;
-  productVersionText?: Resolver<Scalars["String"], ParentType, Context>;
+  buildNumber?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  date?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  hostname?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  linux?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  networkBackend?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  platformName?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  platformVersion?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  platformVersionText?: Resolver<
+    ResolversTypes["String"],
+    ParentType,
+    ContextType
+  >;
+  platformVersionTextShort?: Resolver<
+    ResolversTypes["String"],
+    ParentType,
+    ContextType
+  >;
+  xapi?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  xen?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  productBrand?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  productVersion?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  productVersionText?: Resolver<
+    ResolversTypes["String"],
+    ParentType,
+    ContextType
+  >;
 };
 
-export type SRAccessSetResolvers<Context = any, ParentType = SRAccessSet> = {
-  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+export type SRAccessSetResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["SRAccessSet"]
+> = {
+  success?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
 export type SRDestroyMutationResolvers<
-  Context = any,
-  ParentType = SRDestroyMutation
+  ContextType = any,
+  ParentType = ResolversTypes["SRDestroyMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
-export type SRMutationResolvers<Context = any, ParentType = SRMutation> = {
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+export type SRMutationResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["SRMutation"]
+> = {
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
-export type SubscriptionResolvers<Context = any, ParentType = Subscription> = {
+export type SubscriptionResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["Subscription"]
+> = {
   vms?: SubscriptionResolver<
-    GVMsSubscription,
+    ResolversTypes["GVMsSubscription"],
     ParentType,
-    Context,
+    ContextType,
     SubscriptionvmsArgs
   >;
   vm?: SubscriptionResolver<
-    Maybe<GVM>,
+    Maybe<ResolversTypes["GVM"]>,
     ParentType,
-    Context,
+    ContextType,
     SubscriptionvmArgs
   >;
   vmSnapshot?: SubscriptionResolver<
-    Maybe<GVMSnapshot>,
+    Maybe<ResolversTypes["GVMSnapshot"]>,
     ParentType,
-    Context,
+    ContextType,
     SubscriptionvmSnapshotArgs
   >;
   templates?: SubscriptionResolver<
-    GTemplatesSubscription,
+    ResolversTypes["GTemplatesSubscription"],
     ParentType,
-    Context,
+    ContextType,
     SubscriptiontemplatesArgs
   >;
   template?: SubscriptionResolver<
-    Maybe<GTemplate>,
+    Maybe<ResolversTypes["GTemplate"]>,
     ParentType,
-    Context,
+    ContextType,
     SubscriptiontemplateArgs
   >;
   hosts?: SubscriptionResolver<
-    GHostsSubscription,
+    ResolversTypes["GHostsSubscription"],
     ParentType,
-    Context,
+    ContextType,
     SubscriptionhostsArgs
   >;
   host?: SubscriptionResolver<
-    Maybe<GHost>,
+    Maybe<ResolversTypes["GHost"]>,
     ParentType,
-    Context,
+    ContextType,
     SubscriptionhostArgs
   >;
   pools?: SubscriptionResolver<
-    GPoolsSubscription,
+    ResolversTypes["GPoolsSubscription"],
     ParentType,
-    Context,
+    ContextType,
     SubscriptionpoolsArgs
   >;
   pool?: SubscriptionResolver<
-    Maybe<GPool>,
+    Maybe<ResolversTypes["GPool"]>,
     ParentType,
-    Context,
+    ContextType,
     SubscriptionpoolArgs
   >;
   networks?: SubscriptionResolver<
-    GNetworksSubscription,
+    ResolversTypes["GNetworksSubscription"],
     ParentType,
-    Context,
+    ContextType,
     SubscriptionnetworksArgs
   >;
   network?: SubscriptionResolver<
-    Maybe<GNetwork>,
+    Maybe<ResolversTypes["GNetwork"]>,
     ParentType,
-    Context,
+    ContextType,
     SubscriptionnetworkArgs
   >;
   srs?: SubscriptionResolver<
-    GSRsSubscription,
+    ResolversTypes["GSRsSubscription"],
     ParentType,
-    Context,
+    ContextType,
     SubscriptionsrsArgs
   >;
   sr?: SubscriptionResolver<
-    Maybe<GSR>,
+    Maybe<ResolversTypes["GSR"]>,
     ParentType,
-    Context,
+    ContextType,
     SubscriptionsrArgs
   >;
   vdis?: SubscriptionResolver<
-    GVDIsSubscription,
+    ResolversTypes["GVDIsSubscription"],
     ParentType,
-    Context,
+    ContextType,
     SubscriptionvdisArgs
   >;
   vdi?: SubscriptionResolver<
-    Maybe<GVDI>,
+    Maybe<ResolversTypes["GVDI"]>,
     ParentType,
-    Context,
+    ContextType,
     SubscriptionvdiArgs
   >;
   tasks?: SubscriptionResolver<
-    GTasksSubscription,
+    ResolversTypes["GTasksSubscription"],
     ParentType,
-    Context,
+    ContextType,
     SubscriptiontasksArgs
   >;
   task?: SubscriptionResolver<
-    Maybe<GTask>,
+    Maybe<ResolversTypes["GTask"]>,
     ParentType,
-    Context,
+    ContextType,
     SubscriptiontaskArgs
   >;
 };
 
 export type TaskRemoveMutationResolvers<
-  Context = any,
-  ParentType = TaskRemoveMutation
+  ContextType = any,
+  ParentType = ResolversTypes["TaskRemoveMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type TemplateAccessSetResolvers<
-  Context = any,
-  ParentType = TemplateAccessSet
+  ContextType = any,
+  ParentType = ResolversTypes["TemplateAccessSet"]
 > = {
-  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  success?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
 export type TemplateCloneMutationResolvers<
-  Context = any,
-  ParentType = TemplateCloneMutation
+  ContextType = any,
+  ParentType = ResolversTypes["TemplateCloneMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type TemplateDestroyMutationResolvers<
-  Context = any,
-  ParentType = TemplateDestroyMutation
+  ContextType = any,
+  ParentType = ResolversTypes["TemplateDestroyMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type TemplateMutationResolvers<
-  Context = any,
-  ParentType = TemplateMutation
+  ContextType = any,
+  ParentType = ResolversTypes["TemplateMutation"]
 > = {
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
-export type UserResolvers<Context = any, ParentType = User> = {
-  id?: Resolver<Scalars["ID"], ParentType, Context>;
-  name?: Resolver<Scalars["String"], ParentType, Context>;
-  username?: Resolver<Scalars["String"], ParentType, Context>;
+export type UserResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["User"]
+> = {
+  id?: Resolver<ResolversTypes["ID"], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
+  username?: Resolver<ResolversTypes["String"], ParentType, ContextType>;
 };
 
-export type VDIAccessSetResolvers<Context = any, ParentType = VDIAccessSet> = {
-  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+export type VDIAccessSetResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["VDIAccessSet"]
+> = {
+  success?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
 export type VDIDestroyMutationResolvers<
-  Context = any,
-  ParentType = VDIDestroyMutation
+  ContextType = any,
+  ParentType = ResolversTypes["VDIDestroyMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
-export type VDIMutationResolvers<Context = any, ParentType = VDIMutation> = {
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+export type VDIMutationResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["VDIMutation"]
+> = {
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
-export type VMAccessSetResolvers<Context = any, ParentType = VMAccessSet> = {
-  success?: Resolver<Scalars["Boolean"], ParentType, Context>;
+export type VMAccessSetResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["VMAccessSet"]
+> = {
+  success?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
 export type VMDestroyMutationResolvers<
-  Context = any,
-  ParentType = VMDestroyMutation
+  ContextType = any,
+  ParentType = ResolversTypes["VMDestroyMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
-export type VMMutationResolvers<Context = any, ParentType = VMMutation> = {
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+export type VMMutationResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["VMMutation"]
+> = {
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type VMPauseMutationResolvers<
-  Context = any,
-  ParentType = VMPauseMutation
+  ContextType = any,
+  ParentType = ResolversTypes["VMPauseMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type VMRebootMutationResolvers<
-  Context = any,
-  ParentType = VMRebootMutation
+  ContextType = any,
+  ParentType = ResolversTypes["VMRebootMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
 export type VMRevertMutationResolvers<
-  Context = any,
-  ParentType = VMRevertMutation
+  ContextType = any,
+  ParentType = ResolversTypes["VMRevertMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type VMSelectedIDListsResolvers<
-  Context = any,
-  ParentType = VMSelectedIDLists
+  ContextType = any,
+  ParentType = ResolversTypes["VMSelectedIDLists"]
 > = {
-  start?: Resolver<Maybe<Array<Maybe<Scalars["ID"]>>>, ParentType, Context>;
-  stop?: Resolver<Maybe<Array<Maybe<Scalars["ID"]>>>, ParentType, Context>;
-  trash?: Resolver<Maybe<Array<Maybe<Scalars["ID"]>>>, ParentType, Context>;
+  start?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes["ID"]>>>,
+    ParentType,
+    ContextType
+  >;
+  stop?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes["ID"]>>>,
+    ParentType,
+    ContextType
+  >;
+  trash?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes["ID"]>>>,
+    ParentType,
+    ContextType
+  >;
 };
 
 export type VMShutdownMutationResolvers<
-  Context = any,
-  ParentType = VMShutdownMutation
+  ContextType = any,
+  ParentType = ResolversTypes["VMShutdownMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+};
+
+export type VMSnapshotDestroyMutationResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["VMSnapshotDestroyMutation"]
+> = {
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type VMSnapshotMutationResolvers<
-  Context = any,
-  ParentType = VMSnapshotMutation
+  ContextType = any,
+  ParentType = ResolversTypes["VMSnapshotMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type VMStartMutationResolvers<
-  Context = any,
-  ParentType = VMStartMutation
+  ContextType = any,
+  ParentType = ResolversTypes["VMStartMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
 export type VMSuspendMutationResolvers<
-  Context = any,
-  ParentType = VMSuspendMutation
+  ContextType = any,
+  ParentType = ResolversTypes["VMSuspendMutation"]
 > = {
-  taskId?: Resolver<Maybe<Scalars["ID"]>, ParentType, Context>;
-  granted?: Resolver<Scalars["Boolean"], ParentType, Context>;
-  reason?: Resolver<Maybe<Scalars["String"]>, ParentType, Context>;
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
 };
 
-export type Resolvers<Context = any> = {
-  AttachNetworkMutation?: AttachNetworkMutationResolvers<Context>;
-  AttachVDIMutation?: AttachVDIMutationResolvers<Context>;
-  CpuInfo?: CpuInfoResolvers<Context>;
-  CreateVM?: CreateVMResolvers<Context>;
-  CurrentUserInformation?: CurrentUserInformationResolvers<Context>;
+export type Resolvers<ContextType = any> = {
+  AttachNetworkMutation?: AttachNetworkMutationResolvers<ContextType>;
+  AttachVDIMutation?: AttachVDIMutationResolvers<ContextType>;
+  CpuInfo?: CpuInfoResolvers<ContextType>;
+  CreateVM?: CreateVMResolvers<ContextType>;
+  CurrentUserInformation?: CurrentUserInformationResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
-  Deleted?: DeletedResolvers<Context>;
+  Deleted?: DeletedResolvers<ContextType>;
   GAbstractVM?: GAbstractVMResolvers;
   GAccessEntry?: GAccessEntryResolvers;
   GAclXenObject?: GAclXenObjectResolvers;
-  GHost?: GHostResolvers<Context>;
+  GHost?: GHostResolvers<ContextType>;
   GHostOrDeleted?: GHostOrDeletedResolvers;
-  GHostsSubscription?: GHostsSubscriptionResolvers<Context>;
-  GNetwork?: GNetworkResolvers<Context>;
-  GNetworkAccessEntry?: GNetworkAccessEntryResolvers<Context>;
+  GHostsSubscription?: GHostsSubscriptionResolvers<ContextType>;
+  GNetwork?: GNetworkResolvers<ContextType>;
+  GNetworkAccessEntry?: GNetworkAccessEntryResolvers<ContextType>;
   GNetworkOrDeleted?: GNetworkOrDeletedResolvers;
-  GNetworksSubscription?: GNetworksSubscriptionResolvers<Context>;
-  GPBD?: GPBDResolvers<Context>;
-  GPlaybook?: GPlaybookResolvers<Context>;
-  GPool?: GPoolResolvers<Context>;
-  GPoolAccessEntry?: GPoolAccessEntryResolvers<Context>;
+  GNetworksSubscription?: GNetworksSubscriptionResolvers<ContextType>;
+  GPBD?: GPBDResolvers<ContextType>;
+  GPlaybook?: GPlaybookResolvers<ContextType>;
+  GPool?: GPoolResolvers<ContextType>;
+  GPoolAccessEntry?: GPoolAccessEntryResolvers<ContextType>;
   GPoolOrDeleted?: GPoolOrDeletedResolvers;
-  GPoolsSubscription?: GPoolsSubscriptionResolvers<Context>;
+  GPoolsSubscription?: GPoolsSubscriptionResolvers<ContextType>;
   GQuotaObject?: GQuotaObjectResolvers;
-  GSR?: GSRResolvers<Context>;
-  GSRAccessEntry?: GSRAccessEntryResolvers<Context>;
+  GSR?: GSRResolvers<ContextType>;
+  GSRAccessEntry?: GSRAccessEntryResolvers<ContextType>;
   GSROrDeleted?: GSROrDeletedResolvers;
-  GSRsSubscription?: GSRsSubscriptionResolvers<Context>;
-  GTask?: GTaskResolvers<Context>;
-  GTaskAccessEntry?: GTaskAccessEntryResolvers<Context>;
+  GSRsSubscription?: GSRsSubscriptionResolvers<ContextType>;
+  GTask?: GTaskResolvers<ContextType>;
+  GTaskAccessEntry?: GTaskAccessEntryResolvers<ContextType>;
   GTaskOrDeleted?: GTaskOrDeletedResolvers;
-  GTasksSubscription?: GTasksSubscriptionResolvers<Context>;
-  GTemplate?: GTemplateResolvers<Context>;
-  GTemplateAccessEntry?: GTemplateAccessEntryResolvers<Context>;
+  GTasksSubscription?: GTasksSubscriptionResolvers<ContextType>;
+  GTemplate?: GTemplateResolvers<ContextType>;
+  GTemplateAccessEntry?: GTemplateAccessEntryResolvers<ContextType>;
   GTemplateOrDeleted?: GTemplateOrDeletedResolvers;
-  GTemplatesSubscription?: GTemplatesSubscriptionResolvers<Context>;
-  GVBD?: GVBDResolvers<Context>;
-  GVDI?: GVDIResolvers<Context>;
-  GVDIAccessEntry?: GVDIAccessEntryResolvers<Context>;
+  GTemplatesSubscription?: GTemplatesSubscriptionResolvers<ContextType>;
+  GVBD?: GVBDResolvers<ContextType>;
+  GVDI?: GVDIResolvers<ContextType>;
+  GVDIAccessEntry?: GVDIAccessEntryResolvers<ContextType>;
   GVDIOrDeleted?: GVDIOrDeletedResolvers;
-  GVDIsSubscription?: GVDIsSubscriptionResolvers<Context>;
-  GVIF?: GVIFResolvers<Context>;
-  GVM?: GVMResolvers<Context>;
-  GVMAccessEntry?: GVMAccessEntryResolvers<Context>;
+  GVDIsSubscription?: GVDIsSubscriptionResolvers<ContextType>;
+  GVIF?: GVIFResolvers<ContextType>;
+  GVM?: GVMResolvers<ContextType>;
+  GVMAccessEntry?: GVMAccessEntryResolvers<ContextType>;
   GVMOrDeleted?: GVMOrDeletedResolvers;
-  GVMSnapshot?: GVMSnapshotResolvers<Context>;
-  GVMsSubscription?: GVMsSubscriptionResolvers<Context>;
+  GVMSnapshot?: GVMSnapshotResolvers<ContextType>;
+  GVMsSubscription?: GVMsSubscriptionResolvers<ContextType>;
   GXenObject?: GXenObjectResolvers;
-  InstallOSOptions?: InstallOSOptionsResolvers<Context>;
+  InstallOSOptions?: InstallOSOptionsResolvers<ContextType>;
   JSONString?: GraphQLScalarType;
-  Mutation?: MutationResolvers<Context>;
-  NetAccessSet?: NetAccessSetResolvers<Context>;
-  NetworkMutation?: NetworkMutationResolvers<Context>;
-  OSVersion?: OSVersionResolvers<Context>;
-  Platform?: PlatformResolvers<Context>;
-  PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers<Context>;
-  PlaybookRequirements?: PlaybookRequirementsResolvers<Context>;
-  PoolAccessSet?: PoolAccessSetResolvers<Context>;
-  PoolMutation?: PoolMutationResolvers<Context>;
-  PvDriversVersion?: PvDriversVersionResolvers<Context>;
-  Query?: QueryResolvers<Context>;
-  Quota?: QuotaResolvers<Context>;
-  QuotaMutation?: QuotaMutationResolvers<Context>;
-  SoftwareVersion?: SoftwareVersionResolvers<Context>;
-  SRAccessSet?: SRAccessSetResolvers<Context>;
-  SRDestroyMutation?: SRDestroyMutationResolvers<Context>;
-  SRMutation?: SRMutationResolvers<Context>;
-  Subscription?: SubscriptionResolvers<Context>;
-  TaskRemoveMutation?: TaskRemoveMutationResolvers<Context>;
-  TemplateAccessSet?: TemplateAccessSetResolvers<Context>;
-  TemplateCloneMutation?: TemplateCloneMutationResolvers<Context>;
-  TemplateDestroyMutation?: TemplateDestroyMutationResolvers<Context>;
-  TemplateMutation?: TemplateMutationResolvers<Context>;
-  User?: UserResolvers<Context>;
-  VDIAccessSet?: VDIAccessSetResolvers<Context>;
-  VDIDestroyMutation?: VDIDestroyMutationResolvers<Context>;
-  VDIMutation?: VDIMutationResolvers<Context>;
-  VMAccessSet?: VMAccessSetResolvers<Context>;
-  VMDestroyMutation?: VMDestroyMutationResolvers<Context>;
-  VMMutation?: VMMutationResolvers<Context>;
-  VMPauseMutation?: VMPauseMutationResolvers<Context>;
-  VMRebootMutation?: VMRebootMutationResolvers<Context>;
-  VMRevertMutation?: VMRevertMutationResolvers<Context>;
-  VMSelectedIDLists?: VMSelectedIDListsResolvers<Context>;
-  VMShutdownMutation?: VMShutdownMutationResolvers<Context>;
-  VMSnapshotMutation?: VMSnapshotMutationResolvers<Context>;
-  VMStartMutation?: VMStartMutationResolvers<Context>;
-  VMSuspendMutation?: VMSuspendMutationResolvers<Context>;
+  Mutation?: MutationResolvers<ContextType>;
+  NetAccessSet?: NetAccessSetResolvers<ContextType>;
+  NetworkMutation?: NetworkMutationResolvers<ContextType>;
+  OSVersion?: OSVersionResolvers<ContextType>;
+  Platform?: PlatformResolvers<ContextType>;
+  PlaybookLaunchMutation?: PlaybookLaunchMutationResolvers<ContextType>;
+  PlaybookRequirements?: PlaybookRequirementsResolvers<ContextType>;
+  PoolAccessSet?: PoolAccessSetResolvers<ContextType>;
+  PoolMutation?: PoolMutationResolvers<ContextType>;
+  PvDriversVersion?: PvDriversVersionResolvers<ContextType>;
+  Query?: QueryResolvers<ContextType>;
+  Quota?: QuotaResolvers<ContextType>;
+  QuotaMutation?: QuotaMutationResolvers<ContextType>;
+  SoftwareVersion?: SoftwareVersionResolvers<ContextType>;
+  SRAccessSet?: SRAccessSetResolvers<ContextType>;
+  SRDestroyMutation?: SRDestroyMutationResolvers<ContextType>;
+  SRMutation?: SRMutationResolvers<ContextType>;
+  Subscription?: SubscriptionResolvers<ContextType>;
+  TaskRemoveMutation?: TaskRemoveMutationResolvers<ContextType>;
+  TemplateAccessSet?: TemplateAccessSetResolvers<ContextType>;
+  TemplateCloneMutation?: TemplateCloneMutationResolvers<ContextType>;
+  TemplateDestroyMutation?: TemplateDestroyMutationResolvers<ContextType>;
+  TemplateMutation?: TemplateMutationResolvers<ContextType>;
+  User?: UserResolvers<ContextType>;
+  VDIAccessSet?: VDIAccessSetResolvers<ContextType>;
+  VDIDestroyMutation?: VDIDestroyMutationResolvers<ContextType>;
+  VDIMutation?: VDIMutationResolvers<ContextType>;
+  VMAccessSet?: VMAccessSetResolvers<ContextType>;
+  VMDestroyMutation?: VMDestroyMutationResolvers<ContextType>;
+  VMMutation?: VMMutationResolvers<ContextType>;
+  VMPauseMutation?: VMPauseMutationResolvers<ContextType>;
+  VMRebootMutation?: VMRebootMutationResolvers<ContextType>;
+  VMRevertMutation?: VMRevertMutationResolvers<ContextType>;
+  VMSelectedIDLists?: VMSelectedIDListsResolvers<ContextType>;
+  VMShutdownMutation?: VMShutdownMutationResolvers<ContextType>;
+  VMSnapshotDestroyMutation?: VMSnapshotDestroyMutationResolvers<ContextType>;
+  VMSnapshotMutation?: VMSnapshotMutationResolvers<ContextType>;
+  VMStartMutation?: VMStartMutationResolvers<ContextType>;
+  VMSuspendMutation?: VMSuspendMutationResolvers<ContextType>;
 };
 
 /**
  * @deprecated
  * Use "Resolvers" root object instead. If you wish to get "IResolvers", add "typesPrefix: I" to your config.
  */
-export type IResolvers<Context = any> = Resolvers<Context>;
+export type IResolvers<ContextType = any> = Resolvers<ContextType>;
 
 import gql from "graphql-tag";
+import * as ReactApollo from "react-apollo";
 import * as ReactApolloHooks from "./hooks/apollo";
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export const DeletedFragmentFragmentDoc = gql`
   fragment DeletedFragment on Deleted {
     ref
@@ -4664,6 +5450,14 @@ export const VMAccessFragmentFragmentDoc = gql`
   }
   ${AccessFragmentFragmentDoc}
 `;
+export const VMSnapshotFragmentFragmentDoc = gql`
+  fragment VMSnapshotFragment on GVMSnapshot {
+    ref
+    nameLabel
+    snapshotTime
+    myActions
+  }
+`;
 export const VMInfoFragmentFragmentDoc = gql`
   fragment VMInfoFragment on GVM {
     PVBootloader
@@ -4684,12 +5478,16 @@ export const VMInfoFragmentFragmentDoc = gql`
       ...VMAccessFragment
     }
     myActions
+    snapshots {
+      ...VMSnapshotFragment
+    }
   }
   ${ACLXenObjectFragmentFragmentDoc}
   ${VMSettingsFragmentFragmentDoc}
   ${VMVIFFragmentFragmentDoc}
   ${VMVBDFragmentFragmentDoc}
   ${VMAccessFragmentFragmentDoc}
+  ${VMSnapshotFragmentFragmentDoc}
 `;
 export const VMListVIFFragmentFragmentDoc = gql`
   fragment VMListVIFFragment on GVIF {
@@ -4742,6 +5540,10 @@ export const VMAccessSetMutationDocument = gql`
     }
   }
 `;
+export type VMAccessSetMutationMutationFn = ReactApollo.MutationFn<
+  VMAccessSetMutationMutation,
+  VMAccessSetMutationMutationVariables
+>;
 
 export function useVMAccessSetMutationMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4771,6 +5573,10 @@ export const TemplateAccessSetMutationDocument = gql`
     }
   }
 `;
+export type TemplateAccessSetMutationMutationFn = ReactApollo.MutationFn<
+  TemplateAccessSetMutationMutation,
+  TemplateAccessSetMutationMutationVariables
+>;
 
 export function useTemplateAccessSetMutationMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4795,6 +5601,10 @@ export const NetworkAccessSetMutationDocument = gql`
     }
   }
 `;
+export type NetworkAccessSetMutationMutationFn = ReactApollo.MutationFn<
+  NetworkAccessSetMutationMutation,
+  NetworkAccessSetMutationMutationVariables
+>;
 
 export function useNetworkAccessSetMutationMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4819,6 +5629,10 @@ export const SRAccessSetMutationDocument = gql`
     }
   }
 `;
+export type SRAccessSetMutationMutationFn = ReactApollo.MutationFn<
+  SRAccessSetMutationMutation,
+  SRAccessSetMutationMutationVariables
+>;
 
 export function useSRAccessSetMutationMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4843,6 +5657,10 @@ export const VDIAccessSetMutationDocument = gql`
     }
   }
 `;
+export type VDIAccessSetMutationMutationFn = ReactApollo.MutationFn<
+  VDIAccessSetMutationMutation,
+  VDIAccessSetMutationMutationVariables
+>;
 
 export function useVDIAccessSetMutationMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4867,6 +5685,10 @@ export const PoolAccessSetMutationDocument = gql`
     }
   }
 `;
+export type PoolAccessSetMutationMutationFn = ReactApollo.MutationFn<
+  PoolAccessSetMutationMutation,
+  PoolAccessSetMutationMutationVariables
+>;
 
 export function usePoolAccessSetMutationMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4886,6 +5708,10 @@ export const VDIAttachDocument = gql`
     }
   }
 `;
+export type VDIAttachMutationFn = ReactApollo.MutationFn<
+  VDIAttachMutation,
+  VDIAttachMutationVariables
+>;
 
 export function useVDIAttachMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4905,6 +5731,10 @@ export const VDIDetachDocument = gql`
     }
   }
 `;
+export type VDIDetachMutationFn = ReactApollo.MutationFn<
+  VDIDetachMutation,
+  VDIDetachMutationVariables
+>;
 
 export function useVDIDetachMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4924,6 +5754,10 @@ export const NetAttachDocument = gql`
     }
   }
 `;
+export type NetAttachMutationFn = ReactApollo.MutationFn<
+  NetAttachMutation,
+  NetAttachMutationVariables
+>;
 
 export function useNetAttachMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4943,6 +5777,10 @@ export const NetDetachDocument = gql`
     }
   }
 `;
+export type NetDetachMutationFn = ReactApollo.MutationFn<
+  NetDetachMutation,
+  NetDetachMutationVariables
+>;
 
 export function useNetDetachMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -4964,6 +5802,10 @@ export const TemplateCloneDocument = gql`
     }
   }
 `;
+export type TemplateCloneMutationFn = ReactApollo.MutationFn<
+  TemplateCloneMutation,
+  TemplateCloneMutationVariables
+>;
 
 export function useTemplateCloneMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5013,6 +5855,10 @@ export const createVmDocument = gql`
     }
   }
 `;
+export type createVmMutationFn = ReactApollo.MutationFn<
+  createVmMutation,
+  createVmMutationVariables
+>;
 
 export function usecreateVmMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5074,6 +5920,10 @@ export const DeleteTemplateDocument = gql`
     }
   }
 `;
+export type DeleteTemplateMutationFn = ReactApollo.MutationFn<
+  DeleteTemplateMutation,
+  DeleteTemplateMutationVariables
+>;
 
 export function useDeleteTemplateMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5093,6 +5943,10 @@ export const DeleteVDIDocument = gql`
     }
   }
 `;
+export type DeleteVDIMutationFn = ReactApollo.MutationFn<
+  DeleteVDIMutation,
+  DeleteVDIMutationVariables
+>;
 
 export function useDeleteVDIMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5112,6 +5966,10 @@ export const DeleteVMDocument = gql`
     }
   }
 `;
+export type DeleteVMMutationFn = ReactApollo.MutationFn<
+  DeleteVMMutation,
+  DeleteVMMutationVariables
+>;
 
 export function useDeleteVMMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5132,6 +5990,10 @@ export const NetworkEditOptionsDocument = gql`
     }
   }
 `;
+export type NetworkEditOptionsMutationFn = ReactApollo.MutationFn<
+  NetworkEditOptionsMutation,
+  NetworkEditOptionsMutationVariables
+>;
 
 export function useNetworkEditOptionsMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5152,6 +6014,10 @@ export const PoolEditOptionsDocument = gql`
     }
   }
 `;
+export type PoolEditOptionsMutationFn = ReactApollo.MutationFn<
+  PoolEditOptionsMutation,
+  PoolEditOptionsMutationVariables
+>;
 
 export function usePoolEditOptionsMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5172,6 +6038,10 @@ export const SREditOptionsDocument = gql`
     }
   }
 `;
+export type SREditOptionsMutationFn = ReactApollo.MutationFn<
+  SREditOptionsMutation,
+  SREditOptionsMutationVariables
+>;
 
 export function useSREditOptionsMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5192,6 +6062,10 @@ export const TemplateEditOptionsDocument = gql`
     }
   }
 `;
+export type TemplateEditOptionsMutationFn = ReactApollo.MutationFn<
+  TemplateEditOptionsMutation,
+  TemplateEditOptionsMutationVariables
+>;
 
 export function useTemplateEditOptionsMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5212,6 +6086,10 @@ export const VDIEditOptionsDocument = gql`
     }
   }
 `;
+export type VDIEditOptionsMutationFn = ReactApollo.MutationFn<
+  VDIEditOptionsMutation,
+  VDIEditOptionsMutationVariables
+>;
 
 export function useVDIEditOptionsMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5232,6 +6110,10 @@ export const VMEditOptionsDocument = gql`
     }
   }
 `;
+export type VMEditOptionsMutationFn = ReactApollo.MutationFn<
+  VMEditOptionsMutation,
+  VMEditOptionsMutationVariables
+>;
 
 export function useVMEditOptionsMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5386,6 +6268,10 @@ export const DiskAttachTableSelectDocument = gql`
       @client
   }
 `;
+export type DiskAttachTableSelectMutationFn = ReactApollo.MutationFn<
+  DiskAttachTableSelectMutation,
+  DiskAttachTableSelectMutationVariables
+>;
 
 export function useDiskAttachTableSelectMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5404,6 +6290,10 @@ export const DiskAttachTableSelectAllDocument = gql`
       @client
   }
 `;
+export type DiskAttachTableSelectAllMutationFn = ReactApollo.MutationFn<
+  DiskAttachTableSelectAllMutation,
+  DiskAttachTableSelectAllMutationVariables
+>;
 
 export function useDiskAttachTableSelectAllMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5437,6 +6327,10 @@ export const ISOTableSelectDocument = gql`
     selectedItems(tableId: ISOs, items: [$item], isSelect: $isSelect) @client
   }
 `;
+export type ISOTableSelectMutationFn = ReactApollo.MutationFn<
+  ISOTableSelectMutation,
+  ISOTableSelectMutationVariables
+>;
 
 export function useISOTableSelectMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5454,6 +6348,10 @@ export const ISOTableSelectAllDocument = gql`
     selectedItems(tableId: ISOs, items: $items, isSelect: $isSelect) @client
   }
 `;
+export type ISOTableSelectAllMutationFn = ReactApollo.MutationFn<
+  ISOTableSelectAllMutation,
+  ISOTableSelectAllMutationVariables
+>;
 
 export function useISOTableSelectAllMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5488,6 +6386,10 @@ export const NetAttachTableSelectDocument = gql`
       @client
   }
 `;
+export type NetAttachTableSelectMutationFn = ReactApollo.MutationFn<
+  NetAttachTableSelectMutation,
+  NetAttachTableSelectMutationVariables
+>;
 
 export function useNetAttachTableSelectMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5506,6 +6408,10 @@ export const NetAttachTableSelectAllDocument = gql`
       @client
   }
 `;
+export type NetAttachTableSelectAllMutationFn = ReactApollo.MutationFn<
+  NetAttachTableSelectAllMutation,
+  NetAttachTableSelectAllMutationVariables
+>;
 
 export function useNetAttachTableSelectAllMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5540,6 +6446,10 @@ export const NetworkTableSelectDocument = gql`
       @client
   }
 `;
+export type NetworkTableSelectMutationFn = ReactApollo.MutationFn<
+  NetworkTableSelectMutation,
+  NetworkTableSelectMutationVariables
+>;
 
 export function useNetworkTableSelectMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5557,6 +6467,10 @@ export const NetworkTableSelectAllDocument = gql`
     selectedItems(tableId: Networks, items: $items, isSelect: $isSelect) @client
   }
 `;
+export type NetworkTableSelectAllMutationFn = ReactApollo.MutationFn<
+  NetworkTableSelectAllMutation,
+  NetworkTableSelectAllMutationVariables
+>;
 
 export function useNetworkTableSelectAllMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5606,6 +6520,10 @@ export const SRTableSelectDocument = gql`
     selectedItems(tableId: SRs, items: [$item], isSelect: $isSelect) @client
   }
 `;
+export type SRTableSelectMutationFn = ReactApollo.MutationFn<
+  SRTableSelectMutation,
+  SRTableSelectMutationVariables
+>;
 
 export function useSRTableSelectMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5623,6 +6541,10 @@ export const SRTableSelectAllDocument = gql`
     selectedItems(tableId: SRs, items: $items, isSelect: $isSelect) @client
   }
 `;
+export type SRTableSelectAllMutationFn = ReactApollo.MutationFn<
+  SRTableSelectAllMutation,
+  SRTableSelectAllMutationVariables
+>;
 
 export function useSRTableSelectAllMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5656,6 +6578,10 @@ export const TaskTableSelectDocument = gql`
     selectedItems(tableId: Tasks, items: [$item], isSelect: $isSelect) @client
   }
 `;
+export type TaskTableSelectMutationFn = ReactApollo.MutationFn<
+  TaskTableSelectMutation,
+  TaskTableSelectMutationVariables
+>;
 
 export function useTaskTableSelectMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5673,6 +6599,10 @@ export const TaskTableSelectAllDocument = gql`
     selectedItems(tableId: Tasks, items: $items, isSelect: $isSelect) @client
   }
 `;
+export type TaskTableSelectAllMutationFn = ReactApollo.MutationFn<
+  TaskTableSelectAllMutation,
+  TaskTableSelectAllMutationVariables
+>;
 
 export function useTaskTableSelectAllMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5707,6 +6637,10 @@ export const TemplateTableSelectDocument = gql`
       @client
   }
 `;
+export type TemplateTableSelectMutationFn = ReactApollo.MutationFn<
+  TemplateTableSelectMutation,
+  TemplateTableSelectMutationVariables
+>;
 
 export function useTemplateTableSelectMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5725,6 +6659,10 @@ export const TemplateTableSelectAllDocument = gql`
       @client
   }
 `;
+export type TemplateTableSelectAllMutationFn = ReactApollo.MutationFn<
+  TemplateTableSelectAllMutation,
+  TemplateTableSelectAllMutationVariables
+>;
 
 export function useTemplateTableSelectAllMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5758,6 +6696,10 @@ export const VDITableSelectDocument = gql`
     selectedItems(tableId: VDIs, items: [$item], isSelect: $isSelect) @client
   }
 `;
+export type VDITableSelectMutationFn = ReactApollo.MutationFn<
+  VDITableSelectMutation,
+  VDITableSelectMutationVariables
+>;
 
 export function useVDITableSelectMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5775,6 +6717,10 @@ export const VDITableSelectAllDocument = gql`
     selectedItems(tableId: VDIs, items: $items, isSelect: $isSelect) @client
   }
 `;
+export type VDITableSelectAllMutationFn = ReactApollo.MutationFn<
+  VDITableSelectAllMutation,
+  VDITableSelectAllMutationVariables
+>;
 
 export function useVDITableSelectAllMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5808,6 +6754,10 @@ export const VmTableSelectDocument = gql`
     selectedItems(tableId: VMS, items: [$item], isSelect: $isSelect) @client
   }
 `;
+export type VmTableSelectMutationFn = ReactApollo.MutationFn<
+  VmTableSelectMutation,
+  VmTableSelectMutationVariables
+>;
 
 export function useVmTableSelectMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5825,6 +6775,10 @@ export const VmTableSelectAllDocument = gql`
     selectedItems(tableId: VMS, items: $items, isSelect: $isSelect) @client
   }
 `;
+export type VmTableSelectAllMutationFn = ReactApollo.MutationFn<
+  VmTableSelectAllMutation,
+  VmTableSelectAllMutationVariables
+>;
 
 export function useVmTableSelectAllMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5962,6 +6916,10 @@ export const PauseVMDocument = gql`
     }
   }
 `;
+export type PauseVMMutationFn = ReactApollo.MutationFn<
+  PauseVMMutation,
+  PauseVMMutationVariables
+>;
 
 export function usePauseVMMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -5981,6 +6939,10 @@ export const LaunchPlaybookDocument = gql`
     }
   }
 `;
+export type LaunchPlaybookMutationFn = ReactApollo.MutationFn<
+  LaunchPlaybookMutation,
+  LaunchPlaybookMutationVariables
+>;
 
 export function useLaunchPlaybookMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -6108,6 +7070,10 @@ export const QuotaSetDocument = gql`
     }
   }
 `;
+export type QuotaSetMutationFn = ReactApollo.MutationFn<
+  QuotaSetMutation,
+  QuotaSetMutationVariables
+>;
 
 export function useQuotaSetMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -6151,6 +7117,10 @@ export const RebootVmDocument = gql`
     }
   }
 `;
+export type RebootVmMutationFn = ReactApollo.MutationFn<
+  RebootVmMutation,
+  RebootVmMutationVariables
+>;
 
 export function useRebootVmMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -6163,6 +7133,31 @@ export function useRebootVmMutation(
     RebootVmMutationVariables
   >(RebootVmDocument, baseOptions);
 }
+export const RevertVMDocument = gql`
+  mutation RevertVM($ref: ID!) {
+    vmRevert(ref: $ref) {
+      granted
+      reason
+      taskId
+    }
+  }
+`;
+export type RevertVMMutationFn = ReactApollo.MutationFn<
+  RevertVMMutation,
+  RevertVMMutationVariables
+>;
+
+export function useRevertVMMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    RevertVMMutation,
+    RevertVMMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    RevertVMMutation,
+    RevertVMMutationVariables
+  >(RevertVMDocument, baseOptions);
+}
 export const ShutdownVMDocument = gql`
   mutation ShutdownVM($ref: ID!, $force: ShutdownForce) {
     vmShutdown(ref: $ref, force: $force) {
@@ -6171,6 +7166,10 @@ export const ShutdownVMDocument = gql`
     }
   }
 `;
+export type ShutdownVMMutationFn = ReactApollo.MutationFn<
+  ShutdownVMMutation,
+  ShutdownVMMutationVariables
+>;
 
 export function useShutdownVMMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -6183,8 +7182,8 @@ export function useShutdownVMMutation(
     ShutdownVMMutationVariables
   >(ShutdownVMDocument, baseOptions);
 }
-export const VMSnapshotDocument = gql`
-  mutation VMSnapshot($ref: ID!, $nameLabel: String!) {
+export const SnapshotVMDocument = gql`
+  mutation SnapshotVM($ref: ID!, $nameLabel: String!) {
     vmSnapshot(ref: $ref, nameLabel: $nameLabel) {
       granted
       reason
@@ -6192,17 +7191,46 @@ export const VMSnapshotDocument = gql`
     }
   }
 `;
+export type SnapshotVMMutationFn = ReactApollo.MutationFn<
+  SnapshotVMMutation,
+  SnapshotVMMutationVariables
+>;
 
-export function useVMSnapshotMutation(
+export function useSnapshotVMMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
-    VMSnapshotMutation,
-    VMSnapshotMutationVariables
+    SnapshotVMMutation,
+    SnapshotVMMutationVariables
   >
 ) {
   return ReactApolloHooks.useMutation<
-    VMSnapshotMutation,
-    VMSnapshotMutationVariables
-  >(VMSnapshotDocument, baseOptions);
+    SnapshotVMMutation,
+    SnapshotVMMutationVariables
+  >(SnapshotVMDocument, baseOptions);
+}
+export const DestroyVMSnapshotDocument = gql`
+  mutation DestroyVMSnapshot($ref: ID!) {
+    vmSnapshotDestroy(ref: $ref) {
+      granted
+      reason
+      taskId
+    }
+  }
+`;
+export type DestroyVMSnapshotMutationFn = ReactApollo.MutationFn<
+  DestroyVMSnapshotMutation,
+  DestroyVMSnapshotMutationVariables
+>;
+
+export function useDestroyVMSnapshotMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    DestroyVMSnapshotMutation,
+    DestroyVMSnapshotMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    DestroyVMSnapshotMutation,
+    DestroyVMSnapshotMutationVariables
+  >(DestroyVMSnapshotDocument, baseOptions);
 }
 export const SRInfoDocument = gql`
   query SRInfo($ref: ID!) {
@@ -6292,6 +7320,10 @@ export const StartVMDocument = gql`
     }
   }
 `;
+export type StartVMMutationFn = ReactApollo.MutationFn<
+  StartVMMutation,
+  StartVMMutationVariables
+>;
 
 export function useStartVMMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -6330,6 +7362,10 @@ export const SuspendVMDocument = gql`
     }
   }
 `;
+export type SuspendVMMutationFn = ReactApollo.MutationFn<
+  SuspendVMMutation,
+  SuspendVMMutationVariables
+>;
 
 export function useSuspendVMMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<
@@ -6430,6 +7466,10 @@ export const TaskDeleteDocument = gql`
     }
   }
 `;
+export type TaskDeleteMutationFn = ReactApollo.MutationFn<
+  TaskDeleteMutation,
+  TaskDeleteMutationVariables
+>;
 
 export function useTaskDeleteMutation(
   baseOptions?: ReactApolloHooks.MutationHookOptions<

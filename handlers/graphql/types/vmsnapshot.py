@@ -1,9 +1,10 @@
 import graphene
 
+from handlers.graphql.action_deserializers.abstractvm_deserializer import AbstractVMDeserializer
 from handlers.graphql.interfaces.abstractvm import GAbstractVM
 from handlers.graphql.interfaces.aclxenobject import GAclXenObject
 from handlers.graphql.interfaces.quotaobject import GQuotaObject
-from handlers.graphql.resolvers.myactions import resolve_owner
+from handlers.graphql.resolvers.myactions import resolve_owner, resolve_myactions
 from handlers.graphql.resolvers.vm import vmType
 from handlers.graphql.types.base.gxenobjecttype import GXenObjectType
 from handlers.graphql.types.vbd import GVBD
@@ -25,3 +26,8 @@ class GVMSnapshot(GXenObjectType):
 
     snapshot_time = graphene.Field(graphene.DateTime, required=True)
     snapshot_of = graphene.Field(vmType, required=True, resolver=resolve_one())
+
+    @staticmethod
+    def resolve_my_actions(root, info, *args, **kwargs):
+        return resolve_myactions(AbstractVMDeserializer(root, VMActions))(root, info, *args, **kwargs)
+

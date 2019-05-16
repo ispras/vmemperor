@@ -1,5 +1,13 @@
-mutation VMSnapshot ($ref: ID!, $nameLabel: String!) {
+mutation SnapshotVM ($ref: ID!, $nameLabel: String!) {
   vmSnapshot(ref: $ref, nameLabel: $nameLabel) {
+    granted
+    reason
+    taskId
+  }
+}
+
+mutation DestroyVMSnapshot ($ref: ID!) {
+  vmSnapshotDestroy(ref: $ref) {
     granted
     reason
     taskId

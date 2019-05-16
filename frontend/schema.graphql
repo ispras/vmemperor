@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Tue May 14 15:49:12 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig" at Wed May 15 17:44:49 MSK 2019. Do not edit manually.
 
 schema {
   query: Query
@@ -676,6 +676,8 @@ type Mutation {
   ): VMShutdownMutation
   "Make a snapshot"
   vmSnapshot(nameLabel: String!, ref: ID!): VMSnapshotMutation
+  "Destroy a VM Snapshot"
+  vmSnapshotDestroy(ref: ID!): VMSnapshotDestroyMutation
   "Start VM"
   vmStart(options: VMStartInput, ref: ID!): VMStartMutation
   "If VM is Running, suspend VM. If Suspended, resume VM"
@@ -969,10 +971,10 @@ type VMRebootMutation {
 }
 
 type VMRevertMutation {
-  "Shows if access to delete is granted"
+  "Shows if access to destroy is granted"
   granted: Boolean!
   reason: String
-  "Deleting task ID"
+  "Task ID"
   taskId: ID
 }
 
@@ -980,6 +982,14 @@ type VMShutdownMutation {
   "Shows if access to shutdown is granted"
   granted: Boolean!
   "Shutdown task ID"
+  taskId: ID
+}
+
+type VMSnapshotDestroyMutation {
+  "Shows if access to destroy is granted"
+  granted: Boolean!
+  reason: String
+  "Task ID"
   taskId: ID
 }
 

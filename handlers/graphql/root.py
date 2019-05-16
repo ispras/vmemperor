@@ -14,7 +14,7 @@ from handlers.graphql.mutations.quota import QuotaMutation
 from handlers.graphql.mutations.task import TaskRemoveMutation
 from handlers.graphql.mutations.vm import VMDestroyMutation, VMSuspendMutation, VMPauseMutation, VMRebootMutation, \
     VMShutdownMutation, VMStartMutation, VMMutation, VMSnapshotMutation
-from handlers.graphql.mutations.vmsnapshot import VMRevertMutation
+from handlers.graphql.mutations.vmsnapshot import VMRevertMutation, VMSnapshotDestroyMutation
 from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.resolvers.quota import resolve_quotas, resolve_quota
 from handlers.graphql.resolvers.task import resolve_tasks
@@ -117,6 +117,8 @@ class Mutation(ObjectType):
     vm_snapshot = VMSnapshotMutation.Field(description="Make a snapshot")
 
     vm_revert = VMRevertMutation.Field(description="Restore VM state from a snapshot")
+    vm_snapshot_destroy = VMSnapshotDestroyMutation.Field(description="Destroy a VM Snapshot")
+
     vm_delete = VMDestroyMutation.Field(description="Delete a Halted VM")
     vm_access_set = VMAccessSet.Field(description="Set VM access rights")
 

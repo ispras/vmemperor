@@ -32,6 +32,13 @@ fragment VMVBDFragment on GVBD {
   }
 }
 
+fragment VMSnapshotFragment on GVMSnapshot {
+  ref
+  nameLabel
+  snapshotTime
+  myActions
+}
+
 fragment VMAccessFragment on GVMAccessEntry {
   ...AccessFragment
   actions
@@ -64,6 +71,9 @@ fragment VMInfoFragment on GVM {
     ...VMAccessFragment
   }
   myActions
+  snapshots {
+    ...VMSnapshotFragment
+  }
 }
 
 query VMInfo ($ref: ID!) {

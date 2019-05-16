@@ -1,18 +1,29 @@
-import {useVMSnapshotMutation, VMActions, VMInfoFragmentFragment} from "../../../generated-models";
+import {
+  useSnapshotVMMutation,
+  VMActions,
+  VMInfoFragmentFragment,
+  VMSnapshotFragmentFragment, VMSnapshotFragmentFragmentDoc
+} from "../../../generated-models";
 import * as React from "react";
-import {ChangeEventHandler, Fragment, MouseEventHandler, useCallback, useState} from "react";
+import {
+  ChangeEventHandler,
+  Fragment,
+  MouseEventHandler,
+  useState
+} from "react";
 import {Button, CardFooter, Input, Row} from "reactstrap";
 import Col from "reactstrap/lib/Col";
 import FullHeightCard from "../../FullHeightCard";
 import CardBody from "reactstrap/lib/CardBody";
 import CardTitle from "reactstrap/lib/CardTitle";
-import {showTaskNotification} from "../../Toast/task";
-import {useApolloClient} from "react-apollo-hooks";
+import {SnapshotList} from "./snapshotList";
+
 
 interface Props {
   vm: VMInfoFragmentFragment
 
 }
+
 
 export const Snapshots: React.FC<Props> = ({vm}) => {
 
@@ -21,8 +32,8 @@ export const Snapshots: React.FC<Props> = ({vm}) => {
     setNameLabel(e.target.value);
   };
 
-  const snapshot = useVMSnapshotMutation();
-  const client = useApolloClient();
+  const snapshot = useSnapshotVMMutation();
+  
   const onCreateSnapshot: MouseEventHandler<HTMLButtonElement> = async (e) => {
     e.preventDefault();
 
@@ -69,6 +80,9 @@ export const Snapshots: React.FC<Props> = ({vm}) => {
           </Col>
         </Row>
       )}
+      <Row>
+        <SnapshotList vm={vm}/>
+      </Row>
     </Fragment>
   )
 };

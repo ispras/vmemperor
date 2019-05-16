@@ -41,13 +41,13 @@ import {
 import {
   readCacheObject,
   selectedForSetActionReducer,
-  SelectedForSetActionState
+  SelectedForSetActionState, SelectedForTrashState
 } from "../../utils/componentStateReducers";
 import {buttonTitle} from "../../utils/buttonTitle";
 import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
 import {_readVM} from "./tools";
 import {uptimeFormatter, VIFsFormatter} from "./formatters";
-import {showTaskErrorNotification, showTaskNotification} from "../../components/Toast/task";
+import {showTaskNotification} from "../../components/Toast/task";
 
 
 type VMColumnType = ColumnType<VMListFragmentFragment>;
@@ -99,10 +99,9 @@ function rowClasses(row: VMListFragmentFragment, rowIndex) {
   }
 }
 
-interface State extends SelectedForSetActionState {
+interface State extends SelectedForSetActionState, SelectedForTrashState {
   selectedForStart: Set<string>;
   selectedForStop: Set<string>;
-  selectedForTrash: Set<string>;
   selectedForPause: Set<string>;
   selectedForSuspend: Set<string>;
 }
