@@ -87,8 +87,6 @@ class EventLoop(Loggable):
             # log = self.create_additional_log('AccessMonitor')
             log = self.log
             with conn:
-                table_list = re.db.table_list().run()
-
                 class_list = list(db_classes.CREATE_DB_FOR_CLASSES_WITH_ACL)
                 query = re.db.table(class_list[0].db_table_name).pluck('ref', 'access') \
                 .merge({'table': class_list[0].db_table_name}).changes(include_initial=True, include_types=True)

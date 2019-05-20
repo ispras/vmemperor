@@ -1,4 +1,4 @@
-# This file was generated based on ".graphqlconfig" at Wed May 15 17:44:49 MSK 2019. Do not edit manually.
+# This file was generated based on ".graphqlconfig". Do not edit manually.
 
 schema {
   query: Query
@@ -751,6 +751,8 @@ type Query {
   groups: [User]!
   host(ref: ID!): GHost
   hosts: [GHost]!
+  "ISO VDIs available for using as install ISO images"
+  isosForInstall: [GVDI]
   "Information about a single network"
   network(ref: ID!): GNetwork
   "All Networks available to user"

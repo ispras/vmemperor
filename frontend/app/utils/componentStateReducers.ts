@@ -37,7 +37,7 @@ export function selectedForSetActionReducer(type: ReducerActionType, info: Selec
         ? state.selectedForSetAction.add(info.ref)
         : state.selectedForSetAction.remove(info.ref)
     };
-  } else
+  } else if (type == "Remove")
     return {
       selectedForSetAction: state.selectedForSetAction.remove(info.ref)
     };
@@ -58,7 +58,7 @@ export function selectedForTrashReducer<ActionType>(destroyAction: ActionType, t
         ? state.selectedForTrash.add(info.ref)
         : state.selectedForTrash.remove(info.ref)
     };
-  else {
+  else if (type == "Remove") {
     return {
       selectedForTrash: state.selectedForTrash.remove(info.ref)
     }

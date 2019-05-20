@@ -1022,6 +1022,8 @@ export type Query = {
   vdis: Array<Maybe<GVDI>>;
   /** Information about a single virtual disk image (hard disk) */
   vdi?: Maybe<GVDI>;
+  /** ISO VDIs available for using as install ISO images */
+  isosForInstall?: Maybe<Array<Maybe<GVDI>>>;
   /** List of Ansible-powered playbooks */
   playbooks: Array<Maybe<GPlaybook>>;
   /** Information about Ansible-powered playbook */
@@ -2020,20 +2022,14 @@ export type HostListUpdateSubscription = { __typename?: "Subscription" } & {
 export type ISOCreateVMListFragmentFragment = { __typename?: "GVDI" } & Pick<
   GVDI,
   "ref" | "nameLabel"
-> & {
-    SR: Maybe<
-      { __typename?: "GSR" } & Pick<GSR, "isToolsSr"> & {
-          PBDs: Array<
-            Maybe<{ __typename?: "GPBD" } & Pick<GPBD, "currentlyAttached">>
-          >;
-        }
-    >;
-  };
+>;
 
 export type ISOSCreateVMListQueryVariables = {};
 
 export type ISOSCreateVMListQuery = { __typename?: "Query" } & {
-  vdis: Array<Maybe<{ __typename?: "GVDI" } & ISOCreateVMListFragmentFragment>>;
+  isosForInstall: Maybe<
+    Array<Maybe<{ __typename?: "GVDI" } & Pick<GVDI, "ref" | "nameLabel">>>
+  >;
 };
 
 export type ISOListQueryVariables = {};
@@ -4571,6 +4567,11 @@ export type QueryResolvers<
     ContextType,
     QueryvdiArgs
   >;
+  isosForInstall?: Resolver<
+    Maybe<Array<Maybe<ResolversTypes["GVDI"]>>>,
+    ParentType,
+    ContextType
+  >;
   playbooks?: Resolver<
     Array<Maybe<ResolversTypes["GPlaybook"]>>,
     ParentType,
@@ -5162,12 +5163,6 @@ export const ISOCreateVMListFragmentFragmentDoc = gql`
   fragment ISOCreateVMListFragment on GVDI {
     ref
     nameLabel
-    SR {
-      isToolsSr
-      PBDs {
-        currentlyAttached
-      }
-    }
   }
 `;
 export const ACLXenObjectFragmentFragmentDoc = gql`
@@ -6187,11 +6182,11 @@ export function useHostListUpdateSubscription(
 }
 export const ISOSCreateVMListDocument = gql`
   query ISOSCreateVMList {
-    vdis(onlyIsos: true) {
-      ...ISOCreateVMListFragment
+    isosForInstall {
+      ref
+      nameLabel
     }
   }
-  ${ISOCreateVMListFragmentFragmentDoc}
 `;
 
 export function useISOSCreateVMListQuery(

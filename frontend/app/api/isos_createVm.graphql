@@ -1,17 +1,12 @@
 fragment ISOCreateVMListFragment on GVDI {
   ref
   nameLabel
-  SR {
-    isToolsSr
-    PBDs {
-      currentlyAttached
-    }
-  }
 }
 
 
 query ISOSCreateVMList {
-  vdis(onlyIsos: true) {
-    ...ISOCreateVMListFragment
+  isosForInstall {
+    ref
+    nameLabel
   }
 }

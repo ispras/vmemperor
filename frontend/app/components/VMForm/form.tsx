@@ -69,11 +69,9 @@ const VMForm: React.FC<Props> = ({taskId, ...props}) => {
   const {data: {networks}} = useNetworkListQuery();
   const networkOptions = useReactSelectFromRecord(networks);
 
-  const {data: isoData} = useISOSCreateVMListQuery();
-  const isos = useMemo(() => isoData.vdis.filter(iso =>
-    !iso.SR.isToolsSr && !iso.SR.PBDs.every(pbd => !pbd.currentlyAttached)),
-    [isoData]);
-  const isoOptions = useReactSelectFromRecord(isos);
+  const {data: {isosForInstall}} = useISOSCreateVMListQuery();
+
+  const isoOptions = useReactSelectFromRecord(isosForInstall);
 
   console.log("Errors:", props.errors);
   console.log("Values:", props.values);

@@ -28,7 +28,7 @@ def resolve_quota(root, info, user):
             if user_object:
                 result = {key: None for key in Quota._meta.fields.keys()}
                 result.update({
-                    "user": user_object
+                    "user_id": user
                 })
                 return result
             else:

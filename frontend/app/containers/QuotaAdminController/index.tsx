@@ -69,8 +69,8 @@ export const QuotaAdminController: React.FC<RouteComponentProps<Args>> =
       }, [userId]
     );
 
-    const onUserChanged = async (user: User) => {
-      history.push(`/quota/${user.id}`);
+    const onUserChanged = (userId: string) => {
+      history.push(`/quota/${userId}`);
     };
 
     const setQuota = useQuotaSetMutation();

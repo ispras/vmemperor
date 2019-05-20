@@ -18,7 +18,7 @@ from handlers.graphql.mutations.vmsnapshot import VMRevertMutation, VMSnapshotDe
 from handlers.graphql.resolvers.console import resolve_console
 from handlers.graphql.resolvers.quota import resolve_quotas, resolve_quota
 from handlers.graphql.resolvers.task import resolve_tasks
-from handlers.graphql.resolvers.vdi import resolve_vdis
+from handlers.graphql.resolvers.vdi import resolve_vdis, resolve_isos_for_install
 from handlers.graphql.mutations.sr import SRMutation, SRDestroyMutation
 from handlers.graphql.mutations.vdi import VDIMutation, VDIDestroyMutation
 from handlers.graphql.types.vmsnapshot import GVMSnapshot
@@ -71,6 +71,8 @@ class Query(ObjectType):
 
     vdis = graphene.Field(graphene.List(GVDI), only_isos=graphene.Boolean(description="True - print only ISO images; False - print everything but ISO images; null - print everything"), required=True, resolver=VDI.resolve_all(), description="All Virtual Disk Images (hard disks), available for user")
     vdi = graphene.Field(GVDI, ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a single virtual disk image (hard disk)")
+
+    isos_for_install = graphene.Field(graphene.List(GVDI), description="ISO VDIs available for using as install ISO images", resolver=resolve_isos_for_install)
 
     playbooks = graphene.List(GPlaybook,  required=True, resolver=resolve_playbooks, description="List of Ansible-powered playbooks")
     playbook = graphene.Field(GPlaybook, id=graphene.ID(), resolver=resolve_playbook,

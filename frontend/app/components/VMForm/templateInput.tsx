@@ -13,9 +13,14 @@ import {
 } from "../../generated-models";
 import {removeTypename} from "../../utils/remove-typename";
 
-export function TemplateInputField(props: SelectFieldProps<Values>) {
+interface Option {
+  value: string;
+  label: string;
+}
+
+export function TemplateInputField(props: SelectFieldProps<Option, Values>) {
   const client = useApolloClient();
-  const afterChange: SelectFieldProps<Values>['afterChange'] = (newValue: string) => {
+  const afterChange: SelectFieldProps<Option, Values>['afterChange'] = (newValue: string) => {
     /* Sets memory, cpu parameters to those of template if user changes template settings */
     if (!props.form.touched.vmOptions || Object.entries(props.form.touched.vmOptions).filter(([key, value]) => {
       console.log("Key ", key, "touched: ", value);
@@ -32,6 +37,10 @@ export function TemplateInputField(props: SelectFieldProps<Values>) {
           let vmOptions = removeTypename(ret.data.template) as Values['vmOptions'];
           if (!vmOptions.platform.coresPerSocket)
             vmOptions.platform.coresPerSocket = 1;
+          if (props.form.values.vmOptions.mainOwner)
+            vmOptions.mainOwner = props.form.values.vmOptions.mainOwner;
+          else
+            vmOptions.mainOwner = null;
           props.form.setFieldValue("vmOptions", vmOptions, false);
           props.form.setFieldTouched("vmOptions", false, false);
         },

@@ -26,7 +26,7 @@ class Attachable:
         '''
         #vm.check_access('attach') #done by vmemperor
 
-        vm_vbds = vm.get_VBDs()
+        vm_vbds = vm._get_VBDs() # no cached version
         my_vbds = self.get_VBDs()
 
         userdevice_max = -1

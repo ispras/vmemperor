@@ -125,11 +125,13 @@ export default function ({history}: RouteComponentProps) {
 
   const client = useApolloClient();
   const readVM = _readVM(client);
+  const tableSelection = useVmTableSelectionQuery();
   const reducer: VMListReducer = (state, action) => {
-
 
     switch (action.type) {
       case "Change":
+        if (!tableSelection.data.selectedItems.includes(action.ref))
+          return state; // Ignore changes if item is not in selection
       case "Add":
         //Read fragment associated with this VM in the cache
         const info = readVM(action.ref);

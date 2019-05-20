@@ -1,5 +1,5 @@
 import {Field, FormikProps} from "formik";
-import {Quota, QuotaSetMutationVariables} from "../../generated-models";
+import {Quota, QuotaSetMutationVariables, useCurrentUserQuery} from "../../generated-models";
 import * as React from "react";
 
 import {ApplyResetForm} from "../../components/ApplyResetForm/form";
@@ -9,6 +9,8 @@ import {withCheckBoxOption} from "../../components/OptionalFormComponent";
 import {InputBase} from "../../components/Input/inputBase";
 import {AbstractMemoryInput, Unit} from "../../components/AbstractSettingsForm/abstractMemoryInput";
 import {Fragment} from "react";
+import {UserInputField} from "../../components/MainOwnerForm/userInput";
+import {useCurrentUserAndGroups} from "../../hooks/user";
 
 interface FormProps extends FormikProps<Quota> {
   onUserChanged: SelectUserForFormProps['onAfterChange']
@@ -20,8 +22,14 @@ const NumberInput = withCheckBoxOption(InputBase);
 export const QuotaAdminControllerForm: React.FunctionComponent<FormProps> =
   ({onUserChanged, ...props}) => {
     console.log("Quota form values: ", props);
+    const {isValid} = props;
+    const {data: {currentUser}} = useCurrentUserQuery();
+    const myProps = {
+      ...props,
+      isValid: currentUser.isAdmin ? isValid : false
+    };
     return (
-      <ApplyResetForm {...props}>
+      <ApplyResetForm {...myProps}>
         <h4>Quota options</h4>
         <Field
           name="user"

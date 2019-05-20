@@ -184,12 +184,13 @@ class VM (AbstractVM):
                 self.log.warning(f"os_kind specified as {template.get_distro()}, but no network specified. The OS won't install automatically")
 
         set_hvm_after_install = False
-        os = self.os_detect(device, install_params)
-        if os:
-            self.log.debug(f"OS successfully detected as {os.get_distro()}, proceeding with auto installation mode")
-            if os.get_release() in os.HVM_RELEASES:
-                set_hvm_after_install = True
-                self.log.debug("fVM mode will automatically be switched to HVM after reboot")
+        if not iso:
+            os = self.os_detect(device, install_params)
+            if os:
+                self.log.debug(f"OS successfully detected as {os.get_distro()}, proceeding with auto installation mode")
+                if os.get_release() in os.HVM_RELEASES:
+                    set_hvm_after_install = True
+                    self.log.debug("fVM mode will automatically be switched to HVM after reboot")
 
         task.set_status(progress=0.4)
 
@@ -302,6 +303,7 @@ class VM (AbstractVM):
         :return an object with detected os
         '''
 
+        assert install_params
         if not hasattr(self, 'install'):
             raise RuntimeError("Not an installation process")
         other_config = self.get_other_config()
