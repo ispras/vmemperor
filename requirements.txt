@@ -19,3 +19,4 @@ serflag
 jsonpath_rw
 ldap3
 tailer
+dictdiffer
