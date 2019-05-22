@@ -181,8 +181,8 @@ class QueryBuilder:
         xenobject_type = self.fields['_xenobject_type_']
         if not self.authenticator or not issubclass(xenobject_type, ACLXenObject) or self.authenticator.is_admin():
             query = [f"re.db.table('{xenobject_type.db_table_name}')"]
-            if isinstance(self.id, str):
-                query.append(f".get('{self.id}')")
+            if isinstance(self.id, str): # One item
+                query.append(f".get_all('{self.id}')")
                 query.append(add_my_actions_for_admin(xenobject_type))
             elif isinstance(self.id, Collection):
                 query.append(".get_all(")
@@ -210,7 +210,7 @@ class QueryBuilder:
 
     def run_query(self, connection=None):
         if isinstance(self.id, str):
-            query = self.query
+            query = self.query.coerce_to('array')[0]
         else:
             query = self.query.coerce_to('array')
 
