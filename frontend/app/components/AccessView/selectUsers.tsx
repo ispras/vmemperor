@@ -17,7 +17,7 @@ import {AsyncProps} from "react-select/lib/Async";
 export type SelectUsersProps = Omit<AsyncProps<User> & _ReactSelectProps<User>, "getOptionValue" | "getOptionLabel" | "loadOptions" | "minInput">;
 
 
-const SelectUsers: React.FunctionComponent<SelectUsersProps> = (props) => {
+const SelectUsers: React.FunctionComponent<SelectUsersProps> = ({placeholder, ...props}) => {
 
   const client = useApolloClient();
   const loadUsers = async (filterQuery) => {
@@ -36,7 +36,9 @@ const SelectUsers: React.FunctionComponent<SelectUsersProps> = (props) => {
 
   };
 
-
+  if (!placeholder) {
+    placeholder = "Start typing user name or full name..."
+  }
   const getOptionValue = (option: User) => option.id;
 
   return (
@@ -46,6 +48,7 @@ const SelectUsers: React.FunctionComponent<SelectUsersProps> = (props) => {
         getOptionLabel={(option: User) => `${option.name} (${option.username})`}
         loadOptions={loadUsers}
         minInput={2}
+        placeholder={placeholder}
         {...props}
       />
     </Fragment>

@@ -61,6 +61,7 @@ export function* loginFlow() {
 
       try { //context call
         yield call([authAgent, authAgent.auth], login, password);
+        window.location.reload();
       } catch (e) {
         console.log('login error!', e);
       }
