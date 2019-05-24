@@ -1,5 +1,6 @@
 import collections
 from collections import Mapping
+from http.client import CannotSendRequest
 
 from serflag import SerFlag
 
@@ -18,6 +19,9 @@ from xenadapter.xenobjectmeta import XenObjectMeta
 from xentools.dict_deep_convert import dict_deep_convert
 from xentools.xenadapter import XenAdapter
 from typing import Optional, Type, Collection
+
+from xentools.xenadapterpool import XenAdapterPool
+
 
 def set_subtype(field_name: str):
     def setter(input_dict: dict, obj: XenObject):
@@ -300,9 +304,6 @@ class XenObject(metaclass=XenObjectMeta):
             async_method = getattr(self.xen.api, 'Async')
             api = getattr(async_method, self.api_class)
             name = name[6:]
-            async_call = True
-        else:
-            async_call = False
 
         if name[0] == '_':
             name=name[1:]
@@ -310,7 +311,16 @@ class XenObject(metaclass=XenObjectMeta):
         def method (*args, **kwargs):
             args = [type(self).convert_dict(arg) for arg in args]
             try:
-                ret = attr(self.ref, *args, **kwargs)
+                while True:
+                    try:
+                        ret = attr(self.ref, *args, **kwargs)
+                    except CannotSendRequest as e:
+                        self.log.error(f"Cannot send request for {self.ref}: {str(e)}, trying again with a new XenAdapter")
+                        self.xen = XenAdapterPool().get()
+                        self.log = self.xen.log
+                        continue
+
+                    break
                 if isinstance(ret, dict):
                     ret = dict_deep_convert(ret)
 

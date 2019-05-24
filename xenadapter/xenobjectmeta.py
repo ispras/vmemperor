@@ -1,5 +1,6 @@
 import logging
 from collections import Mapping
+from http.client import CannotSendRequest
 
 import XenAPI
 from exc import XenAdapterAPIError, XenAdapterArgumentError
@@ -7,6 +8,7 @@ from handlers.graphql.utils.graphql_xenobject import assign_xenobject_type_for_g
 from rethinkdb_tools.helper import CHECK_ER
 from xentools.dict_deep_convert import dict_deep_convert
 import constants.re as re
+from xentools.xenadapterpool import XenAdapterPool
 
 
 class XenObjectMeta(type):
@@ -42,7 +44,15 @@ class XenObjectMeta(type):
                     async_method = getattr(xen.api, 'Async')
                     api = getattr(async_method, cls.api_class)
                     attr = getattr(api, name)
-                    ret = attr(*args, **kwargs)
+                    while True:
+                        try:
+                            ret = attr(*args, **kwargs)
+                        except CannotSendRequest as e:
+                            xen.log.error(
+                                f"Cannot send request for {cls.__name__}: {str(e)}, trying again with a new XenAdapter")
+                            xen = XenAdapterPool().get()
+                            continue
+                        break
                     return ret
 
                 except XenAPI.Failure as f:
