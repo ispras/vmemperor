@@ -92,8 +92,8 @@ class SqlAlchemyAuthenticator(BasicAuthenticator, metaclass=SqlAlchemyMeta):
     @classmethod
     def get_all_groups(cls,log=logging):
         return [
-            {"id": item.id,
-             "username": item.id, #no login into groups
+            {"id": str(item.id),
+             "username": str(item.id), #no login into groups
              "name": item.name
              }
             for item in  cls.session.query(Group.id, Group.name)]
@@ -101,7 +101,7 @@ class SqlAlchemyAuthenticator(BasicAuthenticator, metaclass=SqlAlchemyMeta):
     @classmethod
     def get_all_users(cls, log=logging):
         return [
-            {"id": item.id,
+            {"id": str(item.id),
              "username": item.name, #name is a login name
              "name": item.name # you can have an additional field for full name, for example
              }
