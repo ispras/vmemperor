@@ -97,10 +97,10 @@ class CreateVM(graphene.Mutation):
 
     @staticmethod
     @with_connection
-    @with_authentication(access_class=Template, access_action=Template.Actions.clone, id_field="template")
+    @with_authentication(access_class=Template, access_action=Template.Actions.create_vm, id_field="template")
     @with_authentication(access_class=VDI, access_action=VDI.Actions.plug, id_field="iso")
     @with_authentication(access_class=Network, access_action=Network.Actions.attaching, id_field="network")
-    @return_if_access_is_not_granted([("Template", "template", Template.Actions.clone),
+    @return_if_access_is_not_granted([("Template", "template", Template.Actions.create_vm),
                                       ("VDI", "iso", VDI.Actions.plug),
                                       ("Network", "network", Network.Actions.attaching)])
     def mutate(root, info,  *args, **kwargs):
