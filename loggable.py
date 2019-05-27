@@ -15,7 +15,7 @@ class Loggable:
         self.log.setLevel(logging.DEBUG)
         if self.log.hasHandlers():
             for handler in self.log.handlers:
-                if type(handler) == logging.FileHandler and not hasattr(self, 'fileHandler'):
+                if type(handler) in (logging.FileHandler, logging.StreamHandler) and not hasattr(self, 'fileHandler'):
                     self.fileHandler = handler
             return
 
