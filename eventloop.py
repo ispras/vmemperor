@@ -16,7 +16,7 @@ from rethinkdb_tools import db_classes
 from rethinkdb_tools.helper import CHECK_ER
 from xenadapter.event_queue import EventQueue
 from xentools.xenadapterpool import XenAdapterPool
-
+import tornado.ioloop
 
 class EventLoop(Loggable):
     '''
@@ -77,8 +77,7 @@ class EventLoop(Loggable):
         except Exception as e:
             self.log.error(f"Exception in user_table: {e}")
             traceback.print_exc()
-            # tornado.ioloop.IOLoop.current().run_in_executor(self.executor, self.do_access_monitor)
-            raise e
+            tornado.ioloop.IOLoop.current().run_in_executor(self.executor, self.do_user_table)
 
     def do_access_monitor(self):
         try:
@@ -158,8 +157,7 @@ class EventLoop(Loggable):
         except Exception as e:
             self.log.error(f"Exception in access_monitor: {e}")
             capture_exception(e)
-            # tornado.ioloop.IOLoop.current().run_in_executor(self.executor, self.do_access_monitor)
-            raise e
+            tornado.ioloop.IOLoop.current().run_in_executor(self.executor, self.do_access_monitor)
 
     def load_playbooks(self):
         '''
