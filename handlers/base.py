@@ -13,7 +13,7 @@ from tornado.websocket import WebSocketHandler
 from authentication import BasicAuthenticator
 from constants import first_batch_of_events
 from loggable import Loggable
-
+import gc
 
 class HandlerMethods(Loggable):
     def init_executor(self, executor):
@@ -31,6 +31,8 @@ class HandlerMethods(Loggable):
     def on_finish(self):
         self.log.debug(f"Finishing request: {self.request}")
         XenAdapterPool().unget(self.xen)
+
+        gc.collect()
 
     def get_current_user(self):
         return self.get_secure_cookie('user')
