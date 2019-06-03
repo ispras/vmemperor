@@ -90,9 +90,6 @@ class SnapshotHandler(tornado.web.RequestHandler):
     def get(self):
         global s1,s2
         trace = self.get_argument('trace')
-
-
-
         if trace == 's2':
             s2=tracemalloc.take_snapshot()
             print("Begin memory comparison block")
