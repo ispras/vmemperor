@@ -76,7 +76,7 @@ class EventLoop(Loggable):
 
         except Exception as e:
             self.log.error(f"Exception in user_table: {e}")
-            traceback.print_exc()
+            capture_exception(e)
             tornado.ioloop.IOLoop.current().run_in_executor(self.executor, self.do_user_table)
 
     def do_access_monitor(self):
