@@ -1,4 +1,7 @@
 import traceback
+
+from sentry_sdk import capture_exception
+
 from authentication import *
 import ldap3
 from ldap3.utils.conv import escape_bytes
@@ -166,8 +169,7 @@ class LDAPIspAuthenticator(BasicAuthenticator):
             if not conn.bind():
                 print_error("Connection not bound")
         except Exception as e:
-            print_error(str(e))
-            traceback.print_exc()
+            capture_exception(e)
 
 
         return conn
