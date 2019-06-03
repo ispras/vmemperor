@@ -10,7 +10,7 @@ from exc import AuthenticationPasswordException
 
 
 class LDAPIspAuthenticator(BasicAuthenticator):
-    SERVER_IP = '83.149.198.139'
+    SERVER_IP = '10.10.12.7'
     @classmethod
     def guid_to_search(cls, guid):
         return escape_bytes(uuid.UUID(guid).bytes_le)
