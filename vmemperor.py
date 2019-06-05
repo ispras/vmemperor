@@ -100,6 +100,14 @@ class SnapshotHandler(tornado.web.RequestHandler):
             s1=tracemalloc.take_snapshot()
             self.write({"status" : "initial snapshot taken"})
 
+class AuthCheckHandler(tornado.web.RequestHandler):
+    def get(self):
+        import pickle
+        cookie = self.get_secure_cookie('user')
+        user_auth = pickle.loads(cookie)
+        if not isinstance(user_auth, BasicAuthenticator):
+            self.set_status(401)
+
 
 
 def make_app(executor, auth_class=None, debug=False):
@@ -121,6 +129,7 @@ def make_app(executor, auth_class=None, debug=False):
 
     app = tornado.web.Application([
         (r"/snapshot", SnapshotHandler),
+        (r"/auth", AuthCheckHandler),
         (r"/login", AuthHandler, dict(pool_executor=executor, authenticator=auth_class)),
         (r"/logout", LogOut, dict(pool_executor=executor)),
         (constants.AUTOINSTALL_ROUTE + r'/([^/]+)', AutoInstall, dict(pool_executor=executor)),
