@@ -4,10 +4,23 @@ services:
     image: influxdb/influxdb
     networks:
       - influxdb
+    environment:
+      - INFLUXDB_DB=vmemperor
+
+  xenservertoinflux:
+    build: ./xenservertoinflux
+    volumes:
+      - ./configs/config.init:/app/xenservertoinflux/config.ini
+    networks:
+      - influxdb
+    depends_on:
+      - influxdb
+
   grafana:
     image: grafana/grafana
     depends_on:
       - influxdb
+      - xenservertoinflux
     volumes:
       - ./configs/grafana/provisioning/:/etc/grafana/provisioning
       - ./configs/grafana/public:/usr/share/grafana/public
@@ -24,7 +37,7 @@ services:
   vmemperor:
     build: .
     volumes:
-      - ./configs/login.ini:/app/login.ini
+      - ./configs/config.ini:/app/config.ini
       - ./keys:/root/.ssh
     ports:
       - 8889:8889

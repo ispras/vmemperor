@@ -1,8 +1,10 @@
 FROM ubuntu:18.04
 
-WORKDIR /app
 
-ADD . /app
+
+ADD backend /app
+ADD frontend /app/frontend
+WORKDIR /app
 
 ENV DOCKER True
 
@@ -16,11 +18,9 @@ RUN  apt-get update \
 &&  apt-get install -y ansible
 
 
-
-RUN pip install -r requirements.txt
-
-
 WORKDIR /rethinkdb
+ADD ./requirements.txt /rethinkdb/requirements.txt
+RUN pip install -r requirements.txt
 RUN git clone https://github.com/pashazz/rethinkdb-python.git
 
 WORKDIR /rethinkdb/rethinkdb-python
@@ -30,9 +30,8 @@ RUN git checkout set_loop_type && make prepare && pip install .
 RUN curl  https://deb.nodesource.com/setup_8.x | bash - && \
  apt-get install -y nodejs
 
-
+WORKDIR /app
 RUN ln -sf /dev/stdout nohup.out
-
 
 EXPOSE 3000 8889
 
@@ -42,6 +41,6 @@ RUN npm install -g pngquant-bin --allow-root  --unsafe-perm=true
 
 RUN npm install && npm run build:dll
 
-WORKDIR /app
-
+WORKDIR /
+ADD configs/start.sh ./start.sh
 CMD ./start.sh
