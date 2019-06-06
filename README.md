@@ -28,17 +28,13 @@ user_source_delay = 2 # How often VMEmperor asks external authenticator for user
       * `vmemperor_port` (Dockerfile assumes auto configuration of frontend and it uses default port)
       * `host` (Dockerfile assumes RethinkDB is running in the same Docker container)
 2. Pay attention to `ansible_pubkey` variable: its default value assumes that you mount `/root` directory with `.ssh/id_rsa` and `.ssh/id_rsa.pub` files in container. If you change this value, correct `docker run` command accordingly
-3. [Adapt your Ansible playbooks](https://github.com/pashazz/vmemperor/wiki/AnsiblePlaybookConfigFormat), see example in `ansible` folder. You may want to add them to Docker image or mount them as volume
-3. Create Docker image:
-```bash
-docker build -t vmemperor .
+3. [Adapt your Ansible playbooks](https://github.com/pashazz/vmemperor/wiki/AnsiblePlaybookConfigFormat), see example in `ansible` folder. They'll be built into a docker container. You may want to use them as volume - edit `docker-compose.yml`
+0. Generate SSH keys for access using Ansible:
 ```
-3. Run Docker image:
-```bash
-docker run -d  -v ~/.ssh:/root/.ssh -p 3000:3000 -p 8889:8889 vmemperor:latest
+ssh-keygen -f keys/id_rsa
 ```
-Warning: You must expose both frontend and API ports for remote desktop and post-installation to work.
-4. Open frontend at http://localhost:3000 (if no VMs are shown you probably should re-login)
+0. Run `docker-compose up`
+
 
 ## How to configure
   0. Ensure at least Python 3.7 on your host machine
@@ -63,4 +59,3 @@ Warning: You must expose both frontend and API ports for remote desktop and post
   0. Start VMEmperor with `python3 vmemperor.py`
   0. from `frontend` directory install dependencies with `npm install`
   0. run frontend with `npm run start`
-  

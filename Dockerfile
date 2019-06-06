@@ -19,7 +19,6 @@ RUN  apt-get update \
 
 RUN pip install -r requirements.txt
 
-RUN wget https://github.com/srh/rethinkdb/releases/download/v2.3.6.srh.1/rethinkdb_2.3.6.srh.1.0bionic_amd64.deb -O  rethinkdb.deb && gdebi --option=APT::Get::force-yes=1,APT::Get::Assume-Yes=1 -n rethinkdb.deb
 
 WORKDIR /rethinkdb
 RUN git clone https://github.com/pashazz/rethinkdb-python.git
@@ -31,11 +30,9 @@ RUN git checkout set_loop_type && make prepare && pip install .
 RUN curl  https://deb.nodesource.com/setup_8.x | bash - && \
  apt-get install -y nodejs
 
-RUN cp /etc/rethinkdb/default.conf.sample /etc/rethinkdb/instances.d/instance1.conf
 
 RUN ln -sf /dev/stdout nohup.out
 
-VOLUME /root login.ini
 
 EXPOSE 3000 8889
 
