@@ -181,15 +181,16 @@ def read_settings():
     define('log_file_name', group='log', default='vmemperor.log')
     define('ansible_pubkey', group='ansible', default='~/.ssh/id_rsa.pub')
     define('ansible_playbook', group='ansible', default='ansible-playbook')
-    define('ansible_dir', group='ansible', default='./ansible')
-    define('ansible_logs', group='ansible', default='./ansible_logs')
+    define('ansible_dir', group='ansible', default='../ansible')
+    define('ansible_logs', group='ansible', default='/var/log/vmemperor/ansible')
     define('ansible_networks', group='ansible', default='', multiple=True)
     define('graphql_error_log_file', group='graphql', default='graphql_errors.log')
     define('sentry_dsn', group='vmemperor', default='')
+    define('log_dir', group='vmemperor', default='/var/log/vmemperor')
 
     from os import path
 
-    file_path = path.join(path.dirname(path.realpath(__file__)), 'login.ini')
+    file_path = path.join(path.dirname(path.realpath(__file__)), 'config.ini')
     parse_config_file(file_path)
 
     rotateLogs()

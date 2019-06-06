@@ -1,5 +1,22 @@
 version: '3'
 services:
+  influxdb:
+    image: influxdb/influxdb
+    networks:
+      - influxdb
+  grafana:
+    image: grafana/grafana
+    depends_on:
+      - influxdb
+    volumes:
+      - ./configs/grafana/provisioning/:/etc/grafana/provisioning
+      - ./configs/grafana/public:/usr/share/grafana/public
+      - ./configs/grafana/grafana.ini:/etc/grafana/grafana.ini
+    networks:
+      - influxdb
+      - backend
+
+
   rethinkdb:
     image: rethinkdb:latest
     networks:
@@ -15,6 +32,7 @@ services:
       - backend
     depends_on:
       - rethinkdb
+      - grafana
 
 
   nginx:
@@ -31,4 +49,6 @@ services:
 
 networks:
   backend:
+    driver: bridge
+  influxdb:
     driver: bridge
