@@ -1,5 +1,3 @@
-import tracemalloc
-
 import sentry_sdk
 import pathlib
 import signal
@@ -34,9 +32,7 @@ from tornado.websocket import *
 import asyncio
 from tornado.platform.asyncio import AnyThreadEventLoopPolicy
 
-# Memory snapshots
-s1 = None
-s2 = None
+
 
 def event_loop(executor, authenticator=None, ioloop=None):
     if not ioloop:
@@ -86,20 +82,6 @@ def event_loop(executor, authenticator=None, ioloop=None):
 
     return ioloop
 
-class SnapshotHandler(tornado.web.RequestHandler):
-    def get(self):
-        global s1,s2
-        trace = self.get_argument('trace')
-        if trace == 's2':
-            s2=tracemalloc.take_snapshot()
-            print("Begin memory comparison block")
-            for i in s2.compare_to(s1,'lineno')[:10]:
-                print(i)
-            self.write({"status" : "snapshot comparison printed"})
-        elif trace == 's1':
-            s1=tracemalloc.take_snapshot()
-            self.write({"status" : "initial snapshot taken"})
-
 class AuthCheckHandler(tornado.web.RequestHandler):
     def get(self):
         import pickle
@@ -128,7 +110,6 @@ def make_app(executor, auth_class=None, debug=False):
 
 
     app = tornado.web.Application([
-        (r"/snapshot", SnapshotHandler),
         (r"/auth", AuthCheckHandler),
         (r"/login", AuthHandler, dict(pool_executor=executor, authenticator=auth_class)),
         (r"/logout", LogOut, dict(pool_executor=executor)),
@@ -190,7 +171,10 @@ def read_settings():
 
     from os import path
 
-    file_path = path.join(path.dirname(path.realpath(__file__)), 'config.ini')
+    file_path = "/etc/vmemperor.ini"
+    if not os.path.exists(file_path):
+        file_path = path.join(path.dirname(path.realpath(__file__)), 'config.ini')
+
     parse_config_file(file_path)
 
     rotateLogs()
@@ -231,7 +215,6 @@ def rotateLogs():
 
 def main():
     """ reads settings in ini configures and starts system"""
-    tracemalloc.start()
     create_dbs()
     asyncio.set_event_loop_policy(AnyThreadEventLoopPolicy())
     constants.URL = f"http://{opts.vmemperor_host}:{opts.vmemperor_port}"
