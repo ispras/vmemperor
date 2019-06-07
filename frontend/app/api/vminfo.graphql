@@ -74,6 +74,7 @@ fragment VMInfoFragment on GVM {
   snapshots {
     ...VMSnapshotFragment
   }
+  uuid
 }
 
 query VMInfo ($ref: ID!) {

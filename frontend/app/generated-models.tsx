@@ -2959,7 +2959,7 @@ export type VMSettingsFragmentFragment = { __typename?: "GVM" } & {
 
 export type VMInfoFragmentFragment = { __typename?: "GVM" } & Pick<
   GVM,
-  "PVBootloader" | "powerState" | "startTime" | "myActions"
+  "PVBootloader" | "powerState" | "startTime" | "myActions" | "uuid"
 > & {
     VIFs: Array<Maybe<{ __typename?: "GVIF" } & VMVIFFragmentFragment>>;
     VBDs: Array<Maybe<{ __typename?: "GVBD" } & VMVBDFragmentFragment>>;
@@ -5476,6 +5476,7 @@ export const VMInfoFragmentFragmentDoc = gql`
     snapshots {
       ...VMSnapshotFragment
     }
+    uuid
   }
   ${ACLXenObjectFragmentFragmentDoc}
   ${VMSettingsFragmentFragmentDoc}

@@ -30,12 +30,13 @@ import {Fields} from "../AbstractVMSettingsComponents/fields";
 import {Mode} from "../AbstractVMSettingsComponents/mode";
 import MainOwnerForm from "../MainOwnerForm";
 import {Snapshots} from "./subforms/snapshots";
-
+import IFrame from 'react-iframe';
 
 enum Tab {
   Overview = 'overview',
   Resources = 'resources',
   VNC = 'vnc',
+  Statistics = 'stats',
   Access = 'access',
   Snapshots = 'snapshots',
   Storage = 'storage',
@@ -128,17 +129,32 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
 
         }, [vncActivated]),
       }],
+      [Tab.Statistics, {
+        header: "Statistics",
+        content: (
+          <IFrame
+            url={`/grafana/dashboard/script/vm.js?orgId=1&uuid=${vm.uuid}&refresh=5s`}
+            display="block"
+            height="100%"
+            width="100%"
+          />
+        )
+      }],
       [Tab.Access, {
         header: "Access",
         content: (
-          <Row>
-            <Col sm="12">
-              {<AccessView
-                data={vm}
-                ALL={VMActions.ALL}
-                mutationName="vmAccessSet"
-                mutationNode={VMAccessSetMutationDocument}
-              />}
+          <
+            Row>
+            < Col
+              sm="12">
+              {
+                <AccessView
+                  data={vm}
+                  ALL={VMActions.ALL}
+                  mutationName="vmAccessSet"
+                  mutationNode={VMAccessSetMutationDocument}
+                />
+              }
             </Col>
           </Row>
         )

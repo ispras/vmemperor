@@ -19,6 +19,7 @@ services:
       - influxdb
     depends_on:
       - influxdb
+    restart: always
 
   grafana:
     image: grafana/grafana
