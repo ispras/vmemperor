@@ -5,8 +5,7 @@ datasources:
     type: influxdb
     access: proxy
     database: vmemperor
-    user: vmemperor
-    password: vmemperor
+    isDefault: true
     url: http://influxdb:8086
     jsonData:
       httpMode: GET

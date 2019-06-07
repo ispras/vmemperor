@@ -9,6 +9,7 @@ import org.influxdb.BatchOptions;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
+import org.influxdb.dto.Query;
 import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -45,9 +46,11 @@ public class Loader implements Closeable {
         this.debug = debug;
         influxDB = InfluxDBFactory.connect(influxDBUrl);
         System.err.println("Connected to InfluxDB " + influxDBUrl);
-        influxDB.setDatabase(dbName);
         BatchOptions batchOptions = BatchOptions.DEFAULTS;
         influxDB.enableBatch(batchOptions);
+        influxDB.query(new Query("CREATE DATABASE " + dbName));
+        influxDB.setDatabase(dbName);
+
         xapiConnection = new Connection(new URL(masterHostUrl));
         Session.loginWithPassword(xapiConnection, xapiUsername, xapiPassword);
         basicAuth = "Basic " + Base64.getEncoder().encodeToString(String.format("%s:%s", xapiUsername, xapiPassword).getBytes());

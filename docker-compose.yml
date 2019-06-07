@@ -1,16 +1,20 @@
 version: '3'
 services:
   influxdb:
-    image: influxdb/influxdb
+    image: influxdb:latest
     networks:
       - influxdb
     environment:
       - INFLUXDB_DB=vmemperor
+    ports:
+      - 8086:8086
+      - 8083:8083
+
 
   xenservertoinflux:
     build: ./xenservertoinflux
     volumes:
-      - ./configs/config.init:/app/xenservertoinflux/config.ini
+      - ./configs/config.ini:/app/xenservertoinflux/config.ini
     networks:
       - influxdb
     depends_on:
@@ -23,7 +27,7 @@ services:
       - xenservertoinflux
     volumes:
       - ./configs/grafana/provisioning/:/etc/grafana/provisioning
-      - ./configs/grafana/public:/usr/share/grafana/public
+      - ./configs/grafana/public/dashboards:/usr/share/grafana/public/dashboards
       - ./configs/grafana/grafana.ini:/etc/grafana/grafana.ini
     networks:
       - influxdb
@@ -39,6 +43,7 @@ services:
     volumes:
       - ./configs/config.ini:/app/config.ini
       - ./keys:/root/.ssh
+      - ./ansible:/ansible
     ports:
       - 8889:8889
     networks:

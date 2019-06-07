@@ -11,3 +11,4 @@ ansible_logs/*
 nohup.out
 __pycache__
 keys/*
+.gradle
