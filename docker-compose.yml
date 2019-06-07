@@ -42,7 +42,7 @@ services:
   vmemperor:
     build: .
     volumes:
-      - ./configs/config.ini:/app/config.ini
+      - ./configs/config.ini:/etc/vmemperor.ini
       - ./keys:/root/.ssh
       - ./ansible:/ansible
     ports:
