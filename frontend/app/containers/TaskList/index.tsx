@@ -195,6 +195,13 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
 
   };
 
+  const {data: {tasks}} = useTaskListQuery({
+    variables: {
+      startDate: momentState.startDate ? momentState.startDate.format() : null,
+      endDate: momentState.endDate ? momentState.endDate.format() : null
+    }
+  });
+
 
   useEffect(() => {
     loadTasks()
