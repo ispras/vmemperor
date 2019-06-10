@@ -1,5 +1,5 @@
 import React, {Fragment} from 'react';
-import {Card, CardBody, CardFooter, CardSubtitle, CardText, CardTitle, Col, Label, Row} from 'reactstrap';
+import {Card, CardBody, CardFooter, CardSubtitle, CardText, CardTitle, Col, Label, NavLink, Row} from 'reactstrap';
 import FullHeightCard from '../../../components/FullHeightCard';
 import {VM_STATE_RUNNING} from "../../../containers/App/constants";
 import {FormattedMessage} from 'react-intl';
@@ -177,6 +177,18 @@ const Overview = ({vm}: Props) => {
             </CardBody>
           </FullHeightCard>
         </Col>
+        <Col sm={6}>
+          <FullHeightCard>
+            <CardBody>
+              <CardTitle>Usage statistics</CardTitle>
+              <NavLink target="_blank"
+                       href={`/grafana/dashboard/script/vm.js?orgId=1&uuid=${vm.uuid}&refresh=5s`}
+              >
+                Show statistics dashboard
+              </NavLink>
+            </CardBody>
+          </FullHeightCard>
+        </Col>
       </Row>
       <Row>
         <Col>
@@ -197,6 +209,7 @@ const Overview = ({vm}: Props) => {
             <Playbooks
               vms={[vm.ref]}/>
           </Col>
+
         </Row>
       )}
     </Fragment>

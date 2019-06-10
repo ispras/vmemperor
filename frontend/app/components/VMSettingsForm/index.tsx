@@ -129,17 +129,6 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
 
         }, [vncActivated]),
       }],
-      [Tab.Statistics, {
-        header: "Statistics",
-        content: (
-          <IFrame
-            url={`/grafana/dashboard/script/vm.js?orgId=1&uuid=${vm.uuid}&refresh=5s`}
-            display="block"
-            height="100%"
-            width="100%"
-          />
-        )
-      }],
       [Tab.Access, {
         header: "Access",
         content: (
