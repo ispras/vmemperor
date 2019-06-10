@@ -98,7 +98,7 @@ const initialMomentState: ReducerState<MomentReducer> = {
 const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const client = useApolloClient();
   const getValue = _getValue(client);
-  const {data: {tasks}} = useTaskListQuery();
+
   const selectionReducer: SelectionReducer = (state, action) => {
     const [type, info] = getStateInfoAndTypeFromCache(action, readTask);
     return {
@@ -152,7 +152,6 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
     }
   };
 
-
   const readTask = useCallback((ref) => {
     return readCacheObject<TaskFragmentFragment>(client, TaskFragmentFragmentDoc, "GTask", ref, "TaskFragment");
   }, [client]);
@@ -161,23 +160,29 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   const {data: {selectedItems}} = useTaskTableSelectionQuery();
   const [selectionState, selectionDispatch] = useReducer<SelectionReducer>(selectionReducer, initialSelectionState);
   const [momentState, momentDispatch] = useReducer<MomentReducer>(momentReducer, initialMomentState);
+
+
   const subscription = useRef<ZenObservable.Subscription>(null);
 
 
   const loadTasks = async () => {
+    const startDate = momentState.startDate ? momentState.startDate.format() : null;
+    const endDate = momentState.endDate ? momentState.endDate.format() : null;
     const onLoad = async (data: TaskFragmentFragment[]) => {
       const asyncMap: Promise<TaskDataType>[] = data.map(getValue);
       const newTasks = await Promise.all(asyncMap);
       client.writeQuery({ //Omit type check since our TaskDataType allows React.Node s
         query: TaskListDocument,
+        variables: {
+          startDate,
+          endDate
+        },
         data: {
           tasks: newTasks
         }
       });
     };
     console.log("Loading task data", momentState);
-    const startDate = momentState.startDate ? momentState.startDate.format() : null;
-    const endDate = momentState.endDate ? momentState.endDate.format() : null;
     const {data} = await client.query<TaskListQuery, TaskListQueryVariables>({
       query: TaskListDocument,
       fetchPolicy: 'network-only',
@@ -198,8 +203,7 @@ const Tasks: React.FunctionComponent<RouteComponentProps> = ({history}) => {
   useEffect(() => {
     if (momentState.live) {
       console.log("Subscribing to live tasks");
-      subscription.current = client.subscribe(
-        {
+      subscription.current = client.subscribe({
           query: TaskListUpdateDocument,
         }
       ).subscribe(({data: {tasks: {changeType, value}}}) => {
