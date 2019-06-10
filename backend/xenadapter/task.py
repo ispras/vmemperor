@@ -46,7 +46,7 @@ class Task(ACLXenObject):
 
     @classmethod
     def filter_record(cls, xen, record, ref):
-        return record['name_label'] not in cls.minor_tasks or ['[XO]'] not in record['name_label']
+        return record['name_label'] not in cls.minor_tasks and ['[XO]'] not in record['name_label']
 
     @classmethod
     def process_event(cls, xen, event):

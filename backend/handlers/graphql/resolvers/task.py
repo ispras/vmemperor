@@ -27,11 +27,10 @@ def resolve_tasks():
         end_date = kwargs.get('end_date')
         builder = QueryBuilder(id=None, user_authenticator=info.context.user_authenticator, info=info)
         # patch builder.query
-        if start_date and end_date:
-            builder.query = builder.query.filter(lambda item: start_date < item['created'] < end_date)
-        elif start_date:
+
+        if start_date:
             builder.query = builder.query.filter(lambda item: start_date < item['created'])
-        elif end_date:
+        if end_date:
             builder.query = builder.query.filter(lambda item: item['created'] < end_date)
         return builder.run_query()
 
