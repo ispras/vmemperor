@@ -42,11 +42,11 @@ class Task(ACLXenObject):
     pending_values_under_lock = set()
     CancelHandlers : Dict[str, Callable[[], None]] = {}
 
-    minor_tasks = ('host.compute_memory_overhead', 'SR.scan')
+    minor_tasks = ('host.compute_memory_overhead', 'host.compute_free_memory' 'SR.scan', 'VM.update_allowed_operations')
 
     @classmethod
     def filter_record(cls, xen, record, ref):
-        return record['name_label'] not in cls.minor_tasks
+        return record['name_label'] not in cls.minor_tasks or ['[XO]'] not in record['name_label']
 
     @classmethod
     def process_event(cls, xen, event):
