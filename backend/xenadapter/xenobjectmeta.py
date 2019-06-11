@@ -40,7 +40,7 @@ class XenObjectMeta(type):
             name = name[6:]
             def async_method(xen, *args, **kwargs):
                 try:
-                    args = [cls.convert_dict(arg) for arg in args]
+                    #args = [cls.convert_dict(arg) for arg in args]
                     async_method = getattr(xen.api, 'Async')
                     api = getattr(async_method, cls.api_class)
                     attr = getattr(api, name)
