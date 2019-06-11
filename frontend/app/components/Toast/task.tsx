@@ -8,7 +8,7 @@ import {
   TaskInfoUpdateDocument,
   TaskStatus
 } from "../../generated-models";
-import getValue, {TaskDataType} from "../../containers/TaskList/getValue";
+import getTaskValue, {TaskDataType} from "../../containers/TaskList/getTaskValue";
 import {dataIdFromObject} from "../../utils/cacheUtils";
 import {TaskComponent} from "./taskComponent";
 

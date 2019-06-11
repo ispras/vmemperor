@@ -1,6 +1,6 @@
 import * as React from "react";
 import {useEffect, useState} from "react";
-import getValue, {TaskDataType} from "../../containers/TaskList/getValue";
+import getTaskValue, {TaskDataType} from "../../containers/TaskList/getTaskValue";
 import {TaskInfoUpdateDocument, TaskStatus} from "../../generated-models";
 import {Alert, Label, Progress} from "reactstrap";
 import ApolloClient from "apollo-client";
@@ -15,7 +15,7 @@ interface Props {
 export const TaskComponent: React.FC<Props> = ({taskId, onClose, client, defaultTitle}) => {
   const [data, setData] = useState<TaskDataType>(null);
   useEffect(() => {
-    const getTask = getValue(client);
+    const getTask = getTaskValue(client);
     const observable = client.subscribe({
       query: TaskInfoUpdateDocument,
       variables: {

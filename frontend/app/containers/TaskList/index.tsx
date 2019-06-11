@@ -4,7 +4,7 @@
  */
 
 import StatefulTable, {ColumnType} from "../StatefulTable";
-import _getValue, {TaskDataType} from './getValue';
+import _getValue, {TaskDataType} from './getTaskValue';
 import {nameFormatter, plainFormatter} from "../../utils/formatters";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter';
 import {RouteComponentProps} from "react-router";

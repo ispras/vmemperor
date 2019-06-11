@@ -12,8 +12,8 @@ import {
 import {useApolloClient} from "react-apollo-hooks";
 import PlaybookWatcher from "../../components/PlaybookWatcher";
 import {MaybeUnknownItem} from "./unknownitem";
-import {getVMNameLabel} from "./getValue";
 import moment = require("moment");
+import {VM} from "./taskObject";
 
 interface Args {
   id: string;
@@ -80,7 +80,7 @@ export const PlaybookTask = (props: RouteComponentProps<Args>) => {
       {vms.map(vmRef => (<MaybeUnknownItem
           itemRef={vmRef}
           itemPath="vm"
-          getNameLabel={getVMNameLabel}
+          getNameLabel={VM._getNameLabel}
           history={props.history}
           key={vmRef}
         />

@@ -4,9 +4,9 @@ import {ListGroup, ListGroupItem, Progress} from "reactstrap";
 import {TaskStatus, useTaskInfoQuery, useTaskInfoUpdateSubscription} from "../../generated-models";
 import ListGroupItemHeading from "reactstrap/lib/ListGroupItemHeading";
 import ApolloClient from "apollo-client";
-import {getTemplateNameLabel, getVMNameLabel} from "./getValue";
 import moment from 'moment';
 import {MaybeUnknownItem} from "./unknownitem";
+import {Template, VM} from "./taskObject";
 
 interface Args {
   id: string;
@@ -31,7 +31,7 @@ export const CreateVMTask = (props: RouteComponentProps<Args>) => {
           itemPath="vm"
           itemRef={task.result}
           history={props.history}
-          getNameLabel={getVMNameLabel}
+          getNameLabel={VM._getNameLabel}
         >
           <ListGroupItemHeading>
             VM
@@ -41,7 +41,7 @@ export const CreateVMTask = (props: RouteComponentProps<Args>) => {
           itemPath="template"
           itemRef={task.objectRef}
           history={props.history}
-          getNameLabel={getTemplateNameLabel}
+          getNameLabel={Template._getNameLabel}
         >
           <ListGroupItemHeading>
             Template
