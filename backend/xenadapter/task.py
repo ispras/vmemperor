@@ -42,11 +42,11 @@ class Task(ACLXenObject):
     pending_values_under_lock = set()
     CancelHandlers : Dict[str, Callable[[], None]] = {}
 
-    minor_tasks = ('host.compute_memory_overhead', 'host.compute_free_memory' 'SR.scan', 'VM.update_allowed_operations')
+    minor_tasks = ('host.compute_memory_overhead', 'host.compute_free_memory', 'SR.scan', 'VM.update_allowed_operations')
 
     @classmethod
     def filter_record(cls, xen, record, ref):
-        return record['name_label'] not in cls.minor_tasks and ['[XO]'] not in record['name_label']
+        return record['name_label'] not in cls.minor_tasks and '[XO]' not in record['name_label']
 
     @classmethod
     def process_event(cls, xen, event):
@@ -150,7 +150,9 @@ class Task(ACLXenObject):
             pass
 
 
-
+        task_name = f'{object_type.__name__}.{action}'
+        if task_name in cls.minor_tasks:
+            return
         def get_access_for_task(object_ref, object_type, action): #
             '''
             Returns access rights for task so that only those who have the following access action can view and cancel it

@@ -21,8 +21,13 @@ class AttachVDIMutation(graphene.Mutation):
     @with_authentication(access_class=VM, access_action=VM.Actions.attach_vdi, id_field='vm_ref')
     @return_if_access_is_not_granted([("VDI", "vdi_ref", VDI.Actions.plug), ("VM", "vm_ref", VM.Actions.attach_vdi)])
     def mutate(root, info, vdi_ref, vm_ref, is_attach, VDI, VM):
+        ctx : ContextProtocol = info.context
         if is_attach:
             taskId = VDI.attach(VM)
         else:
             taskId = VDI.detach(VM)
+
+
+        from xenadapter.task import Task
+        Task.add_pending_task(ctx.xen, taskId, VM.__class__, VM.ref, "attach_vdi", True, ctx.user_authenticator.get_id())
         return AttachVDIMutation(taskId=taskId)

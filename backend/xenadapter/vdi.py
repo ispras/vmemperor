@@ -54,13 +54,17 @@ class Attachable:
         'other_config' : {},'qos_algorithm_type': '', 'qos_algorithm_params': {}}
 
         try:
-            vbd_ref =  VBD.create(self.xen, args)
+            if sync:
+                vbd_ref =  VBD.create(self.xen, args)
+            else:
+                task_id = VBD.async_create(self.xen, args)
+                return task_id
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(self.xen.xen.log, "Failed to create VBD", f.details)
 
 
         # Plug
-        if vm.get_power_state() == 'Running':
+        if vm.get_power_state() == 'Running' and vm.get_domain_type == 'pv':
             try:
                 if sync:
                      vbd = VBD(self.xen, vbd_ref)
