@@ -79,6 +79,40 @@ class EventLoop(Loggable):
             capture_exception(e)
             tornado.ioloop.IOLoop.current().run_in_executor(self.executor, self.do_user_table)
 
+    def do_pending_tasks(self):
+        from xenadapter import Task
+        try:
+            conn =  ReDBConnection().get_connection()
+            with conn:
+                xen = XenAdapterPool().get()
+                cur = re.db.table(Task.pending_db_table_name).changes().run()
+                while True:
+                    try:
+                        record = cur.next(1)
+                    except ReqlTimeoutError as e:
+                        if constants.need_exit.is_set():
+                            self.log.debug("Exiting pending_tasks")
+                            return
+                        else:
+                            continue
+                    try:
+                        ref = record['new_val']['ref']
+                    except Exception:
+                        continue
+                    task = Task(xen, ref=ref)
+                    task_record = task.get_record()
+                    doc = Task.process_record(xen, ref, task_record, True)
+                    CHECK_ER(re.db.table(Task.db_table_name).insert(doc, conflict='update').run())
+
+        except Exception as e:
+            self.log.error(f"Exception in pending_tasks: {e}")
+            capture_exception(e)
+            tornado.ioloop.IOLoop.current().run_in_executor(self.executor, self.do_pending_tasks)
+
+
+
+
+
     def do_access_monitor(self):
         try:
             conn = ReDBConnection().get_connection()
@@ -158,6 +192,8 @@ class EventLoop(Loggable):
             self.log.error(f"Exception in access_monitor: {e}")
             capture_exception(e)
             tornado.ioloop.IOLoop.current().run_in_executor(self.executor, self.do_access_monitor)
+
+
 
     def load_playbooks(self):
         '''

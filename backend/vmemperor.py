@@ -50,10 +50,10 @@ def event_loop(executor, authenticator=None, ioloop=None):
     ioloop.run_in_executor(executor, loop_object.do_user_table)
     constants.xen_events_run.set()
     ioloop.run_in_executor(executor, loop_object.process_xen_events)
-
     constants.load_playbooks.set()
     ioloop.run_in_executor(executor, loop_object.load_playbooks)
 
+    ioloop.run_in_executor(executor, loop_object.do_pending_tasks)
 
     def usr2_signal_handler(num, stackframe):
         '''

@@ -29,5 +29,5 @@ class AttachVDIMutation(graphene.Mutation):
 
 
         from xenadapter.task import Task
-        Task.add_pending_task(ctx.xen, taskId, VM.__class__, VM.ref, "attach_vdi", True, ctx.user_authenticator.get_id())
+        Task.add_pending_task(ctx.xen, taskId, VM.__class__, VM.ref, "attach_vdi", True, f'users/{ctx.user_authenticator.get_id()}')
         return AttachVDIMutation(taskId=taskId)

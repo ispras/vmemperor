@@ -205,6 +205,8 @@ class Task(ACLXenObject):
             if chunks[0] == 'Async':
                 del chunks[0]
 
+            if chunks[0] == 'VBD' and chunks[1] in ('create', 'destroy'):
+                return 'VM' # VBD create and destroy should be handled as VM events
             return chunks[0]
 
         for rec in pending:
@@ -214,7 +216,7 @@ class Task(ACLXenObject):
             return {}
 
     @classmethod
-    def process_record(cls, xen, ref, record):
+    def process_record(cls, xen, ref, record, with_pending=False):
         '''
         NB: This method would return None if the `ref` does not exist in the Task table AND vmemperor=None (i.e. not created by us)
         New entries are added to task table by calling Async XAPI via `xenobject.__getattr__` or by appearing in `current_operations` in
@@ -226,11 +228,12 @@ class Task(ACLXenObject):
 
 
         current_rec = {}
-        query = re.db.table(cls.pending_db_table_name).get_all(ref, index='ref')
-        pending = query.coerce_to('array').run()
-        if len(pending) > 0:
-            current_rec.update(cls.choose_pending_record(record, pending))
-            query.delete().run()
+        if with_pending:
+            query = re.db.table(cls.pending_db_table_name).get_all(ref, index='ref')
+            pending = query.coerce_to('array').run()
+            if len(pending) > 0:
+                current_rec.update(cls.choose_pending_record(record, pending))
+                query.delete().run()
 
 
         new_rec = super().process_record(xen, ref, record)
