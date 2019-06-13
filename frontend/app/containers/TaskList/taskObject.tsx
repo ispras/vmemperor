@@ -1,15 +1,26 @@
 import {
   PlaybookNameForTaskListDocument,
-  PlaybookNameForTaskListQuery, PlaybookNameForTaskListQueryVariables,
-  TaskFragmentFragment, TemplateForTaskListDocument, TemplateForTaskListQuery, TemplateForTaskListQueryVariables,
+  PlaybookNameForTaskListQuery,
+  PlaybookNameForTaskListQueryVariables,
+  TaskFragmentFragment,
+  TemplateForTaskListDocument,
+  TemplateForTaskListQuery,
+  TemplateForTaskListQueryVariables,
   UserGetDocument,
   UserGetQuery,
-  UserGetQueryVariables, VMForTaskListDocument,
-  VMForTaskListQuery, VMForTaskListQueryVariables
+  UserGetQueryVariables,
+  VBDForTaskListDocument,
+  VBDForTaskListQuery,
+  VBDForTaskListQueryVariables,
+  VMForTaskListDocument,
+  VMForTaskListQuery,
+  VMForTaskListQueryVariables
 } from "../../generated-models";
 import ApolloClient from "apollo-client";
 import {Label} from "reactstrap";
 import React from "react";
+import {getDriveName} from "../../utils/userdevice";
+
 
 /**
  * Obtains a human-readable name label for objects that appear in settings changes
@@ -135,6 +146,32 @@ export class VM extends TaskSubject {
     }
   }
 
+  /*
+  This method returns a task name for a vdi_attach method
+   */
+  async getTaskNameForVDI() {
+
+    const vmNameLabel = await this.getNameLabel();
+    switch (this.task.nameLabel) {
+      case 'Async.VBD.create':
+        const {data} = await this.client.query<VBDForTaskListQuery, VBDForTaskListQueryVariables>(
+          {
+            query: VBDForTaskListDocument,
+            variables: {
+              vbdRef: this.task.result
+            }
+          });
+        return (
+          <Label>Added a disk drive <b>{getDriveName(data.vbd.userdevice)}</b> of type <i>{data.vbd.type}</i> into a
+            VM "{vmNameLabel}"</Label>
+        );
+      case 'Async.VBD.destroy':
+        return (<Label>Removed a disk drive from VM "{vmNameLabel}"</Label>)
+      default:
+        return await super.getTaskName();
+    }
+  }
+
   async getTaskName() {
     if (this.method == "launch_playbook") {
       const refs = this.task.objectRef.split(";");
@@ -177,6 +214,8 @@ export class VM extends TaskSubject {
         return <Label>Forcibly shut down VM <b>{await this.getNameLabel()}</b></Label>;
       case "clean_shutdown":
         return <Label>Gracefully shut down VM <b>{await this.getNameLabel()}</b></Label>;
+      case "attach_vdi":
+        return this.getTaskNameForVDI();
       default:
         return super.getTaskName();
     }
@@ -215,9 +254,6 @@ export class Template extends TaskSubject {
   }
 }
 
-class VBD extends TaskSubject {
-
-}
 
 export const taskSubjectFactory = (task: TaskFragmentFragment, client: ApolloClient<any>) => {
   let cl = task.objectType;

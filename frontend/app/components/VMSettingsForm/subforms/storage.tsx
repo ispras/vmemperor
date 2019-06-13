@@ -11,7 +11,7 @@ import {
   Row,
   UncontrolledAlert
 } from 'reactstrap';
-import {sizeFormatter, checkBoxFormatter} from "../../../utils/formatters";
+import {sizeFormatter, checkBoxFormatter, userdeviceFormatter} from "../../../utils/formatters";
 import StorageAttach from "./storageAttach";
 
 import StatefulTable, {ColumnType} from '../../../containers/StatefulTable';
@@ -37,7 +37,8 @@ interface DataType {
 const columns: ColumnType<DataType>[] = [
   {
     dataField: 'userdevice',
-    text: 'Name'
+    text: 'Name',
+    formatter: userdeviceFormatter
   },
   {
     dataField: 'type',
@@ -47,7 +48,6 @@ const columns: ColumnType<DataType>[] = [
   {
     dataField: 'nameLabel',
     text: 'Disk name',
-
   },
 
   {

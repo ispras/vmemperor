@@ -2,6 +2,7 @@ import React from "react";
 import {faCheck} from "@fortawesome/free-solid-svg-icons/faCheck";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import formatBytes from "./sizeUtils";
+import {getDriveName} from "./userdevice";
 
 export const checkBoxFormatter = (cell, row) => {
   if (cell) {
@@ -15,6 +16,10 @@ export const sizeFormatter = (cell, row) => {
     return formatBytes(cell, 2);
   else
     return "&mdash;"
+};
+
+export const userdeviceFormatter = (cell, row) => {
+  return getDriveName(cell);
 };
 
 export function nameFormatter(column, colIndex, {sortElement, filterElement}) {

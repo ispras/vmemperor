@@ -780,6 +780,8 @@ type Query {
   user(id: ID): User
   "All registered users (excluding root)"
   users: [User]!
+  "Information about a virtual block device of a VM"
+  vbd(ref: ID!): GVBD
   "Information about a single virtual disk image (hard disk)"
   vdi(ref: ID!): GVDI
   "All Virtual Disk Images (hard disks), available for user"

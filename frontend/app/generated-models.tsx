@@ -1022,6 +1022,8 @@ export type Query = {
   vdis: Array<Maybe<GVDI>>;
   /** Information about a single virtual disk image (hard disk) */
   vdi?: Maybe<GVDI>;
+  /** Information about a virtual block device of a VM */
+  vbd?: Maybe<GVBD>;
   /** ISO VDIs available for using as install ISO images */
   isosForInstall?: Maybe<Array<Maybe<GVDI>>>;
   /** List of Ansible-powered playbooks */
@@ -1082,6 +1084,10 @@ export type QueryvdisArgs = {
 };
 
 export type QueryvdiArgs = {
+  ref: Scalars["ID"];
+};
+
+export type QueryvbdArgs = {
   ref: Scalars["ID"];
 };
 
@@ -2746,6 +2752,14 @@ export type PlaybookNameForTaskListQuery = { __typename?: "Query" } & {
   playbook: Maybe<
     { __typename?: "GPlaybook" } & Pick<GPlaybook, "id" | "name">
   >;
+};
+
+export type VBDForTaskListQueryVariables = {
+  vbdRef: Scalars["ID"];
+};
+
+export type VBDForTaskListQuery = { __typename?: "Query" } & {
+  vbd: Maybe<{ __typename?: "GVBD" } & Pick<GVBD, "type" | "userdevice">>;
 };
 
 export type TemplateSettingsFragmentFragment = {
@@ -4566,6 +4580,12 @@ export type QueryResolvers<
     ParentType,
     ContextType,
     QueryvdiArgs
+  >;
+  vbd?: Resolver<
+    Maybe<ResolversTypes["GVBD"]>,
+    ParentType,
+    ContextType,
+    QueryvbdArgs
   >;
   isosForInstall?: Resolver<
     Maybe<Array<Maybe<ResolversTypes["GVDI"]>>>,
@@ -7532,6 +7552,23 @@ export function usePlaybookNameForTaskListQuery(
     PlaybookNameForTaskListQuery,
     PlaybookNameForTaskListQueryVariables
   >(PlaybookNameForTaskListDocument, baseOptions);
+}
+export const VBDForTaskListDocument = gql`
+  query VBDForTaskList($vbdRef: ID!) {
+    vbd(ref: $vbdRef) {
+      type
+      userdevice
+    }
+  }
+`;
+
+export function useVBDForTaskListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<VBDForTaskListQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<
+    VBDForTaskListQuery,
+    VBDForTaskListQueryVariables
+  >(VBDForTaskListDocument, baseOptions);
 }
 export const TemplateInfoDocument = gql`
   query TemplateInfo($ref: ID!) {
