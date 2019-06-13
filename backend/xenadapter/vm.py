@@ -286,7 +286,7 @@ class VM (AbstractVM):
                 vdi = VDI(self.xen, ref=vbd.get_VDI())
                 sr = SR(self.xen, ref=vdi.get_SR())
                 if sr.get_content_type() != 'iso':
-
+                    vdi.set_name_label(f"{self.get_name_label()} {vbd.get_userdevice()}")
                     vdi.set_name_description(f"Created by VMEmperor for VM {self.ref} (UUID {self.get_uuid()})")
                     # After provision. manage disks actions
                     vdi.manage_actions(VDI.Actions.ALL, user=self.user)
