@@ -2,7 +2,9 @@ import collections
 from collections import Mapping
 from http.client import CannotSendRequest
 
+import tornado
 from serflag import SerFlag
+from tornado import ioloop
 
 import XenAPI
 from xmlrpc.client import DateTime as xmldt
@@ -21,6 +23,8 @@ from xentools.xenadapter import XenAdapter
 from typing import Optional, Type, Collection
 
 from xentools.xenadapterpool import XenAdapterPool
+import json
+
 
 
 def set_subtype(field_name: str):
@@ -169,7 +173,6 @@ class XenObject(metaclass=XenObjectMeta):
 
     @classmethod
     def process_event(cls,  xen, event):
-
         '''
         Make changes to a RethinkDB-based cache, processing a XenServer event
         :param event: event dict
@@ -300,17 +303,22 @@ class XenObject(metaclass=XenObjectMeta):
                         return lambda: None
 
 
-
+        async_destroy = False
         if name.startswith('async_'):
             async_method = getattr(self.xen.api, 'Async')
             api = getattr(async_method, self.api_class)
             name = name[6:]
+            if name == 'destroy':
+                async_destroy = True
+
 
         if name[0] == '_':
             name=name[1:]
         attr = getattr(api, name)
         def method (*args, **kwargs):
             args = [type(self).convert_dict(arg) for arg in args]
+            if async_destroy: # Remember last record and write it to the name_description
+                rec = self.process_record(self.xen, self.ref, self.get_record())
             try:
                 while True:
                     try:
@@ -325,6 +333,19 @@ class XenObject(metaclass=XenObjectMeta):
                 if isinstance(ret, dict):
                     ret = dict_deep_convert(ret)
 
+                if async_destroy:
+                    def post_destroy(task_id):
+                        xen = XenAdapterPool().get()
+                        try:
+                            from connman import ReDBConnection
+                            with ReDBConnection().get_connection():
+                                from xenadapter.task import Task
+                                task = Task(self.xen, task_id)
+                                task.add_to_other_config("last_snapshot", json.dumps(rec))
+                        finally:
+                            XenAdapterPool().unget(xen)
+
+                    ioloop.IOLoop.current().run_in_executor(None, post_destroy, ret)
                 return ret
             except XenAPI.Failure as f:
                 raise XenAdapterAPIError(self.log, f"Failed to execute {self.api_class}::{name}", f.details)

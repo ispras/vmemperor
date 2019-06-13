@@ -79,7 +79,7 @@ class TaskSubject {
   }
 
   protected async getNameLabel() {
-    const nameLabel = this.constructor._getNameLabel(this.client, this.task.objectRef);
+    const nameLabel = await this.constructor._getNameLabel(this.client, this.task.objectRef);
     if (nameLabel)
       return nameLabel;
     return `Deleted ${this.getObjectType()} "${this.task.objectRef}"`
@@ -90,6 +90,22 @@ class TaskSubject {
     //This is done to reuse this method in tasks that require several types of name labels (i.e. VM creation
     // requires both template and VM name label"
     return null;
+  }
+
+  protected getDestroyTaskName() {
+    /**
+     * This method uses the fact that Task.process_record puts last record in destroy event's  result
+     * (see backend/xenadapter/task.py)
+     */
+    try {
+      const lastSnapshot = JSON.parse(this.task.result);
+      return <Label>{this.getObjectType()} last known
+        as <b>{lastSnapshot['name_label'] || lastSnapshot['uuid']}</b> destroyed
+      </Label>
+    } catch (e) {
+      return <Label>{this.task.objectType} <b>{this.task.objectRef}</b> destroyed</Label>
+    }
+    return
   }
 
   protected async getTaskNameForDiff(): Promise<string | JSX.Element> {
@@ -121,6 +137,8 @@ class TaskSubject {
   }
 
   public async getTaskName(): Promise<string | JSX.Element> {
+    if (this.method == 'destroy')
+      return this.getDestroyTaskName();
     if (this.task.result) {
       const name = await this.getTaskNameForDiff();
       if (name)
@@ -216,6 +234,8 @@ export class VM extends TaskSubject {
         return <Label>Gracefully shut down VM <b>{await this.getNameLabel()}</b></Label>;
       case "attach_vdi":
         return this.getTaskNameForVDI();
+      case "provision":
+        return <Label>Provisioned a new VM <b>{await this.getNameLabel()}</b></Label>;
       default:
         return super.getTaskName();
     }

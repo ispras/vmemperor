@@ -10,6 +10,7 @@ from tornado.options import options as opts
 import constants
 from connman import ReDBConnection
 from constants import re as re
+from exc import XenAdapterAPIError
 from loggable import Loggable
 from playbookloader import PlaybookLoader
 from rethinkdb_tools import db_classes
@@ -99,9 +100,12 @@ class EventLoop(Loggable):
                         ref = record['new_val']['ref']
                     except Exception:
                         continue
-                    task = Task(xen, ref=ref)
-                    task_record = task.get_record()
-                    doc = Task.process_record(xen, ref, task_record, True)
+                    try:
+                        task = Task(xen, ref=ref)
+                        task_record = task._get_record() # _ means we force to skip the database
+                    except:
+                        continue
+                    doc = Task.process_record(xen, ref, task_record)
                     CHECK_ER(re.db.table(Task.db_table_name).insert(doc, conflict='update').run())
 
         except Exception as e:

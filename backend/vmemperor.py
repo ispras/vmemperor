@@ -1,3 +1,5 @@
+import socket
+
 import sentry_sdk
 import pathlib
 import signal
@@ -38,6 +40,7 @@ def event_loop(executor, authenticator=None, ioloop=None):
     if not ioloop:
         ioloop = tornado.ioloop.IOLoop.instance()
 
+    ioloop.set_default_executor(executor=executor)
     try:
         loop_object = EventLoop(executor, authenticator)
     except XenAdapterAPIError as e:
@@ -228,6 +231,7 @@ def main():
     constants.auth_class_name = app.auth_class.__name__
     ioloop.start()
 
+
     return
 
 
@@ -242,6 +246,15 @@ if __name__ == '__main__':
 
     read_settings()
 
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        s.connect(("0.0.0.0", opts.vmemperor_port))
+        s.shutdown(socket.SHUT_RDWR)
+    except:
+        pass
+    else:
+        logger.error(f"Port {opts.vmemperor_port} has already been bound. Exiting!")
+        exit(-1)
     try:
         main()
     except KeyboardInterrupt:

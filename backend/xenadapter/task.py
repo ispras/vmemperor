@@ -216,7 +216,7 @@ class Task(ACLXenObject):
             return {}
 
     @classmethod
-    def process_record(cls, xen, ref, record, with_pending=False):
+    def process_record(cls, xen, ref, record):
         '''
         NB: This method would return None if the `ref` does not exist in the Task table AND vmemperor=None (i.e. not created by us)
         New entries are added to task table by calling Async XAPI via `xenobject.__getattr__` or by appearing in `current_operations` in
@@ -228,16 +228,18 @@ class Task(ACLXenObject):
 
 
         current_rec = {}
-        if with_pending:
-            query = re.db.table(cls.pending_db_table_name).get_all(ref, index='ref')
-            pending = query.coerce_to('array').run()
-            if len(pending) > 0:
-                current_rec.update(cls.choose_pending_record(record, pending))
-                query.delete().run()
+        query = re.db.table(cls.pending_db_table_name).get_all(ref, index='ref')
+        pending = query.coerce_to('array').run()
+        if len(pending) > 0:
+            current_rec.update(cls.choose_pending_record(record, pending))
+            query.delete().run()
 
 
         new_rec = super().process_record(xen, ref, record)
-        new_rec['result'] = cls.process_result(new_rec['result'])
+        if 'last_snapshot' in record['other_config']:
+            new_rec['result'] = record['other_config']['last_snapshot']
+        else:
+            new_rec['result'] = cls.process_result(new_rec['result'])
         if new_rec['status'] in ('pending', 'cancelling'):
             del new_rec['finished'] # it doesn't make sense anyway
 
@@ -256,4 +258,5 @@ class Task(ACLXenObject):
 
     def remove(self):
         CHECK_ER(re.db.table(Task.db_table_name).get(self.ref).delete().run())
+
 
