@@ -20,38 +20,9 @@ import ApolloClient from "apollo-client";
 import {Label} from "reactstrap";
 import React from "react";
 import {getDriveName} from "../../utils/userdevice";
+import {sizeFormatter} from "../../utils/formatters";
+import formatBytes from "../../utils/sizeUtils";
 
-
-/**
- * Obtains a human-readable name label for objects that appear in settings changes
- * @param name settings key name
- * @param value settings key value
- * @return human-readable name label
- * @see getResultDiffText
- *
- */
-const getNameLabelForObject = async (client: ApolloClient<any>, name: string, value: string) => {
-  switch (name) {
-    case "main_owner":
-      if (!value)
-        return "no one";
-      try {
-        const {data: {user: {name}}} = await client.query<UserGetQuery, UserGetQueryVariables>(
-          {
-            query: UserGetDocument,
-            variables: {
-              userId: value
-            }
-          }
-        );
-        return name;
-      } catch (e) {
-        return `Deleted user ${value}`
-      }
-    default:
-      return value;
-  }
-};
 
 /**
  * This class represents a task subject, i.e. an object who were used during a task
@@ -79,6 +50,7 @@ class TaskSubject {
   }
 
   protected async getNameLabel() {
+    //@ts-ignore
     const nameLabel = await this.constructor._getNameLabel(this.client, this.task.objectRef);
     if (nameLabel)
       return nameLabel;
@@ -105,32 +77,92 @@ class TaskSubject {
     } catch (e) {
       return <Label>{this.task.objectType} <b>{this.task.objectRef}</b> destroyed</Label>
     }
-    return
+  }
+
+  /**
+   * Obtains a human-readable value label for values that appear in settings changes
+   * @param name settings key name
+   * @param value settings key value
+   * @return human-readable name label
+   * @see getResultDiffText
+   *
+   */
+  protected async getValueLabelForSetting(name: string, value: string) {
+    switch (name) {
+      case "main_owner":
+        if (!value)
+          return "no one";
+        try {
+          const {data: {user: {name}}} = await this.client.query<UserGetQuery, UserGetQueryVariables>(
+            {
+              query: UserGetDocument,
+              variables: {
+                userId: value
+              }
+            }
+          );
+          return name;
+        } catch (e) {
+          return `Deleted user ${value}`
+        }
+      case "memory_static_min":
+      case "memory_static_max":
+      case "memory_dynamic_min":
+      case "memory_dynamic_max":
+        return formatBytes(value, 2)
+
+      default:
+        return value;
+
+
+    }
+
+
+  };
+
+  protected getValueNameForSetting(name: string) {
+    switch (name) {
+      case "main_owner":
+        return "Main owner";
+      case "memory_static_min":
+        return "Memory static minimum";
+      case "memory_static_max":
+        return "Memory static maximum";
+      case "memory_dynamic_min":
+        return "Memory dynamic minimum";
+      case "memory_dynamic_max":
+        return "Memory dynamic maximum";
+      case "VCPUs_max":
+        return "Max VCPUs";
+      case "VCPUs_at_startup":
+        return "VCPUs at startup";
+      case "domain_type":
+        return "Virtualization mode";
+      default:
+        return name;
+    }
   }
 
   protected async getTaskNameForDiff(): Promise<string | JSX.Element> {
-    const resultTextMap = {
-      "main_owner": "main owner"
-    };
     try {
       const resultDiff = JSON.parse(this.task.result);
       const changedKeys = Object.keys(resultDiff['old_val']);
 
       const getResult = async (key) => {
-        const oldValue = await getNameLabelForObject(this.client, key, resultDiff['old_val'][key]);
-        const newValue = await getNameLabelForObject(this.client, key, resultDiff['new_val'][key])
-        return resultTextMap[key] + " from " + oldValue + " to " + newValue + "\n";
+        const oldValue = await this.getValueLabelForSetting(key, resultDiff['old_val'][key]);
+        const newValue = await this.getValueLabelForSetting(key, resultDiff['new_val'][key]);
+        return "<b> " + this.getValueNameForSetting(key) + "</b>" + " from " + "<i>" + oldValue + "</i> to <i>" + newValue + "</i>\n";
       };
 
       const resultMap = await Promise.all(changedKeys.map(getResult));
-      let result = `${this.objectType} ${await this.getNameLabel()}: setting value changed:\n`;
+      let result = `${this.objectType} <b>${await this.getNameLabel()}</b>: setting value changed:\n`;
       for (let i = 0; i < resultMap.length; ++i) {
         result += ` ${resultMap[i]}`;
         if (i < resultMap.length - 1) {
           result += "\n"
         }
       }
-      return result;
+      return <div dangerouslySetInnerHTML={{__html: result}}/>
     } catch (e) {
       return null;
     }
@@ -197,7 +229,7 @@ export class VM extends TaskSubject {
         return await VM._getNameLabel(this.client, item);
       });
       const nameLabels = await Promise.all(asyncMapNameLabels);
-      const playbookInfo = JSON.parse(value.nameDescription);
+      const playbookInfo = JSON.parse(this.task.nameDescription);
       const playbookName = async (playbookInfo) => {
         if (playbookInfo.playbookId) {
           try {

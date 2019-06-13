@@ -46,7 +46,6 @@ enum Tab {
 
 const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery>> = ({object: {vm}}) => {
   const defaultTab = Tab.Overview;
-
   const [overrideTab, setOverrideTab] = useState(null);
   const [vncActivated, setVncActivated] = useState(false);
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -67,6 +66,7 @@ const VMSettingsForm: React.FunctionComponent<SettingsComponentProps<VMInfoQuery
       }
     }
   }, [vm.powerState, activeTab]);
+
 
   const header = useMemo(() => (
     <XenObjectHeader

@@ -15,9 +15,21 @@ interface Props<T> {
 
 
 export function ResourcesFormContainer<T>({object, mutationName, mutationNode, defaultValues, children, schema}: Props<T>) {
+  const initialValues = useMemo(() => {
+    //Replace main_owner User object with user ID if it's there
+    if (object.hasOwnProperty('mainOwner') && object['mainOwner']['id']) {
+      return {
+        ...object,
+        mainOwner: object['mainOwner']['id']
+      }
+    } else {
+      return object;
+    }
+  }, [object]);
+
   return (
     <AbstractSettingsForm
-      initialValues={object}
+      initialValues={initialValues}
       defaultValues={defaultValues}
       mutationNode={mutationNode}
       mutationName={mutationName}

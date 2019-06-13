@@ -33,14 +33,6 @@ const MainOwnerForm: React.FC<Props> = ({object, formik}) => {
     formik.setFieldValue("mainOwner", null);
   };
 
-  //Replace form field User object with pure ID
-  useEffect(() => {
-    if (formik.values.mainOwner && formik.values.mainOwner.id) {
-      formik.setFieldValue('mainOwner', formik.values.mainOwner.id, false);
-      formik.setFieldTouched('mainOwner', false, false);
-    }
-  }, [formik.values.mainOwner]);
-
   return (
     <div title={"An user against whom quota is to be calculated"}>
       <Field

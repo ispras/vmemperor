@@ -218,7 +218,7 @@ class VM (AbstractVM):
         cur = re.db.table(VM.db_table_name).get(self.ref).changes().run()
         self.log.debug(f"Waiting for {self} to finish installing")
         if set_hvm_after_install:
-            self.set_domain_type("hvm")
+            self.set_domain_type("hvm", False)
         while True:
             try:
                 change = cur.next(wait=1)

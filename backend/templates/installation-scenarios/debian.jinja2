@@ -28,7 +28,7 @@ d-i netcfg/confirm_static boolean true
 d-i netcfg/get_ipaddress string {{ ip }}
 d-i netcfg/get_netmask string {{ netmask }}
 d-i netcfg/get_gateway string {{ gateway }}
-d-i netcfg/get_nameservers string {{ dns0 }}
+d-i netcfg/get_nameservers string {{ dns0 }} {{ dns1 }}
 {% end %}
 d-i netcfg/get_domain string vmemperor
 

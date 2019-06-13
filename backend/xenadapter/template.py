@@ -84,7 +84,7 @@ class Template(AbstractVM):
                 # This is for Linux auto-installs to work. If we'd ever support Windows, then viridian should be true (Hyper-V improvements for Windows guests)
                 if 'viridian' not in platform or platform['viridian']:
                     platform['viridian'] = False
-                    vm.set_platform(platform)
+                    vm.set_platform(platform, False)
             if 'vmemperor' in other_config: # Clear VMEmperor access settings
                 del other_config['vmemperor']
                 vm.set_other_config(other_config)
