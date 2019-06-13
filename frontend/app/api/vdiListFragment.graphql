@@ -3,4 +3,11 @@ fragment VDIListFragment on GVDI {
   nameLabel
   myActions
   isOwner
+  virtualSize,
+  VBDs {
+    VM {
+      nameLabel
+    }
+    currentlyAttached
+  }
 }

@@ -1,8 +1,9 @@
-import React from "react";
+import React, {Fragment} from "react";
 import {faCheck} from "@fortawesome/free-solid-svg-icons/faCheck";
 import {FontAwesomeIcon} from "@fortawesome/react-fontawesome";
 import formatBytes from "./sizeUtils";
 import {getDriveName} from "./userdevice";
+import {XenObjectFragmentFragment} from "../generated-models";
 
 export const checkBoxFormatter = (cell, row) => {
   if (cell) {

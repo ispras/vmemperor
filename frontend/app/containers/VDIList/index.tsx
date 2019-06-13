@@ -12,7 +12,7 @@ import {
   useVDIListQuery,
   useVDITableSelectionQuery, VDIAccessSetMutationDocument, VDIActions, DeleteVDIDocument,
 } from "../../generated-models";
-import {nameFormatter} from "../../utils/formatters";
+import {nameFormatter, plainFormatter, sizeFormatter} from "../../utils/formatters";
 import filterFactory, {textFilter} from 'react-bootstrap-table2-filter';
 import {RouteComponentProps} from "react-router";
 import {getStateInfoAndTypeFromCache, handleAddRemove} from "../../utils/cacheUtils";
@@ -39,7 +39,32 @@ const columns: VDIColumnType[] = [
     text: "Name",
     filter: textFilter(),
     headerFormatter: nameFormatter,
-    headerClasses: 'align-self-baseline'
+    headerClasses: 'align-self-baseline',
+  },
+  {
+    dataField: "virtualSize",
+    text: "Size",
+    headerFormatter: plainFormatter,
+    formatter: sizeFormatter,
+  },
+  {
+    dataField: "VBDs",
+    text: "Connected to",
+    headerFormatter: nameFormatter,
+    formatter: (cell: VDIListFragmentFragment['VBDs'], row) => {
+      return <Fragment>
+        {cell.filter(item => !!item.VM)
+          .map((item, index) => {
+            return (
+              <div>
+                {item.VM.nameLabel}
+                {!item.currentlyAttached && <b> (not attached)</b>}
+              </div>
+            )
+          })}
+      </Fragment>
+    }
+
   }
 ];
 

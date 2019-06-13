@@ -2897,8 +2897,16 @@ export type VDIInfoUpdateSubscription = { __typename?: "Subscription" } & {
 
 export type VDIListFragmentFragment = { __typename?: "GVDI" } & Pick<
   GVDI,
-  "ref" | "nameLabel" | "myActions" | "isOwner"
->;
+  "ref" | "nameLabel" | "myActions" | "isOwner" | "virtualSize"
+> & {
+    VBDs: Array<
+      Maybe<
+        { __typename?: "GVBD" } & Pick<GVBD, "currentlyAttached"> & {
+            VM: Maybe<{ __typename?: "GVM" } & Pick<GVM, "nameLabel">>;
+          }
+      >
+    >;
+  };
 
 export type StorageAttachVDIListFragmentFragment = {
   __typename?: "GVDI";
@@ -5408,6 +5416,13 @@ export const VDIListFragmentFragmentDoc = gql`
     nameLabel
     myActions
     isOwner
+    virtualSize
+    VBDs {
+      VM {
+        nameLabel
+      }
+      currentlyAttached
+    }
   }
 `;
 export const StorageAttachVDIListFragmentFragmentDoc = gql`
