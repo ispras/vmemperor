@@ -102,8 +102,22 @@ class MutationHelper:
     def perform_mutations(self, changes: MutationMethod.Input) -> Tuple[bool, Optional[str]]:
         '''
         Perform mutations in a transaction fashion: Either all or nothing.
+        This method also inserts tasks in task table for each mutation.
+        If mutation fails, "failure" status is set.
+
+        In the result field, there's a JSON document of the following structure:
+        {
+        "old_val": {
+        "setting_name": "old_setting_value"
+        }
+        "new_val" : {
+        "setting_name": "new_setting_value"
+        }
+        }
+
         :param changes: Graphene Input type instance with proposed changes
         :return: Tuple [True, None] or [False, "String reason what's not granted"] where access is not granted]
+
         '''
 
         tasks : List[dict] = []
