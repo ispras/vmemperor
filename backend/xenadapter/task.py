@@ -207,6 +207,10 @@ class Task(ACLXenObject):
 
             if chunks[0] == 'VBD' and chunks[1] in ('create', 'destroy'):
                 return 'VM' # VBD create and destroy should be handled as VM events
+
+            if chunks[0] == 'VDI' and chunks[1] == 'create':
+                return 'SR' # VDI create event is an SR event
+
             return chunks[0]
 
         for rec in pending:

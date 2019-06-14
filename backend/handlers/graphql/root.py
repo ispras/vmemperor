@@ -21,7 +21,7 @@ from handlers.graphql.resolvers.task import resolve_tasks
 from handlers.graphql.resolvers.vbd import resolve_vbd
 from handlers.graphql.resolvers.vdi import resolve_vdis, resolve_isos_for_install
 from handlers.graphql.mutations.sr import SRMutation, SRDestroyMutation
-from handlers.graphql.mutations.vdi import VDIMutation, VDIDestroyMutation
+from handlers.graphql.mutations.vdi import VDIMutation, VDIDestroyMutation, VDICreateMutation
 from handlers.graphql.types.vbd import GVBD
 from handlers.graphql.types.vmsnapshot import GVMSnapshot
 from handlers.graphql.utils.query import resolve_all, resolve_one
@@ -133,6 +133,7 @@ class Mutation(ObjectType):
     net_access_set = NetAccessSet.Field(description="Set network access rights")
 
     vdi = VDIMutation.Field(description="Edit VDI options")
+    vdi_create = VDICreateMutation.Field(description="Create a new VDI")
     vdi_attach = AttachVDIMutation.Field(description="Attach VDI to a VM by creating a new virtual block device")
     vdi_access_set = VDIAccessSet.Field(description="Set VDI access rights")
     vdi_delete = VDIDestroyMutation.Field(description="Delete a VDI")
