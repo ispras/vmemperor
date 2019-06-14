@@ -16,7 +16,7 @@ from handlers.graphql.mutations.vm import VMDestroyMutation, VMSuspendMutation, 
     VMShutdownMutation, VMStartMutation, VMMutation, VMSnapshotMutation
 from handlers.graphql.mutations.vmsnapshot import VMRevertMutation, VMSnapshotDestroyMutation
 from handlers.graphql.resolvers.console import resolve_console
-from handlers.graphql.resolvers.quota import resolve_quotas, resolve_quota
+from handlers.graphql.resolvers.quota import resolve_quotas, resolve_quota, resolve_quota_left, resolve_quota_usage
 from handlers.graphql.resolvers.task import resolve_tasks
 from handlers.graphql.resolvers.vbd import resolve_vbd
 from handlers.graphql.resolvers.vdi import resolve_vdis, resolve_isos_for_install
@@ -98,9 +98,8 @@ class Query(ObjectType):
 
     quotas = graphene.Field(graphene.List(Quota), required=True, resolver=resolve_quotas)
     quota = graphene.Field(Quota, required=True, resolver=resolve_quota, user=graphene.NonNull(graphene.String))
-
-
-
+    quota_left = graphene.Field(Quota, required=True, resolver=resolve_quota_left, user=graphene.NonNull(graphene.String), description="Amount of quota left for user, in bytes for memory and disk usage")
+    quota_usage = graphene.Field(Quota, required=True, resolver=resolve_quota_usage, user=graphene.NonNull(graphene.String), description="Amount of quota usage by user, in bytes for memory and disk usage")
 
 
 
@@ -137,6 +136,7 @@ class Mutation(ObjectType):
     vdi_attach = AttachVDIMutation.Field(description="Attach VDI to a VM by creating a new virtual block device")
     vdi_access_set = VDIAccessSet.Field(description="Set VDI access rights")
     vdi_delete = VDIDestroyMutation.Field(description="Delete a VDI")
+
 
     sr = SRMutation.Field(description="Edit SR options")
     sr_access_set = SRAccessSet.Field(description="Set SR access rights")

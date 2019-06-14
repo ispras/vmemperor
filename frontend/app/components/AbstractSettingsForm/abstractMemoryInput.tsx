@@ -17,6 +17,8 @@ export enum Unit {
 interface Props extends Omit<InputBaseProps<any>, "onChange" | "type" | "value"> {
   unit: Unit
   onSetValue?: (value: number, field: string) => any;
+  quotaBytes: number | null;
+  quotaText: string | JSX.Element | null;
 }
 
 /**
@@ -26,9 +28,11 @@ interface Props extends Omit<InputBaseProps<any>, "onChange" | "type" | "value">
  * @param form
  * @param unit
  * @param onSetValue
+ * @param quotaBytes quota value in bytes (will be converted to "unit")
+ * @param quotaText quota description
  * @constructor
  */
-export const AbstractMemoryInput: React.FC<Props> = ({field, form, unit, onSetValue, ...props}) => {
+export const AbstractMemoryInput: React.FC<Props> = ({field, form, unit, onSetValue, quotaText, quotaBytes, ...props}) => {
   const multiplier = useMemo(() => {
     switch (unit) {
       case Unit.KB:
@@ -76,6 +80,11 @@ export const AbstractMemoryInput: React.FC<Props> = ({field, form, unit, onSetVa
         form={form}
         value={value}
       />
+      {quotaText && quotaBytes && (
+        <InputGroupAddon addonType="append"
+                         style={{"line-height": "1!important"}}>
+          {quotaText + " " + convertValue(quotaBytes)}
+        </InputGroupAddon>)}
       <InputGroupAddon addonType="append"
                        style={{"line-height": "1!important"}}
       >

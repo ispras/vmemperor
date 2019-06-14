@@ -15,6 +15,9 @@ def _get_from_quotas(user_id: str, name: str):
 
     return res
 
+def get_used_vm_count(user_id: str):
+    used_vm_count = re.db.table('vms').get_all(user_id, index='main_owner').count().run()
+    return used_vm_count
 
 def check_vm_count(user_id: str):
     '''
@@ -27,51 +30,61 @@ def check_vm_count(user_id: str):
     if not vm_count:
         return None
 
-    real_vm_count = re.db.table('vms').get_all(user_id, index='main_owner').run()
-    return vm_count - real_vm_count
+    return vm_count - get_used_vm_count(user_id)
+
+def get_used_vdi_size(user_id: str):
+    used_vdi_size = re.db.table('vdis')\
+        .get_all(user_id, index='main_owner')\
+        .map(lambda item: item['virtual_size'])\
+        .sum()\
+        .run()
+    return used_vdi_size
+
 
 def check_vdi_size(user_id: str):
     vdi_size = _get_from_quotas(user_id, 'vdi_size')
     if not vdi_size:
         return None
 
-    real_vdi_size = re.db.table('vdis')\
-        .get_all(user_id, index='main_owner')\
-        .map(lambda item: item['virtual_size'])\
-        .sum()\
-        .run()
+    return vdi_size - get_used_vdi_size(user_id)
 
-    return vdi_size - real_vdi_size
 
-def check_memory(user_id: str):
-    memory = _get_from_quotas(user_id, 'memory')
-    if not memory:
-        return None
-
-    real_memory = re.db.table('vms')\
+def get_used_memory(user_id: str):
+    used_memory = re.db.table('vms')\
         .get_all(user_id, index='main_owner')\
         .filter(lambda item: item['power_state'] == 'Paused' or item['power_state'] == 'Halted')\
         .map(lambda item: item['memory_static_max'])\
         .sum()\
         .run()
 
-    result = memory - real_memory
+    return used_memory
+
+def check_memory(user_id: str):
+    memory = _get_from_quotas(user_id, 'memory')
+    if not memory:
+        return None
+
+    result = memory - get_used_memory(user_id)
     return result
 
-def check_vcpu_count(user_id: str):
-    vcpu_count = _get_from_quotas(user_id, 'vcpu_count')
-    if not vcpu_count:
-        return None
-    
-    real_vcpu_count = re.db.table('vms')\
+
+def get_used_vcpu_count(user_id: str):
+    used_vcpu_count = re.db.table('vms')\
         .get_all(user_id, index='main_owner')\
         .filter(lambda item: item['power_state'] == 'Running')\
         .map(lambda item: item['VCPUs_max'])\
         .sum()\
         .run()
 
+    return used_vcpu_count
 
-    return vcpu_count - real_vcpu_count
+def check_vcpu_count(user_id: str):
+    vcpu_count = _get_from_quotas(user_id, 'vcpu_count')
+    if not vcpu_count:
+        return None
+    
+
+    return vcpu_count - get_used_vcpu_count(user_id)
 
 def quota_memory_error(vm_info, main_owner):
     memory_left = check_memory(main_owner)

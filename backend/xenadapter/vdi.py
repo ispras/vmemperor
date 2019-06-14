@@ -1,6 +1,11 @@
 from typing import Union, Optional
 
+from rethinkdb.errors import ReqlTimeoutError
+from tornado import ioloop
+
+import constants
 from authentication import with_default_authentication
+from connman import ReDBConnection
 from handlers.graphql.types.vdi import VDIActions, GVDI
 from handlers.graphql.utils.querybuilder.querybuilder import QueryBuilder
 from xenadapter.quotaobject import QuotaObject
@@ -11,7 +16,8 @@ from exc import *
 import XenAPI
 from xenadapter.xenobject import XenObject
 from xenadapter.aclxenobject import ACLXenObject
-
+from xentools.xenadapterpool import XenAdapterPool
+import constants.re as re
 
 class Attachable:
     import xenadapter.vm
@@ -124,12 +130,13 @@ class VDI(QuotaObject, Attachable):
 
 
     @classmethod
-    def create(cls, xen, user, sr_ref, size, name_label=None):
+    def create_async(cls, xen, sr_ref, size, name_label, user=None):
         """
         Creates a VDI of a certain size in storage repository
         :param sr_ref: Storage Repository ref
         :param size: Disk size
         :param name_label: Name of created disk
+        :param user
         :return: Virtual Disk Image object
         """
 
@@ -141,10 +148,38 @@ class VDI(QuotaObject, Attachable):
                 'sharable': False, 'read_only': False, 'other_config': {}, \
                 'name_label': name_label}
         try:
-            vdi_ref = cls._create(xen, args)
-            vdi = cls(xen, vdi_ref)
-            vdi.manage_actions(VDIActions.ALL, user=user)
-            vdi.set_main_owner(user)
+            ref = cls._create_async(xen, args)
+
+            def post_create(ref):
+                conn =  ReDBConnection().get_connection()
+                with conn:
+                    cur = re.db.table('tasks').get(ref).changes().run()
+                    while True:
+                        try:
+                            record = cur.next(1)
+                        except ReqlTimeoutError as e:
+                            if constants.need_exit.is_set():
+                                return
+                            else:
+                                continue
+
+                        if record['new_val']['status'] not in ('pending', 'cancelling'):
+                            break
+
+                    if record['new_val']['status'] != 'success':
+                        return
+
+
+                    xen =  XenAdapterPool().get()
+                    try:
+                        vdi = cls(xen, record['result'])
+                        vdi.manage_actions(VDIActions.ALL, user=user)
+                        vdi.set_main_owner(user)
+                    finally:
+                        XenAdapterPool().unget(xen)
+
+            ioloop.IOLoop.current().run_in_executor(None, post_create, ref)
+
 
         except XenAPI.Failure as f:
             raise XenAdapterAPIError(xen.log, "Failed to create VDI:", f.details)
