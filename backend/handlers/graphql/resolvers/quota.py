@@ -37,13 +37,11 @@ def get_item(user):
 
 def resolve_quota(root, info, user):
     ctx: ContextProtocol = info.context
-    if ctx.user_authenticator.is_admin():
-        return get_item(user)
-    else:
+    if not ctx.user_authenticator.is_admin():
         if user not in user_entities(ctx.user_authenticator):
             raise ValueError(f"Access denied: Not a member of an entity: {user}")
 
-        return get_item()
+    return get_item(user)
 
 def resolve_quota_left(root, info : ResolveInfo, user):
     ctx: ContextProtocol = info.context
