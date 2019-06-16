@@ -20,8 +20,27 @@ export const onDoubleClick = (history: RouteComponentProps['history']) => (row: 
           history.push(`/create_vm/${row.ref}`);
           break;
         default:
-          history.push(`/template/${row.objectRef}`)
+          history.push(`/template/${row.objectRef}`);
       }
       break;
+
+    case "VDI": {
+      switch (row.action) {
+        default:
+          history.push(`/vdi/${row.ref}`);
+      }
+    }
+    case "SR": {
+      switch (row.action) {
+        case "vdi_create":
+          if (row.result) {
+            history.push(`/vdi/${row.result}`);
+            break;
+          }
+        default:
+          history.push(`/sr/${row.ref}`);
+      }
+    }
+
   }
 };

@@ -682,6 +682,8 @@ export type Mutation = {
   netAccessSet?: Maybe<NetAccessSet>;
   /** Edit VDI options */
   vdi?: Maybe<VDIMutation>;
+  /** Create a new VDI */
+  vdiCreate?: Maybe<VDICreateMutation>;
   /** Attach VDI to a VM by creating a new virtual block device */
   vdiAttach?: Maybe<AttachVDIMutation>;
   /** Set VDI access rights */
@@ -815,6 +817,13 @@ export type MutationnetAccessSetArgs = {
 export type MutationvdiArgs = {
   ref: Scalars["ID"];
   vdi: VDIInput;
+};
+
+export type MutationvdiCreateArgs = {
+  nameLabel: Scalars["String"];
+  size: Scalars["Float"];
+  srRef: Scalars["ID"];
+  user?: Maybe<Scalars["String"]>;
 };
 
 export type MutationvdiAttachArgs = {
@@ -1047,6 +1056,10 @@ export type Query = {
   findUser: Array<Maybe<User>>;
   quotas: Array<Maybe<Quota>>;
   quota: Quota;
+  /** Amount of quota left for user, in bytes for memory and disk usage */
+  quotaLeft: Quota;
+  /** Amount of quota usage by user, in bytes for memory and disk usage */
+  quotaUsage: Quota;
   selectedItems: Array<Scalars["ID"]>;
   vmSelectedReadyFor: VMSelectedIDLists;
 };
@@ -1117,6 +1130,14 @@ export type QueryfindUserArgs = {
 };
 
 export type QueryquotaArgs = {
+  user: Scalars["String"];
+};
+
+export type QueryquotaLeftArgs = {
+  user: Scalars["String"];
+};
+
+export type QueryquotaUsageArgs = {
   user: Scalars["String"];
 };
 
@@ -1463,6 +1484,14 @@ export enum VDIActions {
   NONE = "NONE",
   ALL = "ALL"
 }
+
+export type VDICreateMutation = {
+  /** Create VDI task ID */
+  taskId?: Maybe<Scalars["ID"]>;
+  /** Shows if access to VDI creation is granted */
+  granted: Scalars["Boolean"];
+  reason?: Maybe<Scalars["String"]>;
+};
 
 export type VDIDestroyMutation = {
   /** Task ID */
@@ -2759,7 +2788,25 @@ export type VBDForTaskListQueryVariables = {
 };
 
 export type VBDForTaskListQuery = { __typename?: "Query" } & {
-  vbd: Maybe<{ __typename?: "GVBD" } & Pick<GVBD, "type" | "userdevice">>;
+  vbd: Maybe<
+    { __typename?: "GVBD" } & Pick<GVBD, "ref" | "type" | "userdevice">
+  >;
+};
+
+export type VDIForTaskListQueryVariables = {
+  vdiRef: Scalars["ID"];
+};
+
+export type VDIForTaskListQuery = { __typename?: "Query" } & {
+  vdi: Maybe<{ __typename?: "GVDI" } & Pick<GVDI, "ref" | "nameLabel">>;
+};
+
+export type SRForTaskListQueryVariables = {
+  srRef: Scalars["ID"];
+};
+
+export type SRForTaskListQuery = { __typename?: "Query" } & {
+  sr: Maybe<{ __typename?: "GSR" } & Pick<GSR, "ref" | "nameLabel">>;
 };
 
 export type TemplateSettingsFragmentFragment = {
@@ -3256,6 +3303,7 @@ export type ResolversTypes = {
   NetAccessSet: NetAccessSet;
   VDIInput: VDIInput;
   VDIMutation: VDIMutation;
+  VDICreateMutation: VDICreateMutation;
   AttachVDIMutation: AttachVDIMutation;
   VDIAccessSet: VDIAccessSet;
   VDIDestroyMutation: VDIDestroyMutation;
@@ -4349,6 +4397,12 @@ export type MutationResolvers<
     ContextType,
     MutationvdiArgs
   >;
+  vdiCreate?: Resolver<
+    Maybe<ResolversTypes["VDICreateMutation"]>,
+    ParentType,
+    ContextType,
+    MutationvdiCreateArgs
+  >;
   vdiAttach?: Resolver<
     Maybe<ResolversTypes["AttachVDIMutation"]>,
     ParentType,
@@ -4667,6 +4721,18 @@ export type QueryResolvers<
     ContextType,
     QueryquotaArgs
   >;
+  quotaLeft?: Resolver<
+    ResolversTypes["Quota"],
+    ParentType,
+    ContextType,
+    QueryquotaLeftArgs
+  >;
+  quotaUsage?: Resolver<
+    ResolversTypes["Quota"],
+    ParentType,
+    ContextType,
+    QueryquotaUsageArgs
+  >;
   selectedItems?: Resolver<
     Array<ResolversTypes["ID"]>,
     ParentType,
@@ -4920,6 +4986,15 @@ export type VDIAccessSetResolvers<
   success?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
 };
 
+export type VDICreateMutationResolvers<
+  ContextType = any,
+  ParentType = ResolversTypes["VDICreateMutation"]
+> = {
+  taskId?: Resolver<Maybe<ResolversTypes["ID"]>, ParentType, ContextType>;
+  granted?: Resolver<ResolversTypes["Boolean"], ParentType, ContextType>;
+  reason?: Resolver<Maybe<ResolversTypes["String"]>, ParentType, ContextType>;
+};
+
 export type VDIDestroyMutationResolvers<
   ContextType = any,
   ParentType = ResolversTypes["VDIDestroyMutation"]
@@ -5128,6 +5203,7 @@ export type Resolvers<ContextType = any> = {
   TemplateMutation?: TemplateMutationResolvers<ContextType>;
   User?: UserResolvers<ContextType>;
   VDIAccessSet?: VDIAccessSetResolvers<ContextType>;
+  VDICreateMutation?: VDICreateMutationResolvers<ContextType>;
   VDIDestroyMutation?: VDIDestroyMutationResolvers<ContextType>;
   VDIMutation?: VDIMutationResolvers<ContextType>;
   VMAccessSet?: VMAccessSetResolvers<ContextType>;
@@ -7571,6 +7647,7 @@ export function usePlaybookNameForTaskListQuery(
 export const VBDForTaskListDocument = gql`
   query VBDForTaskList($vbdRef: ID!) {
     vbd(ref: $vbdRef) {
+      ref
       type
       userdevice
     }
@@ -7584,6 +7661,40 @@ export function useVBDForTaskListQuery(
     VBDForTaskListQuery,
     VBDForTaskListQueryVariables
   >(VBDForTaskListDocument, baseOptions);
+}
+export const VDIForTaskListDocument = gql`
+  query VDIForTaskList($vdiRef: ID!) {
+    vdi(ref: $vdiRef) {
+      ref
+      nameLabel
+    }
+  }
+`;
+
+export function useVDIForTaskListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<VDIForTaskListQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<
+    VDIForTaskListQuery,
+    VDIForTaskListQueryVariables
+  >(VDIForTaskListDocument, baseOptions);
+}
+export const SRForTaskListDocument = gql`
+  query SRForTaskList($srRef: ID!) {
+    sr(ref: $srRef) {
+      ref
+      nameLabel
+    }
+  }
+`;
+
+export function useSRForTaskListQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<SRForTaskListQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<
+    SRForTaskListQuery,
+    SRForTaskListQueryVariables
+  >(SRForTaskListDocument, baseOptions);
 }
 export const TemplateInfoDocument = gql`
   query TemplateInfo($ref: ID!) {

@@ -81,7 +81,22 @@ query PlaybookNameForTaskList($playbookId: ID!) {
 
 query VBDForTaskList($vbdRef: ID!) {
   vbd(ref: $vbdRef) {
+    ref
     type
     userdevice
+  }
+}
+
+query VDIForTaskList($vdiRef: ID!) {
+  vdi(ref: $vdiRef) {
+    ref
+    nameLabel
+  }
+}
+
+query SRForTaskList($srRef: ID!) {
+  sr(ref: $srRef) {
+    ref
+    nameLabel
   }
 }

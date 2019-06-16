@@ -1,7 +1,7 @@
 import {
   PlaybookNameForTaskListDocument,
   PlaybookNameForTaskListQuery,
-  PlaybookNameForTaskListQueryVariables,
+  PlaybookNameForTaskListQueryVariables, SRForTaskListDocument, SRForTaskListQuery, SRForTaskListQueryVariables,
   TaskFragmentFragment,
   TemplateForTaskListDocument,
   TemplateForTaskListQuery,
@@ -11,7 +11,7 @@ import {
   UserGetQueryVariables,
   VBDForTaskListDocument,
   VBDForTaskListQuery,
-  VBDForTaskListQueryVariables,
+  VBDForTaskListQueryVariables, VDIForTaskListDocument, VDIForTaskListQuery, VDIForTaskListQueryVariables,
   VMForTaskListDocument,
   VMForTaskListQuery,
   VMForTaskListQueryVariables
@@ -72,7 +72,7 @@ class TaskSubject {
     try {
       const lastSnapshot = JSON.parse(this.task.result);
       return <Label>{this.getObjectType()} last known
-        as <b>{lastSnapshot['name_label'] || lastSnapshot['uuid']}</b> destroyed
+        as <b>{lastSnapshot['name_label'] || lastSnapshot['uuid']}</b> (<i>{lastSnapshot['ref']}</i>) destroyed
       </Label>
     } catch (e) {
       return <Label>{this.task.objectType} <b>{this.task.objectRef}</b> destroyed</Label>
@@ -301,7 +301,57 @@ export class Template extends TaskSubject {
         }
         return <Label>Creating VM from template <i><b>{await this.getNameLabel()}</b></i></Label>;
       default:
-        break;
+        return super.getTaskName();
+    }
+  }
+}
+
+export class VDI extends TaskSubject {
+  static async _getNameLabel(client: ApolloClient<any>, objectRef: string) {
+    if (!objectRef)
+      return `Unknown VDI`;
+    try {
+      const {data: {vdi: {nameLabel}}} = await client.query<VDIForTaskListQuery, VDIForTaskListQueryVariables>({
+        query: VDIForTaskListDocument,
+        variables: {
+          vdiRef: objectRef,
+        }
+      });
+      return nameLabel;
+    } catch (e) {
+      return `Deleted VDI ${objectRef}`
+    }
+  }
+}
+
+
+export class SR extends TaskSubject {
+  static async _getNameLabel(client: ApolloClient<any>, objectRef: string) {
+    if (!objectRef)
+      return `Unknown storage repository`;
+    try {
+      const {data: {sr: {nameLabel}}} = await client.query<SRForTaskListQuery, SRForTaskListQueryVariables>({
+        query: SRForTaskListDocument,
+        variables: {
+          srRef: objectRef,
+        }
+      });
+      return nameLabel;
+    } catch (e) {
+      return `Deleted storage repository ${objectRef}`
+    }
+  }
+
+  async getTaskName() {
+    switch (this.method) {
+      case "vdi_create":
+        if (this.task.result) {
+          const vdiNameLabel = await VDI._getNameLabel(this.client, this.task.result);
+          return <Label>Created VDI <b>{vdiNameLabel}</b> on SR <i><b>{await this.getNameLabel()}</b></i></Label>;
+        }
+        return <Label>Created VDI on SR <i><b>{await this.getNameLabel()}</b></i></Label>;
+      default:
+        return super.getTaskName();
     }
   }
 }
@@ -327,6 +377,10 @@ export const taskSubjectFactory = (task: TaskFragmentFragment, client: ApolloCli
       return new VM(task, cl, method, client);
     case 'Template':
       return new Template(task, cl, method, client);
+    case 'VDI':
+      return new VDI(task, cl, method, client);
+    case 'SR':
+      return new SR(task, cl, method, client);
     default:
       return new TaskSubject(task, cl, method, client);
   }
