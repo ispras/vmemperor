@@ -130,7 +130,7 @@ class VDI(QuotaObject, Attachable):
 
 
     @classmethod
-    def create_async(cls, xen, sr_ref, size, name_label, user=None):
+    def async_create(cls, xen, sr_ref, size, name_label, user=None):
         """
         Creates a VDI of a certain size in storage repository
         :param sr_ref: Storage Repository ref
@@ -144,11 +144,11 @@ class VDI(QuotaObject, Attachable):
             sr = SR(xen, sr_ref)
             name_label = sr.get_name_label() + ' disk'
 
-        args = {'SR': sr_ref, 'virtual_size': str(size), 'type': 'system', \
+        args = {'SR': sr_ref, 'virtual_size': str(int(size)), 'type': 'system', \
                 'sharable': False, 'read_only': False, 'other_config': {}, \
                 'name_label': name_label}
         try:
-            ref = cls._create_async(xen, args)
+            ref = cls._async_create(xen, args)
 
             def post_create(ref):
                 conn =  ReDBConnection().get_connection()
@@ -172,13 +172,15 @@ class VDI(QuotaObject, Attachable):
 
                     xen =  XenAdapterPool().get()
                     try:
-                        vdi = cls(xen, record['result'])
+                        vdi = cls(xen, record['new_val']['result'])
                         vdi.manage_actions(VDIActions.ALL, user=user)
                         vdi.set_main_owner(user)
                     finally:
                         XenAdapterPool().unget(xen)
 
             ioloop.IOLoop.current().run_in_executor(None, post_create, ref)
+
+            return ref
 
 
         except XenAPI.Failure as f:

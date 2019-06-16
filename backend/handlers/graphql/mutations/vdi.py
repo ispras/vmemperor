@@ -6,6 +6,7 @@ from handlers.graphql.mutation_utils.mutationmethod import MutationMethod
 from handlers.graphql.mutations.quotaobject import set_main_owner, main_owner_validator
 from handlers.graphql.utils.editmutation import create_edit_mutation, create_async_mutation
 from handlers.graphql.types.input.vdi import VDIInput
+from utils.quota import quota_vdi_size_error
 from utils.user import user_entities
 from xenadapter import VDI, SR
 
@@ -23,6 +24,7 @@ VDIDestroyMutation = create_async_mutation("VDIDestroyMutation", VDI, VDI.Action
 class VDICreateMutation(graphene.Mutation):
     task_id = graphene.ID(required=False, description="Create VDI task ID")
     granted = graphene.Boolean(required=True, description="Shows if access to VDI creation is granted")
+    reason = graphene.String()
 
     class Arguments:
         sr_ref = graphene.ID(required=True)
@@ -38,14 +40,22 @@ class VDICreateMutation(graphene.Mutation):
         ctx: ContextProtocol = info.context
         user = kwargs.get('user')
         if not ctx.user_authenticator.is_admin():
-            if user and user not in user_entities(ctx.user_authenticator.get_id()):
-                return VDICreateMutation(granted=False)
+            if user and user not in user_entities(ctx.user_authenticator):
+                return VDICreateMutation(granted=False, reason="Permission denied")
 
             if not user:
                 user = f'users/{ctx.user_authenticator.get_id()}'
 
-        task_id = VDI.create_async(ctx.xen, sr_ref, size, name_label, user)
+
+        if user:
+            error = quota_vdi_size_error(size, user)
+            if error:
+                return VDICreateMutation(granted=False, reason=error)
+
+
+        task_id = VDI.async_create(ctx.xen, sr_ref, size, name_label, user)
         from xenadapter.task import Task
         Task.add_pending_task(ctx.xen, task_id, SR, sr_ref, "vdi_create", True, f'users/{ctx.user_authenticator.get_id()}')
+        return VDICreateMutation(granted=True, task_id=task_id)
 
 
