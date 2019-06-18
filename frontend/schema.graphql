@@ -645,6 +645,8 @@ type Mutation {
     vdiRef: ID!,
     vmRef: ID!
   ): AttachVDIMutation
+  "Create a new VDI"
+  vdiCreate(nameLabel: String!, size: Float!, srRef: ID!, user: String): VDICreateMutation
   "Delete a VDI"
   vdiDelete(ref: ID!): VDIDestroyMutation
   "Edit VM options"
@@ -764,6 +766,10 @@ type Query {
   pool(ref: ID!): GPool
   pools: [GPool]!
   quota(user: String!): Quota!
+  "Amount of quota left for user, in bytes for memory and disk usage"
+  quotaLeft(user: String!): Quota!
+  "Amount of quota usage by user, in bytes for memory and disk usage"
+  quotaUsage(user: String!): Quota!
   quotas: [Quota]!
   "Information about a single storage repository"
   sr(ref: ID!): GSR
@@ -927,6 +933,14 @@ type User {
 
 type VDIAccessSet {
   success: Boolean!
+}
+
+type VDICreateMutation {
+  "Shows if access to VDI creation is granted"
+  granted: Boolean!
+  reason: String
+  "Create VDI task ID"
+  taskId: ID
 }
 
 type VDIDestroyMutation {

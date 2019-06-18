@@ -17,3 +17,18 @@ query QuotaGet($userId: String!) {
     memory
   }
 }
+
+query QuotaSize($userId: String!) {
+  quotaUsage(user: $userId) {
+    vdiSize
+    vcpuCount
+    vmCount
+    memory
+  }
+  quotaLeft(user: $userId) {
+    vdiSize
+    vcpuCount
+    vmCount
+    memory
+  }
+}

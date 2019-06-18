@@ -48,11 +48,12 @@ def check_vdi_size(user_id: str):
 
     return vdi_size - get_used_vdi_size(user_id)
 
+def filter_memory_vcpu_usage(main_owner):
+    return re.db.table('vms').get_all(main_owner, index='main_owner')\
+        .filter((re.r.row['power_state'] == 'Paused') | (re.r.row['power_state'] == 'Running'))
 
 def get_used_memory(user_id: str):
-    used_memory = re.db.table('vms')\
-        .get_all(user_id, index='main_owner')\
-        .filter(lambda item: item['power_state'] == 'Paused' or item['power_state'] == 'Halted')\
+    used_memory = filter_memory_vcpu_usage(user_id)\
         .map(lambda item: item['memory_static_max'])\
         .sum()\
         .run()
@@ -69,9 +70,7 @@ def check_memory(user_id: str):
 
 
 def get_used_vcpu_count(user_id: str):
-    used_vcpu_count = re.db.table('vms')\
-        .get_all(user_id, index='main_owner')\
-        .filter(lambda item: item['power_state'] == 'Running')\
+    used_vcpu_count = filter_memory_vcpu_usage(user_id)\
         .map(lambda item: item['VCPUs_max'])\
         .sum()\
         .run()

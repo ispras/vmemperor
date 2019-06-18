@@ -8,5 +8,5 @@ fragment ACLXenObjectFragment on GAclXenObject {
   ref,
   nameLabel,
   nameDescription,
-  isOwner
+  isOwner,
 }

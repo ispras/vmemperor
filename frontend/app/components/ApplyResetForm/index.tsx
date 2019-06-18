@@ -2,9 +2,10 @@ import React, {ReactNode, useMemo} from "react";
 import {DocumentNode} from "graphql";
 import {AbstractSettingsForm} from "../AbstractSettingsForm";
 import {ApplyResetForm} from "./form";
+import {ACLXenObjectFragmentFragment} from "../../generated-models";
 
 
-interface Props<T> {
+interface Props<T extends ACLXenObjectFragmentFragment> {
   object: T;
   mutationName: string;
   mutationNode: DocumentNode;
@@ -17,7 +18,7 @@ interface Props<T> {
 export function ResourcesFormContainer<T>({object, mutationName, mutationNode, defaultValues, children, schema}: Props<T>) {
   const initialValues = useMemo(() => {
     //Replace main_owner User object with user ID if it's there
-    if (object.hasOwnProperty('mainOwner') && object['mainOwner']['id']) {
+    if (object.hasOwnProperty('mainOwner') && object['mainOwner']) {
       return {
         ...object,
         mainOwner: object['mainOwner']['id']

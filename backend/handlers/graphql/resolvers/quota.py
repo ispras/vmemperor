@@ -57,10 +57,10 @@ def resolve_quota_left(root, info : ResolveInfo, user):
         result['memory'] = check_memory(user)
 
     if 'vcpuCount' in fields:
-        result['vcpuCount'] = check_vcpu_count(user)
+        result['vcpu_count'] = check_vcpu_count(user)
 
     if 'vmCount' in fields:
-        result['vmCount'] = check_vm_count(user)
+        result['vm_count'] = check_vm_count(user)
 
     if 'user' in fields:
         result['user_id'] = user
@@ -82,10 +82,10 @@ def resolve_quota_usage(root, info : ResolveInfo, user):
         result['memory'] = get_used_memory(user)
 
     if 'vcpuCount' in fields:
-        result['vcpuCount'] = get_used_vcpu_count(user)
+        result['vcpu_count'] = get_used_vcpu_count(user)
 
     if 'vmCount' in fields:
-        result['vmCount'] = get_used_vm_count(user)
+        result['vm_count'] = get_used_vm_count(user)
 
     if 'user' in fields:
         result['user_id'] = user

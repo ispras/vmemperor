@@ -1,0 +1,7 @@
+mutation CreateVdi($nameLabel: String!, $user: String, $size: Float!, $srRef: ID!) {
+  vdiCreate(nameLabel: $nameLabel, user: $user, size: $size, srRef: $srRef) {
+    reason
+    granted
+    taskId
+  }
+}

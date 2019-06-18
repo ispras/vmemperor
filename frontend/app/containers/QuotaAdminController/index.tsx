@@ -3,7 +3,7 @@ import {Formik, FormikConfig} from "formik";
 import {
   Quota, QuotaGetDocument,
   QuotaGetQuery, QuotaGetQueryVariables,
-  QuotaSetMutationVariables,
+  QuotaSetMutationVariables, QuotaSizeDocument, QuotaSizeQuery, QuotaSizeQueryVariables,
   useQuotaGetQuery,
   useQuotaSetMutation, User, UserGetDocument, UserGetQuery, UserGetQueryVariables
 } from "../../generated-models";
@@ -40,34 +40,53 @@ export const QuotaAdminController: React.FC<RouteComponentProps<Args>> =
       vmCount: null,
       memory: null,
     });
+    const [quotaSize, setQuotaSize] = useState<QuotaSizeQuery>(null);
 
+    const refetchQuotaUsage = async () => {
+      const {data} = await client.query<QuotaSizeQuery>({
+        query: QuotaSizeDocument,
+        variables: {
+          userId
+        },
+        fetchPolicy: "network-only",
+      });
+      const newQuotaUsage = removeTypename(data.quotaUsage);
+      const newQuotaLeft = removeTypename(data.quotaLeft);
+      setQuotaSize({
+        quotaLeft: newQuotaLeft,
+        quotaUsage: newQuotaUsage
+      });
+    };
     useEffect(() => {
         const func = async () => {
-            console.log("Loading user data:", userId);
-            const {data: {quota}} = await client.query<QuotaGetQuery, QuotaGetQueryVariables>({
-              query: QuotaGetDocument,
-              variables: {
-                userId
-              },
-              fetchPolicy: "network-only"
-            });
-            const {data: {user}} = await client.query<UserGetQuery, UserGetQueryVariables>({
-              query: UserGetDocument,
-              variables: {
-                userId
-              }
-            });
-            const newDefaultValues = removeTypename(quota);
-            setDefaultValues({
-              user,
-              ...newDefaultValues
-            });
-          }
-        ;
-        if (userId)
+          console.log("Loading user data:", userId);
+          const {data: {quota}} = await client.query<QuotaGetQuery, QuotaGetQueryVariables>({
+            query: QuotaGetDocument,
+            variables: {
+              userId
+            },
+            fetchPolicy: "network-only"
+          });
+          const {data: {user}} = await client.query<UserGetQuery, UserGetQueryVariables>({
+            query: UserGetDocument,
+            variables: {
+              userId
+            }
+          });
+          const newDefaultValues = removeTypename(quota);
+          setDefaultValues({
+            user,
+            ...newDefaultValues
+          });
+
+        };
+        if (userId) {
           func();
+          refetchQuotaUsage();
+        }
       }, [userId]
     );
+
 
     const onUserChanged = (userId: string) => {
       history.push(`/quota/${userId}`);
@@ -87,6 +106,7 @@ export const QuotaAdminController: React.FC<RouteComponentProps<Args>> =
       if (!result.data.quotaSet.success) {
         formikActions.setStatus({'error': "Unable to set quota"})
       } else { //Trigger reloading data
+        await refetchQuotaUsage();
       }
 
     };
@@ -99,6 +119,7 @@ export const QuotaAdminController: React.FC<RouteComponentProps<Args>> =
               render={props => (
                 <QuotaAdminControllerForm
                   {...props}
+                  quotaSize={quotaSize}
                   onUserChanged={onUserChanged}
                 />
               )}

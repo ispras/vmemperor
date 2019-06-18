@@ -8,6 +8,7 @@ import {FieldProps, getIn} from "formik";
 
 interface OmittedProps {
   disabled?: boolean
+  children?: ReactNode;
 }
 
 
@@ -18,7 +19,7 @@ interface AdditionalProps {
 
 export const withCheckBoxOption = <T, Props extends OmittedProps & FieldProps<T>>(Component: React.ComponentType<Props>):
   React.FC<Omit<Props, keyof OmittedProps>> =>
-  ({checkboxLabelContent, ...props}: Props & AdditionalProps) => {
+  ({checkboxLabelContent, children, ...props}: Props & AdditionalProps) => {
     const {form, field} = props;
     const [checked, setChecked] = useState<boolean>(null);
     const [previousValue, setPreviousValue] = useState(null);
@@ -59,6 +60,7 @@ export const withCheckBoxOption = <T, Props extends OmittedProps & FieldProps<T>
           </InputGroupAddon>
           <Component {...innerComponentProps}/>
         </InputGroup>
+        {children}
       </FormGroup>
     )
 

@@ -1856,6 +1856,22 @@ export type ConsoleQueryVariables = {
 
 export type ConsoleQuery = { __typename?: "Query" } & Pick<Query, "console">;
 
+export type CreateVdiMutationVariables = {
+  nameLabel: Scalars["String"];
+  user?: Maybe<Scalars["String"]>;
+  size: Scalars["Float"];
+  srRef: Scalars["ID"];
+};
+
+export type CreateVdiMutation = { __typename?: "Mutation" } & {
+  vdiCreate: Maybe<
+    { __typename?: "VDICreateMutation" } & Pick<
+      VDICreateMutation,
+      "reason" | "granted" | "taskId"
+    >
+  >;
+};
+
 export type createVmMutationVariables = {
   vmOptions: VMInput;
   disks?: Maybe<Array<Maybe<NewVDI>>>;
@@ -2529,6 +2545,21 @@ export type QuotaGetQuery = { __typename?: "Query" } & {
     Quota,
     "vdiSize" | "vcpuCount" | "vmCount" | "memory"
   > & { user: { __typename?: "User" } & UserFragmentFragment };
+};
+
+export type QuotaSizeQueryVariables = {
+  userId: Scalars["String"];
+};
+
+export type QuotaSizeQuery = { __typename?: "Query" } & {
+  quotaUsage: { __typename?: "Quota" } & Pick<
+    Quota,
+    "vdiSize" | "vcpuCount" | "vmCount" | "memory"
+  >;
+  quotaLeft: { __typename?: "Quota" } & Pick<
+    Quota,
+    "vdiSize" | "vcpuCount" | "vmCount" | "memory"
+  >;
 };
 
 export type RebootVmMutationVariables = {
@@ -5939,6 +5970,36 @@ export function useConsoleQuery(
     baseOptions
   );
 }
+export const CreateVdiDocument = gql`
+  mutation CreateVdi(
+    $nameLabel: String!
+    $user: String
+    $size: Float!
+    $srRef: ID!
+  ) {
+    vdiCreate(nameLabel: $nameLabel, user: $user, size: $size, srRef: $srRef) {
+      reason
+      granted
+      taskId
+    }
+  }
+`;
+export type CreateVdiMutationFn = ReactApollo.MutationFn<
+  CreateVdiMutation,
+  CreateVdiMutationVariables
+>;
+
+export function useCreateVdiMutation(
+  baseOptions?: ReactApolloHooks.MutationHookOptions<
+    CreateVdiMutation,
+    CreateVdiMutationVariables
+  >
+) {
+  return ReactApolloHooks.useMutation<
+    CreateVdiMutation,
+    CreateVdiMutationVariables
+  >(CreateVdiDocument, baseOptions);
+}
 export const createVmDocument = gql`
   mutation createVm(
     $vmOptions: VMInput!
@@ -7213,6 +7274,31 @@ export function useQuotaGetQuery(
 ) {
   return ReactApolloHooks.useQuery<QuotaGetQuery, QuotaGetQueryVariables>(
     QuotaGetDocument,
+    baseOptions
+  );
+}
+export const QuotaSizeDocument = gql`
+  query QuotaSize($userId: String!) {
+    quotaUsage(user: $userId) {
+      vdiSize
+      vcpuCount
+      vmCount
+      memory
+    }
+    quotaLeft(user: $userId) {
+      vdiSize
+      vcpuCount
+      vmCount
+      memory
+    }
+  }
+`;
+
+export function useQuotaSizeQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<QuotaSizeQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<QuotaSizeQuery, QuotaSizeQueryVariables>(
+    QuotaSizeDocument,
     baseOptions
   );
 }
