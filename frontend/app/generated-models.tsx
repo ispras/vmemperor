@@ -1872,6 +1872,14 @@ export type CreateVdiMutation = { __typename?: "Mutation" } & {
   >;
 };
 
+export type VDIQuotaQueryVariables = {
+  user: Scalars["String"];
+};
+
+export type VDIQuotaQuery = { __typename?: "Query" } & {
+  quotaLeft: { __typename?: "Quota" } & Pick<Quota, "vdiSize">;
+};
+
 export type createVmMutationVariables = {
   vmOptions: VMInput;
   disks?: Maybe<Array<Maybe<NewVDI>>>;
@@ -2694,7 +2702,7 @@ export type StartVMMutation = { __typename?: "Mutation" } & {
 
 export type StorageListFragmentFragment = { __typename?: "GSR" } & Pick<
   GSR,
-  "ref" | "nameLabel" | "spaceAvailable" | "contentType"
+  "ref" | "nameLabel" | "spaceAvailable" | "contentType" | "myActions"
 > & {
     PBDs: Array<
       Maybe<{ __typename?: "GPBD" } & Pick<GPBD, "currentlyAttached">>
@@ -5396,6 +5404,7 @@ export const StorageListFragmentFragmentDoc = gql`
     PBDs {
       currentlyAttached
     }
+    myActions
   }
 `;
 export const UserFragmentFragmentDoc = gql`
@@ -5999,6 +6008,22 @@ export function useCreateVdiMutation(
     CreateVdiMutation,
     CreateVdiMutationVariables
   >(CreateVdiDocument, baseOptions);
+}
+export const VDIQuotaDocument = gql`
+  query VDIQuota($user: String!) {
+    quotaLeft(user: $user) {
+      vdiSize
+    }
+  }
+`;
+
+export function useVDIQuotaQuery(
+  baseOptions?: ReactApolloHooks.QueryHookOptions<VDIQuotaQueryVariables>
+) {
+  return ReactApolloHooks.useQuery<VDIQuotaQuery, VDIQuotaQueryVariables>(
+    VDIQuotaDocument,
+    baseOptions
+  );
 }
 export const createVmDocument = gql`
   mutation createVm(

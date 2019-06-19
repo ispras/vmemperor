@@ -66,7 +66,7 @@ export default object().shape<Values>({
       then: string().required(),
       otherwise: string().nullable(true)
     }),
-  hddSizeGB: number().integer().positive().required().max(2043),
+  hddSize: number().positive().required().max(2043 * 1024 * 1024 * 1024),
   vmOptions: object().shape<VMInput>({
     ...schema("vmOptions."),
     nameLabel: string().required(),

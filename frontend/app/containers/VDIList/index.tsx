@@ -27,7 +27,7 @@ import {ListAction} from "../../utils/reducer";
 import {Set} from 'immutable';
 import {useTableSelectionInInternalState, useUpdateInternalStateWithSubscription} from "../../hooks/listSelectionState";
 import {useApolloClient} from "react-apollo-hooks";
-import {ButtonGroup, ButtonToolbar} from "reactstrap";
+import {Button, ButtonGroup, ButtonToolbar} from "reactstrap";
 import SetAccessButton from "../../components/SetAccessButton";
 import RecycleBinButton from "../../components/RecycleBinButton";
 
@@ -107,6 +107,11 @@ const VDIs: React.FunctionComponent<RouteComponentProps> = ({history}) => {
     <Fragment>
       <ButtonToolbar>
         <ButtonGroup size="lg">
+          <Button
+            onClick={() => history.push("/create_vdi/")}
+          >
+            Create a new VDI
+          </Button>
           <SetAccessButton
             ALL={VDIActions.ALL}
             state={state}

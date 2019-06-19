@@ -38,7 +38,7 @@ export const QuotaAdminControllerForm: React.FunctionComponent<FormProps> =
           name="user"
           component={SelectUserForForm}
           onAfterChange={onUserChanged}
-          placeholder="Select a user to impose quote on..."
+          placeholder="Select a user to impose quota on..."
         />
         {props.values.user &&
         (<Fragment>

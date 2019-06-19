@@ -30,6 +30,8 @@ import {CreateVMTask} from "../TaskList/create_vm";
 import {PlaybookTask} from "../TaskList/playbook";
 import {QuotaAdminController} from "../QuotaAdminController";
 import PoolSettings from "../PoolSettings";
+import {AddVDIDialog} from "../AddVDIDialog";
+import {CreateVDITask} from "../TaskList/create_vdi";
 
 
 interface State {
@@ -92,6 +94,8 @@ class App extends React.Component<{}, State> {
             <PrivateRoute path="/launch_playbook/:id" component={PlaybookTask}/>
             <PrivateRoute path="/quota/:userType?/:user?" component={QuotaAdminController}/>
             <PrivateRoute path="/pool" component={PoolSettings}/>
+            <PrivateRoute path="/create_vdi" component={AddVDIDialog}/>
+            <PrivateRoute path="/vdi_created/:id" component={CreateVDITask}/>
             <Route component={NotFoundPage}/>
           </Switch>
         </BrowserRouter>

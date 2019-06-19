@@ -70,6 +70,7 @@ export const AbstractMemoryInput: React.FC<Props> = ({field, form, unit, onSetVa
 
   const value = useMemo(() =>
     convertValue(getIn(form.values, field.name)), [form.values]);
+  const quotaValue = convertValue(quotaBytes);
   return (
     <Fragment>
       <InputBase
@@ -79,11 +80,12 @@ export const AbstractMemoryInput: React.FC<Props> = ({field, form, unit, onSetVa
         field={field}
         form={form}
         value={value}
+        max={quotaBytes !== null ? quotaValue : undefined}
       />
-      {quotaText && quotaBytes && (
+      {quotaText && quotaBytes >= 0 && (
         <InputGroupAddon addonType="append"
                          style={{"line-height": "1!important"}}>
-          {quotaText + " " + convertValue(quotaBytes)}
+          {quotaText + " " + quotaValue}
         </InputGroupAddon>)}
       <InputGroupAddon addonType="append"
                        style={{"line-height": "1!important"}}

@@ -1,4 +1,5 @@
 import collections
+import time
 from collections import Mapping
 from http.client import CannotSendRequest
 

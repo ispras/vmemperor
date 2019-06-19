@@ -29,23 +29,24 @@ import validationSchema from './schema';
 import {showTaskNotification} from "../Toast/task";
 
 const baseValues: Values = {
-  pool: null,
-  template: null,
-  storage: null,
-  network: null,
-  vmOptions: {},
-  iso: null,
-  networkType: "dhcp",
-  autoMode: false,
-  installParams: {
-    hostname: null,
-    username: null,
-    password: null,
-    partition: null,
-  },
-  hddSizeGB: 10,
-  password2: null,
-};
+    pool: null,
+    template: null,
+    storage: null,
+    network: null,
+    vmOptions: {},
+    iso: null,
+    networkType: "dhcp",
+    autoMode: false,
+    installParams: {
+      hostname: null,
+      username: null,
+      password: null,
+      partition: null,
+    },
+    hddSize: 10737418240, //10 GB
+    password2: null,
+  }
+;
 
 
 const VMFormContainer: React.FunctionComponent = () => {
@@ -54,7 +55,7 @@ const VMFormContainer: React.FunctionComponent = () => {
   const createVM = usecreateVmMutation();
 
   const onSumbit = async (values: Values, formikActions: FormikActions<Values>) => {
-    const hddSizeMegabytes = values.hddSizeGB * 1024;
+    const hddSizeMegabytes = values.hddSize / 1024 / 1024;
     if (!(values.autoMode && values.networkType === 'static'))
       if (values.installParams && values.installParams.staticIpConfig)
         delete values.installParams.staticIpConfig;
@@ -71,7 +72,7 @@ const VMFormContainer: React.FunctionComponent = () => {
       disks: [
         {
           SR: values.storage,
-          size: hddSizeMegabytes * 1024 * 1024 //Bytes
+          size: values.hddSize
         }
       ],
     };

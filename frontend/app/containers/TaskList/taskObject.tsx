@@ -187,7 +187,8 @@ export class VM extends TaskSubject {
           query: VMForTaskListDocument,
           variables: {
             vmRef: objectRef
-          }
+          },
+          fetchPolicy: "network-only",
         }
       );
       return nameLabel;
@@ -284,7 +285,8 @@ export class Template extends TaskSubject {
         query: TemplateForTaskListDocument,
         variables: {
           templateRef: objectRef,
-        }
+        },
+        fetchPolicy: "network-only",
       });
       return nameLabel;
     } catch (e) {
@@ -315,7 +317,8 @@ export class VDI extends TaskSubject {
         query: VDIForTaskListDocument,
         variables: {
           vdiRef: objectRef,
-        }
+        },
+        fetchPolicy: "network-only",
       });
       return nameLabel;
     } catch (e) {

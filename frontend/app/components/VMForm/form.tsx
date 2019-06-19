@@ -32,6 +32,8 @@ import {TemplateInputField} from "./templateInput";
 import {useCurrentUserAndGroups} from "../../hooks/user";
 import {UserInputField} from "../MainOwnerForm/userInput";
 import {PostInstall} from "./postinstall";
+import {VDISizeComponent} from "../AbstractVMSettingsComponents/VDISizeComponent";
+import {SRInput} from "../AbstractVMSettingsComponents/srinput";
 
 const H4 = styled.h4`
 margin: 20px;
@@ -45,6 +47,15 @@ const VMForm: React.FC<Props> = ({taskId, ...props}) => {
   const {data: {pools}} = usePoolListQuery();
   const poolOptions = useReactSelectFromRecord(pools);
   const currentUserAndGroups = useCurrentUserAndGroups();
+  const currentUser = useCurrentUserQuery();
+  const user = useMemo(() => {
+    if (props.values.vmOptions.mainOwner)
+      return props.values.vmOptions.mainOwner;
+    else if (currentUser.data.currentUser.isAdmin)
+      return null;
+    else
+      return currentUser.data.currentUser.user.id;
+  }, [currentUser, props.values.vmOptions.mainOwner]);
   const templateList = useTemplateListQuery();
   const templates = templateList.data.templates.filter(item => {
     return item.myActions.includes(TemplateActions.create_vm)
@@ -57,14 +68,6 @@ const VMForm: React.FC<Props> = ({taskId, ...props}) => {
       setPostInstall(false);
   }, [taskId]);
   const templateOptions = useReactSelectFromRecord(templates);
-
-  const {data: srData} = useStorageListQuery();
-  const srs = useMemo(() => srData.srs.filter(
-    sr => sr.contentType === SRContentType.User &&
-      !sr.PBDs.every(pbd => !pbd.currentlyAttached)), [srData]);
-  const srOptions = useReactSelectFromRecord(srs, (item: StorageListFragmentFragment) => {
-    return `${item.nameLabel} (${formatBytes(item.spaceAvailable, 2)} available)`
-  });
 
   const {data: {networks}} = useNetworkListQuery();
   const networkOptions = useReactSelectFromRecord(networks);
@@ -117,12 +120,8 @@ const VMForm: React.FC<Props> = ({taskId, ...props}) => {
                  options={templateOptions}
                  placeholder="Select an OS template to install..."
           />
-          <Field name="storage"
-                 component={Select}
-                 options={srOptions}
-                 placeholder="Select a storage repository to install on..."
-                 addonIcon={faDatabase}
-          />
+          <SRInput fieldName="storage"/>
+
           <Field name="network"
                  component={Select}
                  options={networkOptions}
@@ -223,11 +222,9 @@ const VMForm: React.FC<Props> = ({taskId, ...props}) => {
             <div style={hideTemplateElementsStyle}>
               <H4><FormattedMessage {...messages.resources} /></H4>
               <ResourceFields namePrefix="vmOptions."/>
-              <Field name="hddSizeGB"
-                     component={Input}
-                     type="number"
-                     addonIcon={faHdd}
-                     appendAddonText={"GB"}
+              <VDISizeComponent
+                fieldName="hddSize"
+                user={user}
               />
             </div>
           </Fragment>

@@ -16,7 +16,7 @@ export interface Values {
   password2: string;
   iso: string;
   autoMode: boolean;
-  hddSizeGB: number;
+  hddSize: number;
 }
 
 export type FormikPropsValues = FormikProps<Values>;

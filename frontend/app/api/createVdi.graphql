@@ -5,3 +5,9 @@ mutation CreateVdi($nameLabel: String!, $user: String, $size: Float!, $srRef: ID
     taskId
   }
 }
+
+query VDIQuota($user: String!) {
+  quotaLeft(user: $user) {
+    vdiSize
+  }
+}

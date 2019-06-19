@@ -135,8 +135,8 @@ def set_memory(input: Mapping, vm: AbstractVM, return_diff=True):
 def set_VCPUs(input: Mapping, vm: AbstractVM, return_diff=True):
 
 
-    old_val = {'VCPUs_max': vm._get_VCPUs_max(),
-               'VCPUs_at_startup': vm._get_VCPUs_at_startup()}
+    old_val = {'VCPUs_max': vm.get_VCPUs_max(),
+               'VCPUs_at_startup': vm.get_VCPUs_at_startup()}
 
     current_startup = old_val['VCPUs_at_startup']
     if current_startup > input['VCPUs_max']:

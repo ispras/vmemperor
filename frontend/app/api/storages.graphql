@@ -6,6 +6,7 @@ fragment StorageListFragment on GSR {
   PBDs{
     currentlyAttached
   }
+  myActions
 }
 
 query StorageList {
