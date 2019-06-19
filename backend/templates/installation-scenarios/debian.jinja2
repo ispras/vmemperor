@@ -155,13 +155,9 @@ d-i passwd/username string {{ username }}
 {% end %}
 # Normal user's password
 {% if password %}
-d-i passwd/user-password password {{ password }}
-d-i passwd/user-password-again password {{ password }}
-
-d-i passwd/root-password password {{ password }}
-d-i passwd/root-password-again password {{ password }}
+d-i passwd/user-password-crypted password {{ password }}
 {% end %}
-#d-i passwd/user-password-crypted password $1$DNhkrozT$wd.eE93h82Y8wIuNhWlMf/
+
 # The installer will warn about weak passwords. If you are sure you know
 # what you're doing and want to override it, uncomment this.
 d-i user-setup/allow-password-weak boolean true

@@ -1,5 +1,5 @@
 from typing import Sequence, Mapping
-
+import crypt
 from rethinkdb.errors import ReqlTimeoutError, ReqlDriverError
 from sentry_sdk import capture_exception
 import constants.re as re
@@ -316,7 +316,8 @@ class VM (AbstractVM):
             os.hostname = install_params.hostname
             os.fullname = install_params.fullname
             os.username = install_params.username
-            os.password = install_params.password
+            os.password = crypt.crypt(install_params.password,
+                                      crypt.mksalt(crypt.METHOD_SHA512))
             os.partition = install_params.partition
             os.device = guest_device
 
