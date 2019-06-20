@@ -14,11 +14,14 @@ interface Props {
 
 
 const VNCView = ({vm: {ref, nameLabel, powerState}}: Props) => {
-  const {data, refetch} = useConsoleQuery({
+  const {data, errors, refetch} = useConsoleQuery({
     variables: {
       id: ref,
     }
   });
+  if (errors) {
+    return <code>{errors.map(error => JSON.stringify(error))}</code>
+  }
   if (!data.console) {
     return (<h1>Access denied! Ask your administrator</h1>)
   }

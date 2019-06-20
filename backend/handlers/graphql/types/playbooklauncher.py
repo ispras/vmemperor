@@ -88,8 +88,11 @@ def launch_playbook(ctx: ContextProtocol,  task : CustomTask, playbook_id, vms: 
                         if not ip:
                             logging.warning(f"Could not get an IP to connect to {vm}: {network}. This is probably not okay, install Xen drivers")
                             continue
+
+                        other_config = vm.get_other_config()
+                        user = other_config.get('first_user', 'root')
                         yaml_hosts['all']['hosts'][vm.get_name_label()] = {
-                            'ansible_user': 'root',
+                            'ansible_user': user,
                             'ansible_host': ip
                         }
                         break

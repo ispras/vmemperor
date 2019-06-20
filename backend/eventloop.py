@@ -98,13 +98,30 @@ class EventLoop(Loggable):
                             continue
                     try:
                         ref = record['new_val']['ref']
-                    except Exception:
+                    except (KeyError, TypeError):
                         continue
-                    try:
-                        task = Task(xen, ref=ref)
-                        task_record = task._get_record() # _ means we force to skip the database
-                    except:
+                    task = Task(xen, ref=ref)
+                    while True:
+                        task_record = None
+                        try:
+                            task_record = task._get_record() # _ means we force to skip the database
+                        except XenAdapterAPIError as e:
+                            if e.details['error_code'] == "HANDLE_INVALID":
+                                time.sleep(1) # This Task is not created yet
+                                continue
+                            else:
+                                capture_exception(e)
+                                break
+                        except Exception as e:
+                            capture_exception(e)
+                            break
+                        else:
+                            break
+
+                    if not task_record:
                         continue
+
+
                     doc = Task.process_record(xen, ref, task_record)
                     CHECK_ER(re.db.table(Task.db_table_name).insert(doc, conflict='update').run())
 

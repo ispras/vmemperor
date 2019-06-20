@@ -126,7 +126,6 @@ class GenericOS:
             dns0=self.dns0,
             dns1=self.dns1,
             partition=self.partition
-
         )
         id = AutoInstallList.insert(args)
         return 'http://' + opts.vmemperor_host + ':' + str(

@@ -4,6 +4,7 @@ from collections import Mapping
 from http.client import CannotSendRequest
 
 import tornado
+from sentry_sdk import capture_exception
 from serflag import SerFlag
 from tornado import ioloop
 
@@ -150,8 +151,9 @@ class XenObject(metaclass=XenObjectMeta):
             self.ref = ref
             try:
                 self.uuid = self.get_uuid() #  Test that object ID is good
-            except XenAdapterAPIError:
-                raise ValueError(f"{self.__class__} identifier {ref} is invalid")
+            except XenAdapterAPIError as e:
+                capture_exception(e)
+                raise e
         else:
             raise ValueError(
                              f"XenObject:Failed to initialize object of type {self.__class__.__name__}"

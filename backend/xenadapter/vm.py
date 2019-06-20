@@ -316,6 +316,7 @@ class VM (AbstractVM):
             os.hostname = install_params.hostname
             os.fullname = install_params.fullname
             os.username = install_params.username
+            self.add_to_other_config('first_user', os.username)
             os.password = crypt.crypt(install_params.password,
                                       crypt.mksalt(crypt.METHOD_SHA512))
             os.partition = install_params.partition

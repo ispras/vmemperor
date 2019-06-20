@@ -5,7 +5,10 @@ mount /dev/{{ device }} /mnt
 cd /mnt/Linux
 ./install.sh -n
 
-mkdir -p /root/.ssh/
-echo "{{ pubkey }}" >> /root/.ssh/authorized_keys
-chmod  700 /root/.ssh
-chmod -R 600 /root/.ssh/*
+echo "{{ username }} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+mkdir -p ~{{ username }}/.ssh/
+echo "{{ pubkey }}" >> ~{{ username }}/.ssh/authorized_keys
+chown -R {{ username }}:{{ username }} ~{{ username}}/.ssh
+chmod  700 ~{{ username }}/.ssh
+chmod -R 600 ~{{ username }}/.ssh/*
+
