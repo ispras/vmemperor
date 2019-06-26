@@ -88,10 +88,6 @@ class Authentication(metaclass=ABCMeta):
 
 @Authentication.register
 class BasicAuthenticator():
-    @classmethod
-    def class_name(cls):
-        return cls.__name__
-
     def get_user_groups(self):
         return {}
 

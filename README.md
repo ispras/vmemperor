@@ -2,7 +2,7 @@
 
 ## Configuration
 
-File: `login.ini`
+File: `configs/config.ini`
 
 ### Example
 ```bash
@@ -28,15 +28,17 @@ user_source_delay = 2 # How often VMEmperor asks external authenticator for user
       * `vmemperor_port` (Dockerfile assumes auto configuration of frontend and it uses default port)
       * `host` (Dockerfile assumes RethinkDB is running in the same Docker container)
 2. Pay attention to `ansible_pubkey` variable: its default value assumes that you mount `/root` directory with `.ssh/id_rsa` and `.ssh/id_rsa.pub` files in container. If you change this value, correct `docker run` command accordingly
-3. [Adapt your Ansible playbooks](https://github.com/pashazz/vmemperor/wiki/AnsiblePlaybookConfigFormat), see example in `ansible` folder. They'll be built into a docker container. You may want to use them as volume - edit `docker-compose.yml`
+3. [Adapt your Ansible playbooks](https://github.com/pashazz/vmemperor/wiki/AnsiblePlaybookConfigFormat), see example in `ansible` folder. You may want to use them as volume - edit `docker-compose.yml`
 0. Generate SSH keys for access using Ansible:
 ```
 ssh-keygen -f keys/id_rsa
 ```
-0. Run `docker-compose up`
+
+5. Run `docker-compose up`
 
 
-## How to configure
+## How to configure (without Grafana)
+#### Grafana is only available with docker-compose
   0. Ensure at least Python 3.7 on your host machine
   0. Set Up XenServer and provide XenServer URL as `url` config parameter
   0. [Set up RethinkDB](https://www.rethinkdb.com/docs/start-on-startup/). Don't forget `bind=127.0.0.1`
@@ -56,6 +58,7 @@ ssh-keygen -f keys/id_rsa
   0. Install VMEmperor dependencies with `pip install -r requirements.txt` (optionally create a virtualenv ). Install npm for managing frontend
   0. For `ispldap` set up LDAP server IP in `auth/ispldap.py:12`, variable `SERVER_IP`
   0. Optionally [Adapt your Ansible playbooks](https://github.com/pashazz/vmemperor/wiki/AnsiblePlaybookConfigFormat), see example in `ansible` folder
+  0. change your directory to `/backend` and copy `/configs/config.ini` to there.
   0. Start VMEmperor with `python3 vmemperor.py`
   0. from `frontend` directory install dependencies with `npm install`
   0. run frontend with `npm run start`

@@ -96,6 +96,13 @@ class AuthCheckHandler(tornado.web.RequestHandler):
 
 
 def make_app(executor, auth_class=None, debug=False):
+    """
+    Creates a tornado application
+    :param executor: Tornado executor
+    :param auth_class: This overrides config file setting for authentication class
+    :param debug:
+    :return:
+    """
     if auth_class is None:
         d = DynamicLoader('auth')
 
@@ -131,7 +138,7 @@ def make_app(executor, auth_class=None, debug=False):
 
     from auth.sqlalchemyauthenticator import SqlAlchemyAuthenticator, User, Group
     if opts.debug and app.auth_class.__name__ == SqlAlchemyAuthenticator.__name__:
-        # create test users
+        # create test users for our sqlalchemy authenticator.
 
         john_group = Group(name='John friends')
         SqlAlchemyAuthenticator.session.add(john_group)

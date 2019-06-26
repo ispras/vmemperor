@@ -39,6 +39,11 @@ def create_dbs():
 
 
     def create_user_table(cl: "XenObject"):
+        """
+        Creates a user table with indices for optimizing user-specific queries
+        :param cl:
+        :return:
+        """
         with ReDBConnection().get_connection():
             table_user = f'{cl.db_table_name}_user'
             re.db.table_create(table_user, durability='soft').run()

@@ -41,6 +41,9 @@ class InstallOSOptions(GSubtypeObjectType):
 
 
 class GTemplate(GXenObjectType):
+    """
+    Represents a template - a bundle with VM settings used for installing an OS of a particular kind
+    """
     class Meta:
         interfaces = (GAclXenObject, GAbstractVM)
 

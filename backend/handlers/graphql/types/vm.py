@@ -63,8 +63,12 @@ class PowerState(graphene.Enum):
 
 
 class GVM(GXenObjectType):
+    """
+    Represents a virtual machine
+    """
     class Meta:
         interfaces = (GAclXenObject, GAbstractVM, GQuotaObject)
+
 
     access = graphene.Field(graphene.List(GVMAccessEntry), required=True)
     my_actions = graphene.Field(graphene.List(GVMActions), required=True)

@@ -11,18 +11,10 @@ from logging import Logger
 
 
 class ContextProtocol(_Protocol):
-    def async_run(self, task_ref : str) -> None:
-        '''
-        This method awaits for XenAPI task completion in executor
-        :param task_ref: XenAPI task reference
-        :return: None
-        '''
-        ...
-
     log : Logger # XenAdapter log, see loggable.py, logs in vmemperor.log
     actions_log : Logger #XenAdapter actions log, for VM installs, logs in action.log
-    xen: XenAdapter
-    user_authenticator: BasicAuthenticator
+    xen: XenAdapter # XenAdapter used for synchronous operations. It is initalized when a request is accepted and finalized when request is served
+    user_authenticator: BasicAuthenticator # Current user
 
 
 

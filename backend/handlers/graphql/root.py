@@ -52,17 +52,17 @@ r = RethinkDB()
 class Query(ObjectType):
 
     vms = graphene.List(GVM, required=True, resolver=resolve_all(), description="All VMs available to user")
-    vm = graphene.Field(GVM, ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
+    vm = graphene.Field(GVM, ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a VM")
 
-    vm_snapshot = graphene.Field(GVMSnapshot, ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
+    vm_snapshot = graphene.Field(GVMSnapshot, ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a VM Snapshot")
     templates = graphene.List(GTemplate, required=True, resolver=resolve_all(), description="All Templates available to user")
-    template = graphene.Field(GTemplate,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
+    template = graphene.Field(GTemplate,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a Template")
 
-    hosts = graphene.List(GHost, required=True, resolver=resolve_all())
-    host = graphene.Field(GHost,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
+    hosts = graphene.List(GHost, required=True, resolver=resolve_all(), description="All hosts in the pool")
+    host = graphene.Field(GHost,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a host in the pool")
 
-    pools = graphene.List(GPool, required=True, resolver=resolve_all())
-    pool = graphene.Field(GPool, ref=graphene.NonNull(graphene.ID), resolver=resolve_one())
+    pools = graphene.List(GPool, required=True, resolver=resolve_all(), description="All pools in the system")
+    pool = graphene.Field(GPool, ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a pool")
 
     networks = graphene.List(GNetwork, required=True, resolver=resolve_all(), description="All Networks available to user")
     network = graphene.Field(GNetwork,  ref=graphene.NonNull(graphene.ID), resolver=resolve_one(), description="Information about a single network")

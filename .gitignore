@@ -12,3 +12,6 @@ nohup.out
 __pycache__
 keys/*
 .gradle
+logs/*
+
+backend/config.ini

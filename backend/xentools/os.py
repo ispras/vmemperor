@@ -7,6 +7,11 @@ from xentools.autoinstalllist import AutoInstallList
 
 
 class Distro(Enum):
+    """
+    Lists all distributions with automatic installation capabilities.
+    The values of the enum correspond to a range of possible
+     other-config:install-distro values in a template
+    """
     Debian = "debianlike"
     CentOS = "rhlike"
     SUSE = "sleslike"
@@ -15,14 +20,19 @@ class Distro(Enum):
 
 
 class Arch(Enum):
+    """
+    Lists all architectures possible for automatic installation.
+    The values of the enum correspond to a range of possible
+     other-config:install-arch values in a template
+    """
     I386 = 'i386'
     X86_64 = 'x86_64'
 
 class GenericOS:
-    '''
-    A class that generates kernel boot arguments string for various Linux distributions
-    '''
-
+    """
+    A base class for other_config generator for OS installation. Usage is presented in
+    VM.create
+    """
     HVM_RELEASES = []
 
     def __init__(self, other_config):
@@ -62,12 +72,6 @@ class GenericOS:
         This method creates a new record in DB of install_scripts and thus creates a one-time link to temporary installation scenario
         See also get_scenario
         See also handlers/rest/autoinstall.py - serves one-time installation scenarios
-        :return:
-        '''
-
-    def hvm_args(self) -> str:
-        '''
-        Obtain hvm_args - whatever that might be
         :return:
         '''
 
@@ -413,10 +417,17 @@ class CentOS(GenericOS):
             return None
 
 class SuseOS(GenericOS):
+    """
+    SuSE installations are not implemented yet
+    """
     def get_release(self):
         return None
 
 class OSChooser:
+    """
+    Return a GenericOS derivative object that corresponds to an other_config
+    presented to get_os
+    """
     @classmethod
     def get_os(cls, other_config):
         if other_config.get('install-distro') == 'rhlike':

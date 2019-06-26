@@ -36,6 +36,10 @@ class EventLoop(Loggable):
         self.authenticator = authenticator
 
     def do_user_table(self):
+        """
+        Examines an external authentication source, adds/removes users/groups if needed
+        :return:
+        """
         try:
             conn = ReDBConnection().get_connection()
             log = self.log
@@ -135,6 +139,17 @@ class EventLoop(Loggable):
 
 
     def do_access_monitor(self):
+        """
+        This thread waits for every change in object databases and fills user databases.
+        Every resource that has ACL capabilities  (their classes are derived from ACLXenObject) has an access field. This method
+        breaks down access field for every  and creates entries in user tables with a following structure:
+        >>>  {'actions': ['ALL'],
+        >>> 'id': 'irrelevant unique ID',
+        >>> 'ref': 'object ref',
+        >>> 'userid': 'user/group id'},
+
+        For VM, as VM.db_table_name = 'vms' the name of the user table will be 'vms_user'
+        """
         try:
             conn = ReDBConnection().get_connection()
 
