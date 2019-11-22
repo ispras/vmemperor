@@ -17,16 +17,6 @@ RUN  apt-get update \
 &&  apt-get update \
 &&  apt-get install -y ansible
 
-
-WORKDIR /rethinkdb
-ADD ./requirements.txt /rethinkdb/requirements.txt
-RUN pip install -r requirements.txt
-RUN git clone https://github.com/pashazz/rethinkdb-python.git
-
-WORKDIR /rethinkdb/rethinkdb-python
-
-RUN git checkout set_loop_type && make prepare && pip install .
-
 RUN curl  https://deb.nodesource.com/setup_8.x | bash - && \
  apt-get install -y nodejs
 
