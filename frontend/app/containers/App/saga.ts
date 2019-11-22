@@ -7,17 +7,6 @@ import {authAgent} from "../PrivateRoute";
 import {Server} from 'mock-socket';
 
 
-import {actions} from 'react-redux-toastr';
-
-
-function* handleRemoveFromWaitList(action) {
-  const selector = (state) => state.get('app').get('waitList').get('notifications');
-  const vm_notification_map = yield select(selector);
-  if (!vm_notification_map.has(action.notifyId)) {
-    yield put(actions.remove(action.notifyId));
-  }
-}
-
 export function* loginFlow() {
   window.beforeLogin = '/';
   let previousSession = null;
@@ -81,10 +70,6 @@ function* watchLoginFlow() {
 
 // All sagas to be loaded
 export default function* rootSaga() {
-
-
-  yield takeEvery(REMOVE_FROM_WAIT_LIST, handleRemoveFromWaitList);
-
   yield all([watchLoginFlow()]);
 };
 

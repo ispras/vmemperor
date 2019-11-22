@@ -19,7 +19,8 @@ class AsyncMutationMethod:
 
         :param taskId:
         :param object: xen object that is the mutation subject
-        :param post_mutation_hook: a hook that runs with task result as argument if task is successful
+        :param post_mutation_hook: a hook
+        that runs with task result as argument if task is successful
         :param action: string representation of an action that is used in task DB table
         :return:
         '''

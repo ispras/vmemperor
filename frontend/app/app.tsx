@@ -44,9 +44,6 @@ import './global-styles';
 import "react-bootstrap-table-next/dist/react-bootstrap-table2.min.css"
 //Import application-level sagas (login flow)
 import appSaga from './containers/App/saga'
-//import toastr
-import 'react-redux-toastr/lib/css/react-redux-toastr.min.css'
-import ReduxToastr from 'react-redux-toastr';
 //Import apollo
 import {ApolloClient} from 'apollo-client';
 import {defaultDataIdFromObject, InMemoryCache, IntrospectionFragmentMatcher} from 'apollo-cache-inmemory';
@@ -261,8 +258,6 @@ const render = (messages) => {
             </ApolloProvider>
           </ConnectedRouter>
         </LanguageProvider>
-        <ReduxToastr
-          progressBar/>
       </div>
     </Provider>,
     MOUNT_NODE

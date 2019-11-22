@@ -185,6 +185,8 @@ def read_settings():
     if not os.path.exists(file_path):
         file_path = path.join(path.dirname(path.realpath(__file__)), 'config.ini')
 
+
+    logger.debug("Parsing config file from " + file_path)
     parse_config_file(file_path)
 
     rotateLogs()
