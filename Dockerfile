@@ -4,6 +4,7 @@ FROM ubuntu:18.04
 
 ADD backend /app
 ADD frontend /app/frontend
+ADD requirements.txt /app
 WORKDIR /app
 
 ENV DOCKER True
@@ -11,6 +12,9 @@ ENV DOCKER True
 RUN apt update && apt install -y \
     python3.7 python3.7-distutils curl wget  gdebi-core git libpng-dev build-essential
 RUN curl https://bootstrap.pypa.io/get-pip.py | python3.7
+
+RUN pip install -r requirements.txt
+
 RUN  apt-get update \
 &&  apt-get install -y software-properties-common \
 &&  apt-add-repository ppa:ansible/ansible \
