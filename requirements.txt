@@ -9,7 +9,7 @@ asyncore-wsgi==0.0.9
 attrs==18.2.0
 backcall==0.1.0
 bcrypt==3.1.6
-bottle==0.12.16
+bottle==0.12.20
 certifi==2018.11.29
 cffi==1.13.2
 chardet==3.0.4
